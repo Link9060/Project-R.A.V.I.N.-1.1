@@ -1,0 +1,15 @@
+{
+  "name": "ravin",
+  "version": "0.1.0",
+  "description": "RAVIN - a personal AI assistant with a Jarvis-style personality",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "web": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
