@@ -18,15 +18,17 @@
   ).matches;
 
   const CONFIG = {
-    density: 17000,       // px^2 per particle — higher = fewer, calmer particles
-    maxParticles: 130,
-    linkDist: 95,          // baseline constellation link distance (kept short = subtle)
-    mouseRadius: 150,      // radius of influence around the cursor
+    density: 15000,        // px^2 per particle — lower = more particles
+    maxParticles: 150,
+    linkDist: 100,          // baseline constellation link distance
+    mouseRadius: 160,       // radius of influence around the cursor/touch
     driftSpeed: 0.1,
-    dotSize: 1.3,
-    ambientAlpha: 0.035,   // ceiling for resting constellation links
-    boostedAlpha: 0.42,    // ceiling for links near the cursor
-    cursorLinkAlpha: 0.4,
+    dotSize: 1.7,
+    restingDotAlpha: 0.42,  // resting dot visibility (bumped up — dots should read clearly)
+    activeDotAlpha: 0.9,    // dot visibility when lit up near cursor/touch
+    ambientAlpha: 0.06,     // ceiling for resting constellation links
+    boostedAlpha: 0.48,     // ceiling for links near the cursor/touch
+    cursorLinkAlpha: 0.45,
   };
 
   function readParticleColor() {
@@ -86,10 +88,10 @@
       const nearMouse = mouse.active && distToMouse < CONFIG.mouseRadius;
 
       ctx.beginPath();
-      ctx.arc(p.x, p.y, nearMouse ? CONFIG.dotSize * 1.7 : CONFIG.dotSize, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, nearMouse ? CONFIG.dotSize * 1.6 : CONFIG.dotSize, 0, Math.PI * 2);
       ctx.fillStyle = nearMouse
-        ? `rgba(${particleRGB}, 0.75)`
-        : `rgba(${particleRGB}, 0.22)`;
+        ? `rgba(${particleRGB}, ${CONFIG.activeDotAlpha})`
+        : `rgba(${particleRGB}, ${CONFIG.restingDotAlpha})`;
       ctx.fill();
     }
 
@@ -151,19 +153,21 @@
     mouse.active = false;
   });
 
-  window.addEventListener(
-    "touchmove",
-    (e) => {
-      if (e.touches.length > 0) {
-        mouse.x = e.touches[0].clientX;
-        mouse.y = e.touches[0].clientY;
-        mouse.active = true;
-      }
-    },
-    { passive: true }
-  );
+  function updateTouch(e) {
+    if (e.touches.length > 0) {
+      mouse.x = e.touches[0].clientX;
+      mouse.y = e.touches[0].clientY;
+      mouse.active = true;
+    }
+  }
+
+  window.addEventListener("touchstart", updateTouch, { passive: true });
+  window.addEventListener("touchmove", updateTouch, { passive: true });
 
   window.addEventListener("touchend", () => {
+    mouse.active = false;
+  });
+  window.addEventListener("touchcancel", () => {
     mouse.active = false;
   });
 

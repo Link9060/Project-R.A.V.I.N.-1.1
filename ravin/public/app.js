@@ -84,6 +84,7 @@
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("ravin_theme", theme);
     updateThemeToggleUI();
+    playClick();
   });
 
   // ---------- Boot sequence ----------
@@ -109,23 +110,45 @@
 
   // ---------- Sound (tiny synthesized blips, no audio files needed) ----------
   let audioCtx = null;
-  function playBlip(freq, duration) {
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // iOS suspends new/backgrounded contexts until explicitly resumed inside
+    // a user gesture — this call has to happen synchronously in the handler.
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, duration, peakGain) {
     if (!soundOn) return;
     try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(peakGain, ctx.currentTime + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(ctx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + duration);
+      osc.stop(ctx.currentTime + duration);
     } catch {
       // Web Audio unsupported or blocked — fail silently, sound is a nicety.
     }
+  }
+
+  function playBlip(freq, duration) {
+    playTone(freq, duration, 0.16);
+  }
+
+  function playClick() {
+    playTone(1000, 0.045, 0.1);
   }
 
   function updateSoundToggleUI() {
@@ -137,12 +160,13 @@
     soundOn = !soundOn;
     localStorage.setItem("ravin_sound", soundOn ? "on" : "off");
     updateSoundToggleUI();
-    if (soundOn) playBlip(660, 0.08);
+    if (soundOn) playBlip(660, 0.09);
   });
 
   // ---------- Settings panel ----------
   settingsBtn.addEventListener("click", () => {
     settingsPanel.classList.toggle("open");
+    playClick();
   });
 
   document.addEventListener("click", (e) => {
@@ -164,6 +188,7 @@
     chat.appendChild(fresh);
     introEl = fresh;
     settingsPanel.classList.remove("open");
+    playClick();
   });
 
   // ---------- Keyboard shortcuts ----------
