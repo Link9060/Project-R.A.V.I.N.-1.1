@@ -21,14 +21,16 @@
     density: 15000,        // px^2 per particle — lower = more particles
     maxParticles: 150,
     linkDist: 100,          // baseline constellation link distance
-    mouseRadius: 160,       // radius of influence around the cursor/touch
+    mouseRadius: 220,       // radius of influence around the cursor/touch — larger = easier to trigger
     driftSpeed: 0.1,
     dotSize: 1.7,
-    restingDotAlpha: 0.42,  // resting dot visibility (bumped up — dots should read clearly)
-    activeDotAlpha: 0.9,    // dot visibility when lit up near cursor/touch
+    restingDotAlpha: 0.42,  // resting dot visibility
+    activeDotAlpha: 1,      // dot visibility when lit up near cursor/touch
     ambientAlpha: 0.06,     // ceiling for resting constellation links
-    boostedAlpha: 0.48,     // ceiling for links near the cursor/touch
-    cursorLinkAlpha: 0.45,
+    boostedAlpha: 0.6,      // ceiling for links near the cursor/touch
+    cursorLinkAlpha: 0.55,
+    glowRadius: 130,        // soft halo that follows the cursor/finger directly
+    glowAlpha: 0.1,         // peak opacity of that halo, fades to 0 at glowRadius
   };
 
   function readParticleColor() {
@@ -76,6 +78,21 @@
   function step() {
     ctx.clearRect(0, 0, width, height);
 
+    // Soft halo that follows the cursor/finger directly — always visible the
+    // instant you move, regardless of whether any dots happen to be nearby.
+    if (mouse.active) {
+      const glow = ctx.createRadialGradient(
+        mouse.x, mouse.y, 0,
+        mouse.x, mouse.y, CONFIG.glowRadius
+      );
+      glow.addColorStop(0, `rgba(${particleRGB}, ${CONFIG.glowAlpha})`);
+      glow.addColorStop(1, `rgba(${particleRGB}, 0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, CONFIG.glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // update + draw particles
     for (const p of particles) {
       p.x += p.vx;
@@ -88,7 +105,7 @@
       const nearMouse = mouse.active && distToMouse < CONFIG.mouseRadius;
 
       ctx.beginPath();
-      ctx.arc(p.x, p.y, nearMouse ? CONFIG.dotSize * 1.6 : CONFIG.dotSize, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, nearMouse ? CONFIG.dotSize * 2 : CONFIG.dotSize, 0, Math.PI * 2);
       ctx.fillStyle = nearMouse
         ? `rgba(${particleRGB}, ${CONFIG.activeDotAlpha})`
         : `rgba(${particleRGB}, ${CONFIG.restingDotAlpha})`;
