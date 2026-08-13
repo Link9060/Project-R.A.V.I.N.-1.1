@@ -1,14 +1,26 @@
 import "dotenv/config";
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { askRavin } from "./groqClient.js";
 
-const rl = readline.createInterface({ input: stdin, output: stdout });
+import { runAgent } from "./agent/agent.js";
+import { buildFeature } from "./self/selfBuilder.js";
+
+const rl = readline.createInterface({
+  input: stdin,
+  output: stdout,
+});
 
 function banner() {
   console.log("========================================");
   console.log("  RAVIN — online.");
-  console.log("  Type your message and hit enter.");
+  console.log("  Agent system: enabled.");
+  console.log("");
+  console.log("  Normal message:");
+  console.log("    Ask RAVIN anything.");
+  console.log("");
+  console.log("  Builder mode:");
+  console.log("    /build <engineering task>");
+  console.log("");
   console.log("  Type 'exit' or 'quit' to shut me down.");
   console.log("========================================\n");
 }
@@ -17,26 +29,55 @@ async function main() {
   banner();
 
   while (true) {
-    const input = (await rl.question("You: ")).trim();
+    const input = (
+      await rl.question("You: ")
+    ).trim();
 
     if (!input) {
-      continue; // ignore empty enter presses
+      continue;
     }
 
     if (["exit", "quit"].includes(input.toLowerCase())) {
-      console.log("\nRAVIN: Powering down. Try not to break anything while I'm gone, Levi.");
+      console.log(
+        "\nRAVIN: Powering down. Try not to break anything while I'm gone, Sir."
+      );
       break;
     }
 
     try {
-      const reply = await askRavin(input);
-      console.log(`\nRAVIN: ${reply}\n`);
+      if (input.toLowerCase().startsWith("/build ")) {
+        const request = input.slice(7).trim();
+
+        if (!request) {
+          console.log(
+            "\nRAVIN: Give me an engineering task after /build, Sir.\n"
+          );
+          continue;
+        }
+
+        console.log("\nRAVIN: Entering builder mode...\n");
+
+        const result = await buildFeature(request);
+
+        console.log(`RAVIN: ${result.reply}\n`);
+        continue;
+      }
+
+      const result = await runAgent(input);
+
+      console.log(`\nRAVIN: ${result.reply}\n`);
     } catch (err) {
-      console.log(`\nRAVIN: [error] ${err.message}\n`);
+      console.log(
+        `\nRAVIN: [error] ${err.message}\n`
+      );
     }
   }
 
   rl.close();
 }
 
-main();
+main().catch((err) => {
+  console.error("[Fatal RAVIN error]", err);
+  rl.close();
+  process.exit(1);
+});

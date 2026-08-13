@@ -1,17 +1,14 @@
 import { RAVIN_SYSTEM_PROMPT } from "./systemPrompt.js";
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_URL =
+  "https://api.groq.com/openai/v1/chat/completions";
 
-/**
- * Sends a single user message to Groq's chat completion API and returns
- * RAVIN's reply as a string.
- *
- * Phase 1 is stateless: only the system prompt + the current user message
- * are sent. Conversation memory comes in a later phase.
- */
-export async function askRavin(userMessage) {
+const DEFAULT_MAX_TOKENS = 1800;
+
+function getConfig() {
   const apiKey = process.env.GROQ_API_KEY;
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const model =
+    process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
   if (!apiKey) {
     throw new Error(
@@ -19,7 +16,41 @@ export async function askRavin(userMessage) {
     );
   }
 
+  return { apiKey, model };
+}
+
+/**
+ * Send a conversation to Groq.
+ *
+ * This function only handles communication with Groq.
+ * Agent/tool logic lives elsewhere.
+ */
+export async function chatWithGroq(
+  messages,
+  {
+    tools = [],
+    toolChoice =
+      tools.length > 0 ? "auto" : undefined,
+    temperature = 0.3,
+    maxTokens = DEFAULT_MAX_TOKENS,
+  } = {}
+) {
+  const { apiKey, model } = getConfig();
+
+  const body = {
+    model,
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+  };
+
+  if (tools.length > 0) {
+    body.tools = tools;
+    body.tool_choice = toolChoice;
+  }
+
   let response;
+
   try {
     response = await fetch(GROQ_URL, {
       method: "POST",
@@ -27,14 +58,7 @@ export async function askRavin(userMessage) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: RAVIN_SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.8,
-      }),
+      body: JSON.stringify(body),
     });
   } catch (networkErr) {
     throw new Error(
@@ -44,27 +68,110 @@ export async function askRavin(userMessage) {
 
   if (!response.ok) {
     let details = "";
+
     try {
       const errBody = await response.json();
-      details = errBody?.error?.message || JSON.stringify(errBody);
+
+      details =
+        errBody?.error?.message ||
+        JSON.stringify(errBody);
     } catch {
-      details = await response.text();
+      details =
+        await response.text().catch(() => "");
     }
 
     if (response.status === 401) {
-      throw new Error("Groq rejected the API key (401). Double-check GROQ_API_KEY in .env.");
+      throw new Error(
+        "Groq rejected the API key (401). Double-check GROQ_API_KEY in .env."
+      );
     }
+
     if (response.status === 429) {
-      throw new Error("Hit Groq's rate limit (429). Wait a moment and try again.");
+      let retryAfterMs = 10_000;
+
+      const retryMatch = details.match(
+        /try again in\s+([\d.]+)\s*s/i
+      );
+
+      if (retryMatch) {
+        const seconds = Number.parseFloat(
+          retryMatch[1]
+        );
+
+        if (
+          Number.isFinite(seconds) &&
+          seconds >= 0
+        ) {
+          retryAfterMs =
+            Math.ceil(seconds * 1000) + 500;
+        }
+      }
+
+      const error = new Error(
+        `Groq rate limit (429): ${details}`
+      );
+
+      error.code = "GROQ_RATE_LIMIT";
+      error.status = 429;
+      error.retryAfterMs = retryAfterMs;
+
+      throw error;
     }
-    throw new Error(`Groq API error (${response.status}): ${details}`);
+
+    if (response.status === 413) {
+      const error = new Error(
+        `Groq request too large (413): ${details}`
+      );
+
+      error.code = "GROQ_REQUEST_TOO_LARGE";
+      error.status = 413;
+
+      throw error;
+    }
+
+    throw new Error(
+      `Groq API error (${response.status}): ${details}`
+    );
   }
 
   const data = await response.json();
-  const reply = data?.choices?.[0]?.message?.content;
+
+  if (!data?.choices?.[0]?.message) {
+    throw new Error(
+      "Groq returned an empty or unexpected response."
+    );
+  }
+
+  return data.choices[0].message;
+}
+
+/**
+ * Backwards-compatible simple chat helper.
+ */
+export async function askRavin(userMessage) {
+  const message = await chatWithGroq(
+    [
+      {
+        role: "system",
+        content: RAVIN_SYSTEM_PROMPT,
+      },
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ],
+    {
+      temperature: 0.8,
+      maxTokens: 1000,
+    }
+  );
+
+  const reply = message?.content;
 
   if (!reply) {
-    throw new Error("Groq returned an empty or unexpected response.");
+    throw new Error(
+      "Groq returned an empty response."
+    );
   }
 
   return reply.trim();

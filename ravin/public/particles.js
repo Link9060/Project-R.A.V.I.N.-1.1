@@ -1,8 +1,14 @@
 /**
  * RAVIN signature background — a quiet field of drifting dots that
- * link together gently near the cursor. Tuned to stay in the background:
- * ambient links are barely visible, and only brighten meaningfully right
- * around the mouse.
+ * link together near the cursor/touch.
+ *
+ * Reduce Motion handling: continuous ambient drift is genuinely the kind of
+ * autoplaying motion that setting exists to suppress, so we stop it. But the
+ * setting isn't meant to disable direct-manipulation feedback — a user moving
+ * their own cursor and expecting a response is different from the page
+ * animating on its own. So with Reduce Motion on, particles hold still, but
+ * we still redraw (once per input event, not continuously) to show the glow
+ * and connections following the cursor/finger.
  */
 (function () {
   const canvas = document.getElementById("field");
@@ -21,7 +27,7 @@
     density: 15000,        // px^2 per particle — lower = more particles
     maxParticles: 150,
     linkDist: 100,          // baseline constellation link distance
-    mouseRadius: 220,       // radius of influence around the cursor/touch — larger = easier to trigger
+    mouseRadius: 220,       // radius of influence around the cursor/touch
     driftSpeed: 0.1,
     dotSize: 1.7,
     restingDotAlpha: 0.42,  // resting dot visibility
@@ -45,6 +51,7 @@
     for (const m of mutations) {
       if (m.attributeName === "data-theme") {
         readParticleColor();
+        render(false);
       }
     }
   });
@@ -60,6 +67,7 @@
     canvas.style.height = height + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     initParticles();
+    render(false);
   }
 
   function initParticles() {
@@ -75,10 +83,14 @@
     }));
   }
 
-  function step() {
+  // Renders one frame. When updatePositions is true, particles drift first —
+  // this is the "ambient motion" branch, skipped entirely under Reduce Motion.
+  // The interactive parts (glow, highlighted dots, connection lines) always
+  // reflect the current mouse/touch position regardless.
+  function render(updatePositions) {
     ctx.clearRect(0, 0, width, height);
 
-    // Soft halo that follows the cursor/finger directly — always visible the
+    // Soft halo that follows the cursor/finger directly — visible the
     // instant you move, regardless of whether any dots happen to be nearby.
     if (mouse.active) {
       const glow = ctx.createRadialGradient(
@@ -93,13 +105,13 @@
       ctx.fill();
     }
 
-    // update + draw particles
     for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-
-      if (p.x < 0 || p.x > width) p.vx *= -1;
-      if (p.y < 0 || p.y > height) p.vy *= -1;
+      if (updatePositions) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+      }
 
       const distToMouse = Math.hypot(p.x - mouse.x, p.y - mouse.y);
       const nearMouse = mouse.active && distToMouse < CONFIG.mouseRadius;
@@ -152,49 +164,50 @@
         }
       }
     }
+  }
 
-    if (!prefersReducedMotion) {
-      requestAnimationFrame(step);
-    }
+  function loop() {
+    render(true);
+    requestAnimationFrame(loop);
+  }
+
+  function updatePointer(x, y) {
+    mouse.x = x;
+    mouse.y = y;
+    mouse.active = true;
+    if (prefersReducedMotion) render(false);
+  }
+
+  function clearPointer() {
+    mouse.active = false;
+    if (prefersReducedMotion) render(false);
   }
 
   window.addEventListener("resize", resize);
 
   window.addEventListener("mousemove", (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-    mouse.active = true;
+    updatePointer(e.clientX, e.clientY);
   });
 
-  window.addEventListener("mouseleave", () => {
-    mouse.active = false;
-  });
+  window.addEventListener("mouseleave", clearPointer);
 
-  function updateTouch(e) {
+  function handleTouch(e) {
     if (e.touches.length > 0) {
-      mouse.x = e.touches[0].clientX;
-      mouse.y = e.touches[0].clientY;
-      mouse.active = true;
+      updatePointer(e.touches[0].clientX, e.touches[0].clientY);
     }
   }
 
-  window.addEventListener("touchstart", updateTouch, { passive: true });
-  window.addEventListener("touchmove", updateTouch, { passive: true });
-
-  window.addEventListener("touchend", () => {
-    mouse.active = false;
-  });
-  window.addEventListener("touchcancel", () => {
-    mouse.active = false;
-  });
+  window.addEventListener("touchstart", handleTouch, { passive: true });
+  window.addEventListener("touchmove", handleTouch, { passive: true });
+  window.addEventListener("touchend", clearPointer);
+  window.addEventListener("touchcancel", clearPointer);
 
   readParticleColor();
   resize();
 
   if (prefersReducedMotion) {
-    // Draw a single static frame instead of a running animation loop.
-    step();
+    render(false); // single static frame; interactivity still works via events above
   } else {
-    requestAnimationFrame(step);
+    requestAnimationFrame(loop);
   }
 })();
