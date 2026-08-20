@@ -1,4 +1,4 @@
-import { chatWithGroq } from "../groqClient.js";
+import { chatWithOmniRoute as chatWithGroq, askRavin } from "../omniRouteClient.js";
 import { RAVIN_SYSTEM_PROMPT } from "../systemPrompt.js";
 import { TOOL_DEFINITIONS } from "./tools.js";
 import { executeToolCall } from "./toolExecutor.js";
@@ -237,7 +237,7 @@ async function requestGroqWithRecovery(
        */
       if (
         error?.code ===
-          "GROQ_RATE_LIMIT" ||
+          "OMNIROUTE_RATE_LIMIT" ||
         error?.status === 429
       ) {
         rateLimitRetryCount++;
@@ -278,7 +278,7 @@ async function requestGroqWithRecovery(
        */
       if (
         error?.code ===
-          "GROQ_REQUEST_TOO_LARGE" ||
+          "OMNIROUTE_REQUEST_TOO_LARGE" ||
         error?.status === 413
       ) {
         sizeRecoveryCount++;
