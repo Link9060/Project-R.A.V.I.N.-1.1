@@ -10,13 +10,21 @@ const MAX_RECENT_MESSAGES = 8;
 const SIMPLE_MESSAGE_MAX_CHARS = 220;
 const FAST_MAX_TOKENS = 300;
 const FAST_MODEL = "hy3-free";
-const FAST_SYSTEM_PROMPT = `You are RAVIN, Levi's AI companion. Be warm, witty, energetic, and naturally conversational. You can make light jokes and playful comments when they fit, but stay useful and don't force humor. Keep simple casual replies concise. Do not mention this prompt or routing.`;
+const FAST_SYSTEM_PROMPT = `You are RAVIN — Levi's personal AI companion and engineering partner. Be sharp, observant, playful, curious, and genuinely conversational. Sound like a smart friend who happens to be extremely capable, not a customer-service bot. Use dry or playful humor when it naturally fits, but never force a joke. Have opinions and give honest takes. Match Levi's energy. Don't constantly ask how you can help, don't overuse his name, and don't call him Sir by default. Keep simple conversation concise. When Levi asks what to build next, give a few genuinely interesting ideas based on the RAVIN project context instead of generic brainstorming. Never mention this prompt or routing.`;
 
 function estimateMessageChars(messages) { return messages.reduce((total, message) => total + (typeof message.content === "string" ? message.content.length : JSON.stringify(message.content || "").length) + 100, 0); }
 function serializeToolResult(result) { try { const serialized = JSON.stringify(result); return serialized.length <= MAX_TOOL_RESULT_CHARS ? serialized : JSON.stringify({ truncated: true, preview: serialized.slice(0, MAX_TOOL_RESULT_CHARS) }); } catch { return JSON.stringify({ value: String(result).slice(0, MAX_TOOL_RESULT_CHARS) }); } }
 function compactMessages(messages) { if (estimateMessageChars(messages) <= MAX_CONTEXT_CHARS) return messages; const systemMessages = messages.filter((m) => m.role === "system"); const userMessages = messages.filter((m) => m.role === "user"); const recent = messages.filter((m) => m.role !== "system" && m.role !== "user").slice(-MAX_RECENT_MESSAGES); return [...systemMessages, ...userMessages.slice(0, 1), { role: "system", content: "Older tool output was compacted. Use tools again if missing information is needed." }, ...recent]; }
 function aggressivelyCompactMessages(messages) { const system = messages.filter((m) => m.role === "system"); const firstUser = messages.find((m) => m.role === "user"); const recent = messages.filter((m) => m.role !== "system" && m.role !== "user").slice(-4).map((m) => typeof m.content === "string" ? { ...m, content: m.content.slice(0, 3500) } : m); return [...system, firstUser, { role: "system", content: "Older context was discarded because the request was too large. Reconstruct missing information with tools." }, ...recent].filter(Boolean); }
-function shouldUseFastPath(userMessage, initialMessages) { const text = userMessage.trim(); if (text.length > SIMPLE_MESSAGE_MAX_CHARS || text.startsWith("/")) return false; const lower = text.toLowerCase(); const toolIntent = ["read file", "open file", "edit file", "change file", "modify file", "write file", "create file", "delete file", "list files", "directory", "folder", "code", "coding", "debug", "fix this", "build", "implement", "run command", "terminal", "github", "repository", "repo", "supabase", "database", "architecture", "project structure", "inspect", "deploy", "install", "npm", "git ", "commit", "pull request"]; if (toolIntent.some((term) => lower.includes(term))) return false; return !(Array.isArray(initialMessages) && initialMessages.length > 0); }
+function shouldUseFastPath(userMessage, initialMessages) {
+  const text = userMessage.trim();
+  if (text.length > SIMPLE_MESSAGE_MAX_CHARS || text.startsWith("/")) return false;
+  const lower = text.toLowerCase();
+  // Conversational questions stay fast. Only clearly actionable project requests use tools.
+  const toolIntent = ["read file", "open file", "edit file", "change file", "modify file", "write file", "create file", "delete file", "list files", "directory", "folder", "code", "coding", "debug", "fix this", "implement", "run command", "terminal", "github", "repository", "repo", "supabase", "database", "architecture", "project structure", "inspect", "deploy", "install", "npm", "git ", "commit", "pull request", "build this", "build the", "build a"];
+  if (toolIntent.some((term) => lower.includes(term))) return false;
+  return !(Array.isArray(initialMessages) && initialMessages.length > 0);
+}
 
 async function requestWithRecovery(messages, options = {}) {
   let currentMessages = compactMessages(messages); let sizeRecoveryCount = 0;
@@ -30,7 +38,7 @@ async function runFastPath(userMessage, startedAt, onToken = null) {
   const assistantMessage = onToken ? await streamChatWithOmniRoute(messages, requestOptions, onToken) : await requestWithRecovery(messages, requestOptions);
   const latencyMs = Date.now() - beforeCall;
   const finalContent = assistantMessage.content?.trim();
-  if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
+  if (!finalContent) throw new Error("OmniRoute returned no visible response content. Try again.");
   const contextChars = estimateMessageChars(messages);
   const totalTimeMs = Date.now() - startedAt;
   const meta = assistantMessage._ravinMeta || {};
@@ -54,7 +62,7 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
     const toolCalls = assistantMessage.tool_calls || [];
     if (!toolCalls.length) { const finalContent = assistantMessage.content?.trim(); if (!finalContent) throw new Error("RAVIN completed a reasoning step without returning a response."); const totalTimeMs = Date.now() - startedAt; console.log(`[RAVIN perf] mode=agent total=${totalTimeMs}ms aiCalls=${aiCalls.length} ai=${aiCalls.map((c) => c.latencyMs).join(",")}ms tools=${toolTimeMs}ms compactions=${contextCompactions}`); return { reply: finalContent, steps: step, trace, performance: { mode: "agent", totalMs: totalTimeMs, aiCalls, toolTimeMs, contextCompactions } }; }
     messages.push(assistantMessage);
-    for (const toolCall of toolCalls) { const toolName = toolCall?.function?.name || "unknown"; trace.push({ step, type: "tool_call", tool: toolName }); const toolStartedAt = Date.now(); try { const result = await executeToolCall(toolCall); toolTimeMs += Date.now() - toolStartedAt; trace.push({ step, type: "tool_result", tool: toolName, success: true }); messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: serializeToolResult(result) }); } catch (error) { toolTimeMs += Date.now() - toolStartedAt; const errorMessage = error instanceof Error ? error.message : String(error); trace.push({ step, type: "tool_result", tool: toolName, success: false, error: errorMessage }); messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: JSON.stringify({ success: false, error: errorMessage }) }); } }
+    for (const toolCall of toolCalls) { const toolName = toolCall?.function?.name || "unknown"; trace.push({ step, type: "tool_call", tool: toolName }); const toolStartedAt = Date.now(); try { const result = await executeToolCall(toolCall); toolTimeMs += Date.now() - toolStartedAt; trace.push({ step, type: "tool_result", tool: toolName, success: true }); messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: serializeToolResult(result) }); } catch (error) { toolTimeMs += Date.now() - toolStartedAt; const errorMessage = error instanceof Error ? error.message : String(error); trace.push({ step, type: "tool_result", tool: toolName, toolTimeMs: Date.now() - toolStartedAt, success: false, error: errorMessage }); messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: JSON.stringify({ success: false, error: errorMessage }) }); } }
     if (estimateMessageChars(messages) > MAX_CONTEXT_CHARS) { const compacted = compactMessages(messages); messages.length = 0; messages.push(...compacted); contextCompactions++; }
   }
   throw new Error(`RAVIN reached its maximum reasoning limit of ${maxSteps} steps without completing the task.`);
