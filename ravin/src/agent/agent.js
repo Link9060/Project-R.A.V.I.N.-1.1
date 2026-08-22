@@ -9,7 +9,8 @@ const MAX_CONTEXT_CHARS = 22_000;
 const MAX_TOOL_RESULT_CHARS = 7_000;
 const MAX_RECENT_MESSAGES = 8;
 const SIMPLE_MESSAGE_MAX_CHARS = 220;
-const FAST_MAX_TOKENS = 700;
+const FAST_MAX_TOKENS = 300;
+const FAST_SYSTEM_PROMPT = "You are RAVIN, a concise, friendly AI assistant. Answer simple conversational questions directly. Do not use tools or perform multi-step reasoning unless the user clearly asks for a task that requires it.";
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -94,28 +95,27 @@ async function requestWithRecovery(messages, options = {}) {
   }
 }
 
-async function runFastPath(userMessage, systemPrompt, startedAt) {
+async function runFastPath(userMessage, startedAt) {
   const beforeCall = Date.now();
-  const assistantMessage = await requestWithRecovery(
-    [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage.trim() },
-    ],
-    {
-      tools: [],
-      toolChoice: undefined,
-      temperature: 0.5,
-      maxTokens: FAST_MAX_TOKENS,
-      model: "auto/best-fast",
-    }
-  );
+  const fastMessages = [
+    { role: "system", content: FAST_SYSTEM_PROMPT },
+    { role: "user", content: userMessage.trim() },
+  ];
+
+  const assistantMessage = await requestWithRecovery(fastMessages, {
+    tools: [],
+    toolChoice: undefined,
+    temperature: 0.4,
+    maxTokens: FAST_MAX_TOKENS,
+    model: "auto/best-fast",
+  });
 
   const latencyMs = Date.now() - beforeCall;
   const finalContent = assistantMessage.content?.trim();
   if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
 
   const totalTimeMs = Date.now() - startedAt;
-  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0`);
+  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${estimateMessageChars(fastMessages)}`);
 
   return {
     reply: finalContent,
@@ -128,10 +128,7 @@ async function runFastPath(userMessage, systemPrompt, startedAt) {
         step: 1,
         latencyMs,
         omniRoute: assistantMessage._ravinMeta || null,
-        contextChars: estimateMessageChars([
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage.trim() },
-        ]),
+        contextChars: estimateMessageChars(fastMessages),
         toolEnabled: false,
       }],
       toolTimeMs: 0,
@@ -150,7 +147,7 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
   const startedAt = Date.now();
 
   if (shouldUseFastPath(userMessage, initialMessages)) {
-    return runFastPath(userMessage, systemPrompt, startedAt);
+    return runFastPath(userMessage, startedAt);
   }
 
   const messages = Array.isArray(initialMessages) && initialMessages.length
