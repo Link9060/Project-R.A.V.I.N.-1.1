@@ -8,6 +8,8 @@ const DEFAULT_RATE_LIMIT_WAIT_MS = 10_000;
 const MAX_CONTEXT_CHARS = 22_000;
 const MAX_TOOL_RESULT_CHARS = 7_000;
 const MAX_RECENT_MESSAGES = 8;
+const SIMPLE_MESSAGE_MAX_CHARS = 220;
+const FAST_MAX_TOKENS = 700;
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -44,6 +46,28 @@ function aggressivelyCompactMessages(messages) {
   return [...systemMessages, firstUserMessage, { role: "system", content: "IMPORTANT: The previous context became too large for the model. Older tool output has been discarded. Reconstruct missing information with available tools and continue the user's task." }, ...recentMessages].filter(Boolean);
 }
 
+function shouldUseFastPath(userMessage, initialMessages) {
+  const text = userMessage.trim();
+  if (text.length > SIMPLE_MESSAGE_MAX_CHARS) return false;
+  if (text.startsWith("/")) return false;
+
+  const lower = text.toLowerCase();
+  const toolIntent = [
+    "read file", "open file", "edit file", "change file", "modify file", "write file",
+    "create file", "delete file", "list files", "directory", "folder", "code", "coding",
+    "debug", "fix this", "build", "implement", "run command", "terminal", "github",
+    "repository", "repo", "supabase", "database", "architecture", "project structure",
+    "inspect", "deploy", "install", "npm", "git ", "commit", "pull request",
+  ];
+  if (toolIntent.some((term) => lower.includes(term))) return false;
+
+  // Keep persisted multi-turn context on the full agent path. The fast path is
+  // intentionally reserved for lightweight, self-contained conversational turns.
+  if (Array.isArray(initialMessages) && initialMessages.length > 0) return false;
+
+  return true;
+}
+
 async function requestWithRecovery(messages, options = {}) {
   let currentMessages = compactMessages(messages);
   let rateLimitRetryCount = 0;
@@ -70,6 +94,52 @@ async function requestWithRecovery(messages, options = {}) {
   }
 }
 
+async function runFastPath(userMessage, systemPrompt, startedAt) {
+  const beforeCall = Date.now();
+  const assistantMessage = await requestWithRecovery(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage.trim() },
+    ],
+    {
+      tools: [],
+      toolChoice: undefined,
+      temperature: 0.5,
+      maxTokens: FAST_MAX_TOKENS,
+      model: "auto/best-fast",
+    }
+  );
+
+  const latencyMs = Date.now() - beforeCall;
+  const finalContent = assistantMessage.content?.trim();
+  if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
+
+  const totalTimeMs = Date.now() - startedAt;
+  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0`);
+
+  return {
+    reply: finalContent,
+    steps: 1,
+    trace: [],
+    performance: {
+      mode: "fast",
+      totalMs: totalTimeMs,
+      aiCalls: [{
+        step: 1,
+        latencyMs,
+        omniRoute: assistantMessage._ravinMeta || null,
+        contextChars: estimateMessageChars([
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage.trim() },
+        ]),
+        toolEnabled: false,
+      }],
+      toolTimeMs: 0,
+      contextCompactions: 0,
+    },
+  };
+}
+
 /**
  * Run RAVIN's existing tool-using agent.
  * `initialMessages` allows the authenticated API layer to provide persisted context.
@@ -78,6 +148,11 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
   if (typeof userMessage !== "string" || !userMessage.trim()) throw new Error("A user message is required.");
 
   const startedAt = Date.now();
+
+  if (shouldUseFastPath(userMessage, initialMessages)) {
+    return runFastPath(userMessage, systemPrompt, startedAt);
+  }
+
   const messages = Array.isArray(initialMessages) && initialMessages.length
     ? [...initialMessages, { role: "user", content: userMessage.trim() }]
     : [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage.trim() }];
@@ -89,7 +164,7 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
 
   for (let step = 1; step <= maxSteps; step++) {
     const beforeCall = Date.now();
-    const assistantMessage = await requestWithRecovery(messages, { tools: TOOL_DEFINITIONS, toolChoice: "auto", temperature, maxTokens: 1400 });
+    const assistantMessage = await requestWithRecovery(messages, { tools: TOOL_DEFINITIONS, toolChoice: "auto", temperature, maxTokens: 1400, model: "auto/best-chat" });
     const aiCallTimeMs = Date.now() - beforeCall;
     aiCalls.push({
       step,
@@ -105,12 +180,13 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
       const finalContent = assistantMessage.content?.trim();
       if (!finalContent) throw new Error("RAVIN completed a reasoning step without returning a response.");
       const totalTimeMs = Date.now() - startedAt;
-      console.log(`[RAVIN perf] total=${totalTimeMs}ms aiCalls=${aiCalls.length} ai=${aiCalls.map((call) => call.latencyMs).join(",")}ms tools=${toolTimeMs}ms compactions=${contextCompactions}`);
+      console.log(`[RAVIN perf] mode=agent total=${totalTimeMs}ms aiCalls=${aiCalls.length} ai=${aiCalls.map((call) => call.latencyMs).join(",")}ms tools=${toolTimeMs}ms compactions=${contextCompactions}`);
       return {
         reply: finalContent,
         steps: step,
         trace,
         performance: {
+          mode: "agent",
           totalMs: totalTimeMs,
           aiCalls,
           toolTimeMs,
