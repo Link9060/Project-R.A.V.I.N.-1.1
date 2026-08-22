@@ -72,6 +72,7 @@ async function loadConversationContext(conversationId, userId, token) {
 }
 
 app.post("/api/chat", async (req, res) => {
+  const requestStartedAt = Date.now();
   const auth = await requireUser(req, res);
   if (!auth) return;
   const message = req.body?.message;
@@ -92,21 +93,44 @@ app.post("/api/chat", async (req, res) => {
     }
     if (!conversationId) throw new Error("RAVIN could not create a conversation.");
 
+    const contextStartedAt = Date.now();
     const priorMessages = await loadConversationContext(conversationId, auth.user.id, auth.token);
+    const contextLoadMs = Date.now() - contextStartedAt;
 
+    const userSaveStartedAt = Date.now();
     await supabaseRequest("/rest/v1/messages", {
       method: "POST", token: auth.token, prefer: "return=minimal",
       body: { user_id: auth.user.id, conversation_id: conversationId, role: "user", content: message.trim(), metadata: {} },
     });
+    const userSaveMs = Date.now() - userSaveStartedAt;
 
+    const agentStartedAt = Date.now();
     const result = await runAgent(message.trim(), { initialMessages: priorMessages });
+    const agentMs = Date.now() - agentStartedAt;
 
+    const assistantSaveStartedAt = Date.now();
     await supabaseRequest("/rest/v1/messages", {
       method: "POST", token: auth.token, prefer: "return=minimal",
-      body: { user_id: auth.user.id, conversation_id: conversationId, role: "assistant", content: result.reply, metadata: { steps: result.steps } },
+      body: { user_id: auth.user.id, conversation_id: conversationId, role: "assistant", content: result.reply, metadata: { steps: result.steps, performance: result.performance } },
     });
+    const assistantSaveMs = Date.now() - assistantSaveStartedAt;
+    const totalMs = Date.now() - requestStartedAt;
 
-    res.json({ reply: result.reply, steps: result.steps, conversation_id: conversationId });
+    console.log(`[RAVIN request perf] total=${totalMs}ms context=${contextLoadMs}ms userSave=${userSaveMs}ms agent=${agentMs}ms assistantSave=${assistantSaveMs}ms`);
+
+    res.json({
+      reply: result.reply,
+      steps: result.steps,
+      conversation_id: conversationId,
+      performance: {
+        totalMs,
+        contextLoadMs,
+        userSaveMs,
+        agentMs,
+        assistantSaveMs,
+        agent: result.performance,
+      },
+    });
   } catch (err) {
     console.error("[RAVIN chat error]", err);
     res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
