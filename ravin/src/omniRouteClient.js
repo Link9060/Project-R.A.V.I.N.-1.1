@@ -6,6 +6,7 @@ function getConfig() {
   const baseUrl = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128/v1";
   const apiKey = process.env.OMNIROUTE_API_KEY;
   const model = process.env.OMNIROUTE_MODEL || "auto/best-chat";
+  const fastModel = process.env.OMNIROUTE_FAST_MODEL || "auto/best-fast";
 
   if (!apiKey) {
     throw new Error(
@@ -13,7 +14,7 @@ function getConfig() {
     );
   }
 
-  return { baseUrl, apiKey, model };
+  return { baseUrl, apiKey, model, fastModel };
 }
 
 /**
@@ -30,13 +31,17 @@ export async function chatWithOmniRoute(
     toolChoice = tools.length > 0 ? "auto" : undefined,
     temperature = 0.3,
     maxTokens = DEFAULT_MAX_TOKENS,
+    model = null,
   } = {}
 ) {
-  const { baseUrl, apiKey, model } = getConfig();
+  const config = getConfig();
+  const baseUrl = config.baseUrl;
+  const apiKey = config.apiKey;
+  const requestedModel = model || config.model;
   const startedAt = Date.now();
 
   const body = {
-    model,
+    model: requestedModel,
     messages,
     temperature,
     max_tokens: maxTokens,
@@ -118,7 +123,7 @@ export async function chatWithOmniRoute(
   const message = data.choices[0].message;
   message._ravinMeta = {
     latencyMs,
-    requestedModel: model,
+    requestedModel,
     routedModel: data.model || null,
     usage: data.usage || null,
   };
