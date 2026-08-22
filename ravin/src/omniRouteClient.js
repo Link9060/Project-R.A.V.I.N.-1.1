@@ -109,8 +109,27 @@ export async function streamChatWithOmniRoute(messages, options = {}, onToken = 
   if (buffer) processEvent(buffer);
   try { reader.releaseLock(); } catch {}
 
-  if (!content.trim()) throw new Error("OmniRoute completed a stream without returning visible content.");
-  return { content, _ravinMeta: { requestedModel, routedModel, usage, streaming: true, timings: { totalMs: Math.round(performance.now() - requestStartedAt), firstTokenMs } } };
+  if (content.trim()) {
+    return { content, _ravinMeta: { requestedModel, routedModel, usage, streaming: true, timings: { totalMs: Math.round(performance.now() - requestStartedAt), firstTokenMs }, streamFallback: false } };
+  }
+
+  // Some OmniRoute/provider combinations can terminate an SSE stream without
+  // putting visible text in a delta. Retry the same request non-streaming so a
+  // malformed/empty stream can never turn into a broken RAVIN response.
+  const fallbackStartedAt = performance.now();
+  const fallbackMessage = await chatWithOmniRoute(messages, options);
+  if (!fallbackMessage?.content?.trim()) throw new Error("OmniRoute returned no visible content in either streaming or fallback mode.");
+  return {
+    content: fallbackMessage.content.trim(),
+    _ravinMeta: {
+      ...(fallbackMessage._ravinMeta || {}),
+      requestedModel,
+      routedModel: fallbackMessage._ravinMeta?.routedModel || routedModel,
+      streaming: false,
+      streamFallback: true,
+      timings: { ...(fallbackMessage._ravinMeta?.timings || {}), streamAttemptMs: Math.round(fallbackStartedAt - requestStartedAt), totalMs: Math.round(performance.now() - requestStartedAt) },
+    },
+  };
 }
 
 export async function askRavin(userMessage) {
