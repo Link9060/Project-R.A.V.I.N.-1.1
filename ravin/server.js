@@ -6,102 +6,215 @@ import { fileURLToPath } from "node:url";
 import { runAgent } from "./src/agent/agent.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 
-const __dirname = path.dirname(
-  fileURLToPath(import.meta.url)
-);
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 
 app.use(express.json({ limit: "1mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.use(
-  express.static(path.join(__dirname, "public"))
-);
+function requireSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    const error = new Error("RAVIN backend is missing SUPABASE_URL or SUPABASE_ANON_KEY.");
+    error.status = 500;
+    throw error;
+  }
+}
+
+async function supabaseRequest(pathname, { token, method = "GET", body } = {}) {
+  requireSupabase();
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Accept: "application/json",
+  };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${SUPABASE_URL}${pathname}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!response.ok) {
+    const message = data?.message || data?.msg || data?.error_description || data?.error || `Supabase request failed (${response.status})`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
+async function getAuthenticatedUser(req) {
+  const header = req.headers.authorization || "";
+  if (!header.startsWith("Bearer ")) return null;
+  const token = header.slice("Bearer ".length).trim();
+  if (!token) return null;
+  try {
+    const user = await supabaseRequest("/auth/v1/user", { token });
+    return { user, token };
+  } catch {
+    return null;
+  }
+}
+
+async function requireUser(req, res) {
+  const auth = await getAuthenticatedUser(req);
+  if (!auth) {
+    res.status(401).json({ error: "Please sign in to RAVIN." });
+    return null;
+  }
+  return auth;
+}
 
 app.post("/api/chat", async (req, res) => {
-  const message = req.body?.message;
+  const auth = await requireUser(req, res);
+  if (!auth) return;
 
-  if (
-    !message ||
-    typeof message !== "string" ||
-    !message.trim()
-  ) {
-    return res.status(400).json({
-      error: "Message can't be empty.",
-    });
+  const message = req.body?.message;
+  if (!message || typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({ error: "Message can't be empty." });
   }
 
   try {
+    let conversationId = req.body?.conversation_id || null;
+
+    if (conversationId) {
+      const rows = await supabaseRequest(
+        `/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(auth.user.id)}&select=id`,
+        { token: auth.token }
+      );
+      if (!rows?.length) conversationId = null;
+    }
+
+    if (!conversationId) {
+      const rows = await supabaseRequest("/rest/v1/conversations", {
+        method: "POST",
+        token: auth.token,
+        body: { user_id: auth.user.id, title: message.trim().slice(0, 80), metadata: {} },
+      });
+      conversationId = rows?.[0]?.id;
+    }
+
+    await supabaseRequest("/rest/v1/messages", {
+      method: "POST",
+      token: auth.token,
+      body: {
+        user_id: auth.user.id,
+        conversation_id: conversationId,
+        role: "user",
+        content: message.trim(),
+        metadata: {},
+      },
+    });
+
     const result = await runAgent(message.trim());
 
-    res.json({
-      reply: result.reply,
-      steps: result.steps,
+    await supabaseRequest("/rest/v1/messages", {
+      method: "POST",
+      token: auth.token,
+      body: {
+        user_id: auth.user.id,
+        conversation_id: conversationId,
+        role: "assistant",
+        content: result.reply,
+        metadata: { steps: result.steps },
+      },
     });
-  } catch (err) {
-    console.error(
-      "[RAVIN agent error]",
-      err
-    );
 
-    res.status(500).json({
-      error:
-        err instanceof Error
-          ? err.message
-          : String(err),
+    res.json({ reply: result.reply, steps: result.steps, conversation_id: conversationId });
+  } catch (err) {
+    console.error("[RAVIN chat error]", err);
+    res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get("/api/memories", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  try {
+    const permanent = await supabaseRequest(
+      `/rest/v1/permanent_memories?user_id=eq.${encodeURIComponent(auth.user.id)}&select=*&order=created_at.desc&limit=100`,
+      { token: auth.token }
+    );
+    const project = await supabaseRequest(
+      `/rest/v1/project_memory?user_id=eq.${encodeURIComponent(auth.user.id)}&select=*&order=created_at.desc&limit=100`,
+      { token: auth.token }
+    );
+    const session = await supabaseRequest(
+      `/rest/v1/session_summaries?user_id=eq.${encodeURIComponent(auth.user.id)}&select=*&order=created_at.desc&limit=50`,
+      { token: auth.token }
+    );
+    res.json({ permanent, project, session });
+  } catch (err) {
+    console.error("[RAVIN memory read error]", err);
+    res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post("/api/memories", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  const content = req.body?.content;
+  if (!content || typeof content !== "string" || !content.trim()) {
+    return res.status(400).json({ error: "Memory content is required." });
+  }
+  try {
+    const rows = await supabaseRequest("/rest/v1/permanent_memories", {
+      method: "POST",
+      token: auth.token,
+      body: {
+        user_id: auth.user.id,
+        content: content.trim(),
+        category: req.body?.category || "fact",
+        importance: Math.min(5, Math.max(1, Number(req.body?.importance || 3))),
+        metadata: req.body?.metadata || {},
+      },
     });
+    res.status(201).json({ memory: rows?.[0] || null });
+  } catch (err) {
+    console.error("[RAVIN memory write error]", err);
+    res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete("/api/memories/:id", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  try {
+    await supabaseRequest(
+      `/rest/v1/permanent_memories?id=eq.${encodeURIComponent(req.params.id)}&user_id=eq.${encodeURIComponent(auth.user.id)}`,
+      { method: "DELETE", token: auth.token }
+    );
+    res.status(204).end();
+  } catch (err) {
+    console.error("[RAVIN memory delete error]", err);
+    res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 
 app.post("/api/build", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
   const message = req.body?.message;
-
-  if (
-    !message ||
-    typeof message !== "string" ||
-    !message.trim()
-  ) {
-    return res.status(400).json({
-      error: "Build request can't be empty.",
-    });
+  if (!message || typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({ error: "Build request can't be empty." });
   }
-
   try {
-    const result = await buildFeature(
-      message.trim()
-    );
-
-    res.json({
-      reply: result.reply,
-      steps: result.steps,
-    });
+    const result = await buildFeature(message.trim());
+    res.json({ reply: result.reply, steps: result.steps });
   } catch (err) {
-    console.error(
-      "[RAVIN builder error]",
-      err
-    );
-
-    res.status(500).json({
-      error:
-        err instanceof Error
-          ? err.message
-          : String(err),
-    });
+    console.error("[RAVIN builder error]", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "RAVIN",
-    agent: true,
-    builder: true,
-  });
+  res.json({ ok: true, service: "RAVIN", agent: true, builder: true, auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY) });
 });
 
-app.listen(PORT, () => {
-  console.log(
-    `RAVIN web is up: http://localhost:${PORT}`
-  );
-});
+app.listen(PORT, () => console.log(`RAVIN web is up: http://localhost:${PORT}`));
