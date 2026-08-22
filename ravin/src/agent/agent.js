@@ -1,4 +1,4 @@
-import { chatWithOmniRoute } from "../omniRouteClient.js";
+import { chatWithOmniRoute, streamChatWithOmniRoute } from "../omniRouteClient.js";
 import { RAVIN_SYSTEM_PROMPT } from "../systemPrompt.js";
 import { TOOL_DEFINITIONS } from "./tools.js";
 import { executeToolCall } from "./toolExecutor.js";
@@ -23,24 +23,27 @@ async function requestWithRecovery(messages, options = {}) {
   while (true) { try { return await chatWithOmniRoute(currentMessages, options); } catch (error) { if (error?.code === "OMNIROUTE_REQUEST_TOO_LARGE" || error?.status === 413) { sizeRecoveryCount++; if (sizeRecoveryCount > 3) throw new Error("RAVIN could not reduce the request enough after several context-compaction attempts."); currentMessages = aggressivelyCompactMessages(currentMessages); continue; } throw error; } }
 }
 
-async function runFastPath(userMessage, startedAt) {
+async function runFastPath(userMessage, startedAt, onToken = null) {
   const beforeCall = Date.now();
-  const assistantMessage = await requestWithRecovery([{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }], { tools: [], temperature: 0.7, maxTokens: FAST_MAX_TOKENS, model: FAST_MODEL, reasoning: { effort: "low" } });
+  const requestOptions = { tools: [], temperature: 0.7, maxTokens: FAST_MAX_TOKENS, model: FAST_MODEL, reasoning: { effort: "low" } };
+  const messages = [{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }];
+  const assistantMessage = onToken ? await streamChatWithOmniRoute(messages, requestOptions, onToken) : await requestWithRecovery(messages, requestOptions);
   const latencyMs = Date.now() - beforeCall;
   const finalContent = assistantMessage.content?.trim();
   if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
-  const contextChars = estimateMessageChars([{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }]);
+  const contextChars = estimateMessageChars(messages);
   const totalTimeMs = Date.now() - startedAt;
   const meta = assistantMessage._ravinMeta || {};
   const timings = meta.timings || {};
-  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${contextChars} requested=${meta.requestedModel || FAST_MODEL} routed=${meta.routedModel || "unknown"} fetch=${timings.fetchMs ?? "?"}ms body=${timings.responseBodyMs ?? "?"}ms`);
-  return { reply: finalContent, steps: 1, trace: [], performance: { mode: "fast", totalMs: totalTimeMs, aiCalls: [{ step: 1, latencyMs, omniRoute: meta, contextChars, toolEnabled: false }], toolTimeMs: 0, contextCompactions: 0 } };
+  if (onToken) console.log(`\n[RAVIN perf] mode=fast-stream total=${totalTimeMs}ms ai=${latencyMs}ms firstToken=${timings.firstTokenMs ?? "?"}ms requested=${meta.requestedModel || FAST_MODEL} routed=${meta.routedModel || "unknown"}`);
+  else console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${contextChars} requested=${meta.requestedModel || FAST_MODEL} routed=${meta.routedModel || "unknown"} fetch=${timings.fetchMs ?? "?"}ms body=${timings.responseBodyMs ?? "?"}ms`);
+  return { reply: finalContent, steps: 1, trace: [], performance: { mode: onToken ? "fast-stream" : "fast", totalMs: totalTimeMs, aiCalls: [{ step: 1, latencyMs, omniRoute: meta, contextChars, toolEnabled: false }], toolTimeMs: 0, contextCompactions: 0 } };
 }
 
-export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT, maxSteps = DEFAULT_MAX_STEPS, temperature = 0.3, initialMessages = null } = {}) {
+export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT, maxSteps = DEFAULT_MAX_STEPS, temperature = 0.3, initialMessages = null, onToken = null } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) throw new Error("A user message is required.");
   const startedAt = Date.now();
-  if (shouldUseFastPath(userMessage, initialMessages)) return runFastPath(userMessage, startedAt);
+  if (shouldUseFastPath(userMessage, initialMessages)) return runFastPath(userMessage, startedAt, onToken);
   const messages = Array.isArray(initialMessages) && initialMessages.length ? [...initialMessages, { role: "user", content: userMessage.trim() }] : [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage.trim() }];
   const trace = [], aiCalls = []; let toolTimeMs = 0, contextCompactions = 0;
   for (let step = 1; step <= maxSteps; step++) {
