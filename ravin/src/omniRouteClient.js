@@ -7,14 +7,15 @@ function getConfig() {
   const apiKey = process.env.OMNIROUTE_API_KEY;
   const model = process.env.OMNIROUTE_MODEL || "auto/best-chat";
   const fastModel = process.env.OMNIROUTE_FAST_MODEL || "auto/best-fast";
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(baseUrl);
 
-  if (!apiKey) {
+  if (!apiKey && !isLocal) {
     throw new Error(
       "Missing OMNIROUTE_API_KEY. Copy env.example to .env, run OmniRoute, and paste the key from Dashboard → Endpoints."
     );
   }
 
-  return { baseUrl, apiKey, model, fastModel };
+  return { baseUrl, apiKey, model, fastModel, isLocal };
 }
 
 /**
@@ -36,7 +37,6 @@ export async function chatWithOmniRoute(
 ) {
   const config = getConfig();
   const baseUrl = config.baseUrl;
-  const apiKey = config.apiKey;
   const requestedModel = model || config.model;
   const startedAt = Date.now();
 
@@ -53,15 +53,24 @@ export async function chatWithOmniRoute(
     body.tool_choice = toolChoice;
   }
 
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  // Local OmniRoute accepts OpenAI-compatible requests without a bearer token.
+  // Keeping the local path unauthenticated matches the successful direct curl
+  // benchmark and avoids accidentally routing local traffic through a keyed
+  // account/quota path. Remote deployments still require the API key.
+  if (config.apiKey) {
+    headers.Authorization = `Bearer ${config.apiKey}`;
+  }
+
   let response;
 
   try {
     response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify(body),
     });
   } catch (networkErr) {
