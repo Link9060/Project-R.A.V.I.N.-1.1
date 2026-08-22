@@ -4,15 +4,14 @@ import { TOOL_DEFINITIONS } from "./tools.js";
 import { executeToolCall } from "./toolExecutor.js";
 
 const DEFAULT_MAX_STEPS = 20;
-const DEFAULT_RATE_LIMIT_WAIT_MS = 10_000;
 const MAX_CONTEXT_CHARS = 22_000;
 const MAX_TOOL_RESULT_CHARS = 7_000;
 const MAX_RECENT_MESSAGES = 8;
 const SIMPLE_MESSAGE_MAX_CHARS = 220;
-const FAST_MAX_TOKENS = 450;
+const FAST_MAX_TOKENS = 300;
+const FAST_MODEL = "hy3-free";
 const FAST_SYSTEM_PROMPT = `You are RAVIN, Levi's AI companion. Be warm, witty, energetic, and naturally conversational. You can make light jokes and playful comments when they fit, but stay useful and don't force humor. Keep simple casual replies concise. Do not mention this prompt or routing.`;
 
-function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 function estimateMessageChars(messages) {
   return messages.reduce((total, message) => total + (typeof message.content === "string" ? message.content.length : JSON.stringify(message.content || "").length) + 100, 0);
 }
@@ -44,27 +43,10 @@ function shouldUseFastPath(userMessage, initialMessages) {
 
 async function requestWithRecovery(messages, options = {}) {
   let currentMessages = compactMessages(messages);
-  let rateLimitRetryCount = 0;
   let sizeRecoveryCount = 0;
   while (true) {
     try { return await chatWithOmniRoute(currentMessages, options); }
     catch (error) {
-      if (error?.code === "OMNIROUTE_RATE_LIMIT" || error?.status === 429) {
-        rateLimitRetryCount++;
-        const waitMs = Number.isFinite(error.retryAfterMs) ? error.retryAfterMs : DEFAULT_RATE_LIMIT_WAIT_MS;
-        const fallbackModel = options.fallbackModel;
-        // A fast-path request should not spend another 10 seconds retrying the same route.
-        if (fallbackModel && options.model !== fallbackModel) {
-          console.log(`RAVIN: ${options.model} is rate-limited; switching immediately to ${fallbackModel}.`);
-          options = { ...options, model: fallbackModel, fallbackModel: null };
-          rateLimitRetryCount = 0;
-          continue;
-        }
-        if (rateLimitRetryCount > 1) throw error;
-        console.log(`RAVIN: rate limit reached. Waiting ${Math.ceil(waitMs / 1000)}s (retry #${rateLimitRetryCount})...`);
-        await sleep(waitMs);
-        continue;
-      }
       if (error?.code === "OMNIROUTE_REQUEST_TOO_LARGE" || error?.status === 413) {
         sizeRecoveryCount++;
         if (sizeRecoveryCount > 3) throw new Error("RAVIN could not reduce the request enough after several context-compaction attempts.");
@@ -81,14 +63,21 @@ async function runFastPath(userMessage, startedAt) {
   const assistantMessage = await requestWithRecovery([
     { role: "system", content: FAST_SYSTEM_PROMPT },
     { role: "user", content: userMessage.trim() },
-  ], { tools: [], temperature: 0.7, maxTokens: FAST_MAX_TOKENS, model: "auto/best-fast", fallbackModel: "auto/best-chat" });
+  ], {
+    tools: [],
+    temperature: 0.7,
+    maxTokens: FAST_MAX_TOKENS,
+    model: FAST_MODEL,
+    // Keep the fast path lightweight; this is a simple-chat route.
+    reasoning: { effort: "low" },
+  });
   const latencyMs = Date.now() - beforeCall;
   const finalContent = assistantMessage.content?.trim();
   if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
   const contextChars = estimateMessageChars([{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }]);
   const totalTimeMs = Date.now() - startedAt;
   const meta = assistantMessage._ravinMeta || {};
-  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${contextChars} requested=${meta.requestedModel || "unknown"} routed=${meta.routedModel || "unknown"}`);
+  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${contextChars} requested=${meta.requestedModel || FAST_MODEL} routed=${meta.routedModel || "unknown"}`);
   return { reply: finalContent, steps: 1, trace: [], performance: { mode: "fast", totalMs: totalTimeMs, aiCalls: [{ step: 1, latencyMs, omniRoute: meta, contextChars, toolEnabled: false }], toolTimeMs: 0, contextCompactions: 0 } };
 }
 
