@@ -21,8 +21,8 @@
 - [x] Persist conversations and messages through the backend
 - [x] Connect existing memory endpoints to the new memory API
 - [x] Load persisted conversation context into the existing RAVIN agent
+- [x] Add access-token refresh/session-expiration handling
 - [ ] Test the complete auth/chat/memory flow in the live Codespace deployment
-- [ ] Add token refresh/session expiration handling
 
 ### Phase 3 — AI infrastructure
 - [ ] Build provider-agnostic AI router
