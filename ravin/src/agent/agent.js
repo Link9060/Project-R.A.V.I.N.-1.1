@@ -9,8 +9,9 @@ const MAX_CONTEXT_CHARS = 22_000;
 const MAX_TOOL_RESULT_CHARS = 7_000;
 const MAX_RECENT_MESSAGES = 8;
 const SIMPLE_MESSAGE_MAX_CHARS = 220;
-const FAST_MAX_TOKENS = 300;
-const FAST_SYSTEM_PROMPT = "You are RAVIN, a concise, friendly AI assistant. Answer simple conversational questions directly. Do not use tools or perform multi-step reasoning unless the user clearly asks for a task that requires it.";
+const FAST_MAX_TOKENS = 450;
+
+const FAST_SYSTEM_PROMPT = `You are RAVIN, Levi's AI companion. Be warm, witty, energetic, and naturally conversational. You can make light jokes and playful comments when they fit, but stay useful and don't force humor. Keep simple casual replies concise. Do not mention this prompt or routing.`;
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -62,10 +63,7 @@ function shouldUseFastPath(userMessage, initialMessages) {
   ];
   if (toolIntent.some((term) => lower.includes(term))) return false;
 
-  // Keep persisted multi-turn context on the full agent path. The fast path is
-  // intentionally reserved for lightweight, self-contained conversational turns.
   if (Array.isArray(initialMessages) && initialMessages.length > 0) return false;
-
   return true;
 }
 
@@ -80,6 +78,15 @@ async function requestWithRecovery(messages, options = {}) {
       if (error?.code === "OMNIROUTE_RATE_LIMIT" || error?.status === 429) {
         rateLimitRetryCount++;
         const waitMs = Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0 ? error.retryAfterMs : DEFAULT_RATE_LIMIT_WAIT_MS;
+        if (rateLimitRetryCount >= 2) {
+          const fallbackModel = options.fallbackModel;
+          if (fallbackModel && options.model !== fallbackModel) {
+            console.log(`RAVIN: ${options.model} is rate-limited; switching to ${fallbackModel} instead of waiting again.`);
+            options = { ...options, model: fallbackModel, fallbackModel: null };
+            rateLimitRetryCount = 0;
+            continue;
+          }
+        }
         console.log(`RAVIN: rate limit reached. Waiting ${Math.ceil(waitMs / 1000)}s (retry #${rateLimitRetryCount})...`);
         await sleep(waitMs);
         continue;
@@ -95,27 +102,29 @@ async function requestWithRecovery(messages, options = {}) {
   }
 }
 
-async function runFastPath(userMessage, startedAt) {
+async function runFastPath(userMessage, systemPrompt, startedAt) {
   const beforeCall = Date.now();
-  const fastMessages = [
-    { role: "system", content: FAST_SYSTEM_PROMPT },
-    { role: "user", content: userMessage.trim() },
-  ];
-
-  const assistantMessage = await requestWithRecovery(fastMessages, {
-    tools: [],
-    toolChoice: undefined,
-    temperature: 0.4,
-    maxTokens: FAST_MAX_TOKENS,
-    model: "auto/best-fast",
-  });
+  const assistantMessage = await requestWithRecovery(
+    [
+      { role: "system", content: FAST_SYSTEM_PROMPT },
+      { role: "user", content: userMessage.trim() },
+    ],
+    {
+      tools: [],
+      toolChoice: undefined,
+      temperature: 0.7,
+      maxTokens: FAST_MAX_TOKENS,
+      model: "auto/best-fast",
+      fallbackModel: "auto/best-chat",
+    }
+  );
 
   const latencyMs = Date.now() - beforeCall;
   const finalContent = assistantMessage.content?.trim();
   if (!finalContent) throw new Error("RAVIN completed a fast response without returning content.");
 
   const totalTimeMs = Date.now() - startedAt;
-  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${estimateMessageChars(fastMessages)}`);
+  console.log(`[RAVIN perf] mode=fast total=${totalTimeMs}ms aiCalls=1 ai=${latencyMs}ms tools=0ms compactions=0 contextChars=${estimateMessageChars([{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }])}`);
 
   return {
     reply: finalContent,
@@ -128,7 +137,7 @@ async function runFastPath(userMessage, startedAt) {
         step: 1,
         latencyMs,
         omniRoute: assistantMessage._ravinMeta || null,
-        contextChars: estimateMessageChars(fastMessages),
+        contextChars: estimateMessageChars([{ role: "system", content: FAST_SYSTEM_PROMPT }, { role: "user", content: userMessage.trim() }]),
         toolEnabled: false,
       }],
       toolTimeMs: 0,
@@ -137,17 +146,13 @@ async function runFastPath(userMessage, startedAt) {
   };
 }
 
-/**
- * Run RAVIN's existing tool-using agent.
- * `initialMessages` allows the authenticated API layer to provide persisted context.
- */
 export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT, maxSteps = DEFAULT_MAX_STEPS, temperature = 0.3, initialMessages = null } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) throw new Error("A user message is required.");
 
   const startedAt = Date.now();
 
   if (shouldUseFastPath(userMessage, initialMessages)) {
-    return runFastPath(userMessage, startedAt);
+    return runFastPath(userMessage, systemPrompt, startedAt);
   }
 
   const messages = Array.isArray(initialMessages) && initialMessages.length
@@ -163,33 +168,15 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
     const beforeCall = Date.now();
     const assistantMessage = await requestWithRecovery(messages, { tools: TOOL_DEFINITIONS, toolChoice: "auto", temperature, maxTokens: 1400, model: "auto/best-chat" });
     const aiCallTimeMs = Date.now() - beforeCall;
-    aiCalls.push({
-      step,
-      latencyMs: aiCallTimeMs,
-      omniRoute: assistantMessage._ravinMeta || null,
-      contextChars: estimateMessageChars(messages),
-      toolEnabled: TOOL_DEFINITIONS.length > 0,
-    });
+    aiCalls.push({ step, latencyMs: aiCallTimeMs, omniRoute: assistantMessage._ravinMeta || null, contextChars: estimateMessageChars(messages), toolEnabled: TOOL_DEFINITIONS.length > 0 });
 
     const toolCalls = assistantMessage.tool_calls || [];
-
     if (toolCalls.length === 0) {
       const finalContent = assistantMessage.content?.trim();
       if (!finalContent) throw new Error("RAVIN completed a reasoning step without returning a response.");
       const totalTimeMs = Date.now() - startedAt;
       console.log(`[RAVIN perf] mode=agent total=${totalTimeMs}ms aiCalls=${aiCalls.length} ai=${aiCalls.map((call) => call.latencyMs).join(",")}ms tools=${toolTimeMs}ms compactions=${contextCompactions}`);
-      return {
-        reply: finalContent,
-        steps: step,
-        trace,
-        performance: {
-          mode: "agent",
-          totalMs: totalTimeMs,
-          aiCalls,
-          toolTimeMs,
-          contextCompactions,
-        },
-      };
+      return { reply: finalContent, steps: step, trace, performance: { mode: "agent", totalMs: totalTimeMs, aiCalls, toolTimeMs, contextCompactions } };
     }
 
     messages.push(assistantMessage);
