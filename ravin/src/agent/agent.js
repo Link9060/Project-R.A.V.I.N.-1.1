@@ -72,39 +72,65 @@ async function requestWithRecovery(messages, options = {}) {
 
 /**
  * Run RAVIN's existing tool-using agent.
- *
- * `initialMessages` is optional and allows the authenticated API layer to
- * provide persisted conversation context without changing the existing
- * agent/tool architecture. When omitted, behavior remains compatible with
- * the original single-turn flow.
+ * `initialMessages` allows the authenticated API layer to provide persisted context.
  */
 export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT, maxSteps = DEFAULT_MAX_STEPS, temperature = 0.3, initialMessages = null } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) throw new Error("A user message is required.");
 
+  const startedAt = Date.now();
   const messages = Array.isArray(initialMessages) && initialMessages.length
     ? [...initialMessages, { role: "user", content: userMessage.trim() }]
     : [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage.trim() }];
 
   const trace = [];
+  const aiCalls = [];
+  let toolTimeMs = 0;
+  let contextCompactions = 0;
+
   for (let step = 1; step <= maxSteps; step++) {
+    const beforeCall = Date.now();
     const assistantMessage = await requestWithRecovery(messages, { tools: TOOL_DEFINITIONS, toolChoice: "auto", temperature, maxTokens: 1400 });
+    const aiCallTimeMs = Date.now() - beforeCall;
+    aiCalls.push({
+      step,
+      latencyMs: aiCallTimeMs,
+      omniRoute: assistantMessage._ravinMeta || null,
+      contextChars: estimateMessageChars(messages),
+      toolEnabled: TOOL_DEFINITIONS.length > 0,
+    });
+
     const toolCalls = assistantMessage.tool_calls || [];
 
     if (toolCalls.length === 0) {
       const finalContent = assistantMessage.content?.trim();
       if (!finalContent) throw new Error("RAVIN completed a reasoning step without returning a response.");
-      return { reply: finalContent, steps: step, trace };
+      const totalTimeMs = Date.now() - startedAt;
+      console.log(`[RAVIN perf] total=${totalTimeMs}ms aiCalls=${aiCalls.length} ai=${aiCalls.map((call) => call.latencyMs).join(",")}ms tools=${toolTimeMs}ms compactions=${contextCompactions}`);
+      return {
+        reply: finalContent,
+        steps: step,
+        trace,
+        performance: {
+          totalMs: totalTimeMs,
+          aiCalls,
+          toolTimeMs,
+          contextCompactions,
+        },
+      };
     }
 
     messages.push(assistantMessage);
     for (const toolCall of toolCalls) {
       const toolName = toolCall?.function?.name || "unknown";
       trace.push({ step, type: "tool_call", tool: toolName });
+      const toolStartedAt = Date.now();
       try {
         const result = await executeToolCall(toolCall);
+        toolTimeMs += Date.now() - toolStartedAt;
         trace.push({ step, type: "tool_result", tool: toolName, success: true });
         messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: serializeToolResult(result) });
       } catch (error) {
+        toolTimeMs += Date.now() - toolStartedAt;
         const errorMessage = error instanceof Error ? error.message : String(error);
         trace.push({ step, type: "tool_result", tool: toolName, success: false, error: errorMessage });
         messages.push({ role: "tool", tool_call_id: toolCall.id, name: toolName, content: JSON.stringify({ success: false, error: errorMessage }) });
@@ -115,6 +141,7 @@ export async function runAgent(userMessage, { systemPrompt = RAVIN_SYSTEM_PROMPT
       const compacted = compactMessages(messages);
       messages.length = 0;
       messages.push(...compacted);
+      contextCompactions++;
     }
   }
 
