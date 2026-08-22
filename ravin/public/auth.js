@@ -1,30 +1,54 @@
 (function () {
   const SUPABASE_FUNCTION_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co/functions/v1/ravin-auth";
   const TOKEN_KEY = "ravin_access_token";
+  const REFRESH_KEY = "ravin_refresh_token";
   const USER_KEY = "ravin_user";
   const CONVERSATION_KEY = "ravin_conversation_id";
+  const REFRESH_SKEW_MS = 60_000;
 
   const state = {
     accessToken: localStorage.getItem(TOKEN_KEY) || "",
+    refreshToken: localStorage.getItem(REFRESH_KEY) || "",
     user: JSON.parse(localStorage.getItem(USER_KEY) || "null"),
+    expiresAt: Number(localStorage.getItem("ravin_token_expires_at") || 0),
+    refreshTimer: null,
+    refreshInFlight: null,
   };
 
   function saveSession(session, user) {
     state.accessToken = session?.access_token || "";
-    state.user = user || null;
+    state.refreshToken = session?.refresh_token || state.refreshToken || "";
+    state.user = user || state.user || null;
+    state.expiresAt = session?.expires_at ? Number(session.expires_at) * 1000 : (session?.expires_in ? Date.now() + Number(session.expires_in) * 1000 : state.expiresAt);
+
     if (state.accessToken) localStorage.setItem(TOKEN_KEY, state.accessToken);
     else localStorage.removeItem(TOKEN_KEY);
+    if (state.refreshToken) localStorage.setItem(REFRESH_KEY, state.refreshToken);
+    else localStorage.removeItem(REFRESH_KEY);
     if (state.user) localStorage.setItem(USER_KEY, JSON.stringify(state.user));
     else localStorage.removeItem(USER_KEY);
+    if (state.expiresAt) localStorage.setItem("ravin_token_expires_at", String(state.expiresAt));
+    else localStorage.removeItem("ravin_token_expires_at");
+    scheduleRefresh();
   }
 
   function clearSession() {
-    saveSession(null, null);
+    if (state.refreshTimer) clearTimeout(state.refreshTimer);
+    state.refreshTimer = null;
+    state.refreshInFlight = null;
+    state.accessToken = "";
+    state.refreshToken = "";
+    state.user = null;
+    state.expiresAt = 0;
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem("ravin_token_expires_at");
     localStorage.removeItem(CONVERSATION_KEY);
   }
 
   function isSignedIn() {
-    return Boolean(state.accessToken && state.user);
+    return Boolean(state.accessToken && state.refreshToken && state.user);
   }
 
   async function authRequest(action, email, password) {
@@ -36,6 +60,45 @@
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Authentication failed");
     return data;
+  }
+
+  async function refreshSession() {
+    if (!state.refreshToken) return false;
+    if (state.refreshInFlight) return state.refreshInFlight;
+    state.refreshInFlight = (async () => {
+      try {
+        const response = await fetch(SUPABASE_FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "refresh", refresh_token: state.refreshToken }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.session) throw new Error(data.error || "Session refresh failed");
+        saveSession(data.session, data.user);
+        return true;
+      } catch (error) {
+        console.warn("RAVIN session refresh failed:", error);
+        clearSession();
+        updateAuthUI();
+        return false;
+      } finally {
+        state.refreshInFlight = null;
+      }
+    })();
+    return state.refreshInFlight;
+  }
+
+  function scheduleRefresh() {
+    if (state.refreshTimer) clearTimeout(state.refreshTimer);
+    if (!state.refreshToken || !state.expiresAt) return;
+    const delay = Math.max(5_000, state.expiresAt - Date.now() - REFRESH_SKEW_MS);
+    state.refreshTimer = setTimeout(() => { refreshSession(); }, delay);
+  }
+
+  async function ensureFreshSession() {
+    if (!state.accessToken || !state.refreshToken) return false;
+    if (state.expiresAt && Date.now() >= state.expiresAt - REFRESH_SKEW_MS) return refreshSession();
+    return true;
   }
 
   function injectStyles() {
@@ -99,9 +162,7 @@
       submit.textContent = mode === "signin" ? "Signing in…" : "Creating…";
       try {
         const data = await authRequest(mode, email.value.trim(), password.value);
-        if (!data.session) {
-          throw new Error("Account created. Check your email to confirm it, then sign in.");
-        }
+        if (!data.session) throw new Error("Account created. Check your email to confirm it, then sign in.");
         saveSession(data.session, data.user);
         backdrop.hidden = true;
         updateAuthUI();
@@ -114,18 +175,18 @@
     });
 
     window.RavinAuth = {
-      open: () => {
-        backdrop.hidden = false;
-        email.focus();
-      },
+      open: () => { backdrop.hidden = false; email.focus(); },
       close: () => { backdrop.hidden = true; },
       isSignedIn,
       getAccessToken: () => state.accessToken,
       getUser: () => state.user,
+      ensureFreshSession,
+      refreshSession,
       signOut: () => { clearSession(); updateAuthUI(); },
     };
 
     if (!isSignedIn()) backdrop.hidden = false;
+    else scheduleRefresh();
   }
 
   function hideLegacyCredentialUI() {
@@ -166,13 +227,14 @@
       getStoredAnonKey: () => "managed by RAVIN",
       saveCredentials: () => {},
       async listPermanentMemories() {
-        if (!isSignedIn()) return [];
+        if (!await ensureFreshSession()) return [];
         const response = await fetch("/api/memories", { headers: { Authorization: `Bearer ${state.accessToken}` } });
         if (!response.ok) throw new Error("Could not load memories");
         const data = await response.json();
         return data.permanent || [];
       },
       async addPermanentMemory(content, category = "fact") {
+        if (!await ensureFreshSession()) throw new Error("Please sign in again.");
         const response = await fetch("/api/memories", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${state.accessToken}` },
@@ -183,10 +245,8 @@
         return data.memory;
       },
       async deletePermanentMemory(id) {
-        const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${state.accessToken}` },
-        });
+        if (!await ensureFreshSession()) throw new Error("Please sign in again.");
+        const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE", headers: { Authorization: `Bearer ${state.accessToken}` } });
         if (!response.ok) throw new Error("Could not delete memory");
       },
     };
@@ -203,6 +263,7 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!isSignedIn()) return window.RavinAuth.open();
+      if (!await ensureFreshSession()) return window.RavinAuth.open();
       const message = input.value.trim();
       if (!message) return;
       input.value = "";
@@ -226,6 +287,22 @@
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${state.accessToken}` },
           body: JSON.stringify({ message, conversation_id: localStorage.getItem(CONVERSATION_KEY) || null }),
         });
+        if (response.status === 401 && await refreshSession()) {
+          const retry = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${state.accessToken}` },
+            body: JSON.stringify({ message, conversation_id: localStorage.getItem(CONVERSATION_KEY) || null }),
+          });
+          if (!retry.ok) throw new Error((await retry.json().catch(() => ({}))).error || "RAVIN could not respond");
+          const data = await retry.json();
+          if (data.conversation_id) localStorage.setItem(CONVERSATION_KEY, data.conversation_id);
+          thinking.remove();
+          const reply = document.createElement("div");
+          reply.className = "msg ravin";
+          reply.innerHTML = `<div class="msg-header"><span class="msg-label">RAVIN</span></div><div class="msg-body"></div>`;
+          reply.querySelector(".msg-body").innerHTML = window.renderMarkdown ? window.renderMarkdown(data.reply || "") : "";
+          chat.appendChild(reply); chat.scrollTop = chat.scrollHeight; return;
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "RAVIN could not respond");
         if (data.conversation_id) localStorage.setItem(CONVERSATION_KEY, data.conversation_id);
@@ -233,10 +310,8 @@
         const reply = document.createElement("div");
         reply.className = "msg ravin";
         reply.innerHTML = `<div class="msg-header"><span class="msg-label">RAVIN</span></div><div class="msg-body"></div>`;
-        const body = reply.querySelector(".msg-body");
-        body.innerHTML = window.renderMarkdown ? window.renderMarkdown(data.reply || "") : "";
-        chat.appendChild(reply);
-        chat.scrollTop = chat.scrollHeight;
+        reply.querySelector(".msg-body").innerHTML = window.renderMarkdown ? window.renderMarkdown(data.reply || "") : "";
+        chat.appendChild(reply); chat.scrollTop = chat.scrollHeight;
       } catch (err) {
         thinking.remove();
         const error = document.createElement("div");
@@ -244,10 +319,7 @@
         error.innerHTML = `<div class="msg-header"><span class="msg-label">System</span></div><div class="msg-body"></div>`;
         error.querySelector(".msg-body").textContent = err.message;
         chat.appendChild(error);
-      } finally {
-        sendBtn.disabled = false;
-        input.focus();
-      }
+      } finally { sendBtn.disabled = false; input.focus(); }
     }, true);
   }
 
