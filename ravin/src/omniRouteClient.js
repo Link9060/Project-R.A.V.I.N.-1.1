@@ -1,6 +1,7 @@
 import { RAVIN_SYSTEM_PROMPT } from "./systemPrompt.js";
 
 const DEFAULT_MAX_TOKENS = 1800;
+const STREAM_TIMEOUT_MS = 45_000;
 
 function getConfig() {
   const baseUrl = process.env.OMNIROUTE_BASE_URL || "http://localhost:20128/v1";
@@ -60,33 +61,55 @@ export async function streamChatWithOmniRoute(messages, options = {}, onToken = 
   const requestedModel = body.model;
   const requestStartedAt = performance.now();
   let response;
-  try { response = await fetch(`${config.baseUrl}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body) }); }
-  catch (networkErr) { throw new Error(`Couldn't reach OmniRoute. Is it running? (${networkErr.message})`); }
+  try { response = await fetch(`${config.baseUrl}/chat/completions`, { method: "POST", headers, body: JSON.stringify(body), signal: AbortSignal.timeout(STREAM_TIMEOUT_MS) }); }
+  catch (networkErr) {
+    if (networkErr?.name === "TimeoutError") throw new Error(`OmniRoute streaming timed out after ${STREAM_TIMEOUT_MS / 1000}s.`);
+    throw new Error(`Couldn't reach OmniRoute. Is it running? (${networkErr.message})`);
+  }
   if (!response.ok) await parseError(response);
   if (!response.body) throw new Error("OmniRoute did not return a streaming response body.");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let buffer = "", content = "", routedModel = null, usage = null, firstTokenMs = null, streamDone = false;
-  const processLine = (line) => {
-    const trimmed = line.trim();
-    if (!trimmed || !trimmed.startsWith("data:")) return;
-    const payload = trimmed.slice(5).trim();
-    if (payload === "[DONE]") { streamDone = true; return; }
-    let chunk; try { chunk = JSON.parse(payload); } catch { return; }
-    routedModel ||= chunk.model || null; usage ||= chunk.usage || null;
-    const token = chunk.choices?.[0]?.delta?.content || "";
-    if (token) { if (firstTokenMs === null) firstTokenMs = Math.round(performance.now() - requestStartedAt); content += token; if (onToken) onToken(token); }
+  let buffer = "", content = "", routedModel = null, usage = null, firstTokenMs = null, streamDone = false, sawFinish = false;
+
+  const appendContent = (value) => {
+    if (!value) return;
+    if (firstTokenMs === null) firstTokenMs = Math.round(performance.now() - requestStartedAt);
+    content += value;
+    if (onToken) onToken(value);
   };
-  while (!streamDone) {
+
+  const processEvent = (event) => {
+    const dataLines = event.split(/\r?\n/).filter((line) => line.startsWith("data:"));
+    if (!dataLines.length) return;
+    const payload = dataLines.map((line) => line.slice(5).trimStart()).join("\n").trim();
+    if (!payload) return;
+    if (payload === "[DONE]") { streamDone = true; return; }
+    let chunk;
+    try { chunk = JSON.parse(payload); } catch { return; }
+    routedModel ||= chunk.model || null;
+    usage ||= chunk.usage || null;
+    const choice = chunk.choices?.[0];
+    if (choice?.finish_reason) sawFinish = true;
+    const delta = choice?.delta;
+    if (typeof delta?.content === "string") appendContent(delta.content);
+    else if (typeof choice?.message?.content === "string") appendContent(choice.message.content);
+    else if (typeof chunk.content === "string") appendContent(chunk.content);
+  };
+
+  while (!streamDone && !sawFinish) {
     const { value, done } = await reader.read();
     if (done) { buffer += decoder.decode(); break; }
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split(/\r?\n/); buffer = lines.pop() || "";
-    for (const line of lines) processLine(line);
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() || "";
+    for (const event of events) processEvent(event);
   }
-  if (buffer) processLine(buffer);
-  if (!content.trim()) throw new Error("OmniRoute completed a stream without returning content.");
+  if (buffer) processEvent(buffer);
+  try { reader.releaseLock(); } catch {}
+
+  if (!content.trim()) throw new Error("OmniRoute completed a stream without returning visible content.");
   return { content, _ravinMeta: { requestedModel, routedModel, usage, streaming: true, timings: { totalMs: Math.round(performance.now() - requestStartedAt), firstTokenMs } } };
 }
 
