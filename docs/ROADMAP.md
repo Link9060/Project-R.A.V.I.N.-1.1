@@ -19,7 +19,8 @@
 - [x] Remove BYO AI API key requirement from the customer experience
 - [x] Connect existing `/api/chat` flow to the authenticated RAVIN backend
 - [x] Persist conversations and messages through the backend
-- [x] Connect existing memory tools to the new memory API
+- [x] Connect existing memory endpoints to the new memory API
+- [x] Load persisted conversation context into the existing RAVIN agent
 - [ ] Test the complete auth/chat/memory flow in the live Codespace deployment
 - [ ] Add token refresh/session expiration handling
 
