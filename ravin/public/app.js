@@ -1,12 +1,100 @@
 (()=>{
 const $=id=>document.getElementById(id);
-const addMessage=(role,text)=>{const c=$("chat");if(!c)return;const d=document.createElement("div");d.className=`message ${role}`;d.textContent=text;c.appendChild(d);c.scrollTop=c.scrollHeight;};
-const input=$("input");const send=$("send");
-async function sendMessage(){const text=input?.value?.trim();if(!text)return;input.value="";addMessage("user",text);try{const r=await window.RavinAPI?.chat?.(text);if(r?.content)addMessage("assistant",r.content);else if(r?.text)addMessage("assistant",r.text);else addMessage("error","RAVIN returned no visible content.");}catch(e){addMessage("error",`RAVIN error: ${e.message}`)}}
-if(send)send.addEventListener("click",sendMessage);if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}});
-const memoryList=$("memoryList"),memoryAddInput=$("memoryAddInput"),memoryAddBtn=$("memoryAddBtn");
-async function addMemory(){const content=memoryAddInput?.value?.trim();if(!content)return;if(window.RavinMemory?.addPermanentMemory){try{await window.RavinMemory.addPermanentMemory(content,"fact");memoryAddInput.value="";renderMemoryList()}catch(e){addMessage("error",`Couldn't save that memory: ${e.message}`)}}}
-if(memoryAddBtn)memoryAddBtn.addEventListener("click",addMemory);if(memoryAddInput)memoryAddInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMemory()}});
-async function renderMemoryList(){if(!memoryList||!window.RavinMemory?.listPermanentMemories)return;try{const memories=await window.RavinMemory.listPermanentMemories();memoryList.innerHTML="";(memories||[]).forEach(m=>{const row=document.createElement("div");row.className="memory-row";row.textContent=typeof m==="string"?m:(m.content||"");memoryList.appendChild(row)})}catch(e){console.warn("Memory load failed:",e)}}
+const chat=$("chat");
+const input=$("messageInput");
+const send=$("sendBtn");
+const composer=$("composer");
+
+const addMessage=(role,text)=>{
+  if(!chat)return;
+  const d=document.createElement("div");
+  d.className=`message ${role}`;
+  d.textContent=text;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
+};
+
+const setComposerBusy=(busy)=>{
+  if(input)input.disabled=busy;
+  if(send){send.disabled=busy;send.setAttribute("aria-busy",String(busy));}
+};
+
+async function sendMessage(){
+  const text=input?.value?.trim();
+  if(!text)return;
+  if(input)input.value="";
+  addMessage("user",text);
+  setComposerBusy(true);
+  try{
+    if(!window.RavinAPI?.chat)throw new Error("RAVIN API is not available.");
+    const result=await window.RavinAPI.chat(text);
+    const content=result?.content??result?.text??result?.message?.content;
+    if(content)addMessage("assistant",content);
+    else addMessage("error","RAVIN returned no visible content.");
+  }catch(error){
+    console.error("[RAVIN chat]",error);
+    addMessage("error",`RAVIN error: ${error?.message||error}`);
+  }finally{
+    setComposerBusy(false);
+    input?.focus();
+  }
+}
+
+composer?.addEventListener("submit",event=>{event.preventDefault();sendMessage();});
+send?.addEventListener("click",event=>{if(composer)event.preventDefault();sendMessage();});
+input?.addEventListener("keydown",event=>{
+  if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMessage();}
+});
+
+document.addEventListener("keydown",event=>{
+  if(event.key==="/"&&document.activeElement!==input&&!event.ctrlKey&&!event.metaKey){event.preventDefault();input?.focus();}
+  if(event.key==="Escape"&&input)input.value="";
+});
+
+const memoryList=$("memoryList");
+const memoryAddInput=$("memoryAddInput");
+const memoryAddBtn=$("memoryAddBtn");
+const memorySection=$("memorySection");
+const memoryCount=$("memoryCount");
+
+async function renderMemoryList(){
+  if(!memoryList||!window.RavinMemory?.listPermanentMemories)return;
+  try{
+    const memories=await window.RavinMemory.listPermanentMemories();
+    memoryList.innerHTML="";
+    (memories||[]).forEach(memory=>{
+      const row=document.createElement("div");
+      row.className="memory-row";
+      row.textContent=typeof memory==="string"?memory:(memory?.content||"");
+      memoryList.appendChild(row);
+    });
+    if(memoryCount)memoryCount.textContent=String((memories||[]).length);
+  }catch(error){console.warn("[RAVIN memory] load failed:",error);}
+}
+
+async function addMemory(){
+  const content=memoryAddInput?.value?.trim();
+  if(!content||!window.RavinMemory?.addPermanentMemory)return;
+  try{
+    await window.RavinMemory.addPermanentMemory(content,"fact");
+    memoryAddInput.value="";
+    await renderMemoryList();
+  }catch(error){
+    console.error("[RAVIN memory]",error);
+    addMessage("error",`Couldn't save that memory: ${error?.message||error}`);
+  }
+}
+
+memoryAddBtn?.addEventListener("click",addMemory);
+memoryAddInput?.addEventListener("keydown",event=>{
+  if(event.key==="Enter"){event.preventDefault();addMemory();}
+});
+
+if(memorySection&&window.RavinAuth){
+  const updateMemoryVisibility=()=>{memorySection.hidden=!window.RavinAuth.getUser?.();};
+  updateMemoryVisibility();
+  window.addEventListener("ravin-auth-changed",()=>{updateMemoryVisibility();renderMemoryList();});
+}
+
 renderMemoryList();
 })();
