@@ -9,9 +9,24 @@ import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "https://link9060.github.io")
+  .split(",").map((value) => value.trim()).filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.setHeader("Access-Control-Allow-Headers", "authorization, content-type, accept");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+});
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -117,20 +132,7 @@ app.post("/api/chat", async (req, res) => {
     const totalMs = Date.now() - requestStartedAt;
 
     console.log(`[RAVIN request perf] total=${totalMs}ms context=${contextLoadMs}ms userSave=${userSaveMs}ms agent=${agentMs}ms assistantSave=${assistantSaveMs}ms`);
-
-    res.json({
-      reply: result.reply,
-      steps: result.steps,
-      conversation_id: conversationId,
-      performance: {
-        totalMs,
-        contextLoadMs,
-        userSaveMs,
-        agentMs,
-        assistantSaveMs,
-        agent: result.performance,
-      },
-    });
+    res.json({ reply: result.reply, steps: result.steps, conversation_id: conversationId, performance: { totalMs, contextLoadMs, userSaveMs, agentMs, assistantSaveMs, agent: result.performance } });
   } catch (err) {
     console.error("[RAVIN chat error]", err);
     res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -182,4 +184,4 @@ app.post("/api/build", async (req, res) => {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "RAVIN", agent: true, builder: true, auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY) }));
 
-app.listen(PORT, () => console.log(`RAVIN web is up: http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`RAVIN web is up on port ${PORT}`));
