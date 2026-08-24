@@ -4,6 +4,19 @@ const chat=$("chat");
 const input=$("messageInput");
 const send=$("sendBtn");
 const composer=$("composer");
+const boot=$("boot");
+
+// The production frontend does not have a separate boot controller. Hide the
+// splash screen once the page scripts have initialized so it cannot remain
+// stuck on "INITIALIZING RAVIN" forever.
+function finishBoot(){
+  if(!boot)return;
+  boot.classList.add("hidden");
+  boot.setAttribute("aria-hidden","true");
+  setTimeout(()=>{ boot.style.display="none"; },350);
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",finishBoot,{once:true});
+else finishBoot();
 
 const addMessage=(role,text)=>{
   if(!chat)return;
