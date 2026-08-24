@@ -6,17 +6,27 @@ const send=$("sendBtn");
 const composer=$("composer");
 const boot=$("boot");
 const app=$("app");
+const settingsBtn=$("settingsBtn");
+const settingsPanel=$("settingsPanel");
 
-// Reveal the production app after the page scripts initialize.
 function finishBoot(){
   if(app) app.classList.add("app-visible");
   if(!boot)return;
-  boot.classList.add("hidden");
+  boot.classList.add("boot-done");
   boot.setAttribute("aria-hidden","true");
-  setTimeout(()=>{ boot.style.display="none"; },350);
+  setTimeout(()=>{boot.style.display="none";},600);
 }
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",finishBoot,{once:true});
 else finishBoot();
+
+settingsBtn?.addEventListener("click",()=>{
+  if(settingsPanel) settingsPanel.classList.toggle("open");
+});
+
+document.addEventListener("click",event=>{
+  if(!settingsPanel||!settingsBtn)return;
+  if(!settingsPanel.contains(event.target)&&!settingsBtn.contains(event.target)) settingsPanel.classList.remove("open");
+});
 
 const addMessage=(role,text)=>{
   if(!chat)return;
@@ -35,6 +45,10 @@ const setComposerBusy=(busy)=>{
 async function sendMessage(){
   const text=input?.value?.trim();
   if(!text)return;
+  if(!window.RavinAuth?.isSignedIn?.()){
+    window.RavinAuth?.open?.();
+    return;
+  }
   if(input)input.value="";
   addMessage("user",text);
   setComposerBusy(true);
@@ -108,6 +122,10 @@ if(memorySection&&window.RavinAuth){
   updateMemoryVisibility();
   window.addEventListener("ravin-auth-changed",()=>{updateMemoryVisibility();renderMemoryList();});
 }
+
+window.addEventListener("ravin-auth-changed",()=>{
+  if(window.RavinAuth?.isSignedIn?.()) settingsPanel?.classList.remove("open");
+});
 
 renderMemoryList();
 })();
