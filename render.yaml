@@ -8,7 +8,6 @@ services:
     dockerfilePath: ./ravin/Dockerfile
     dockerContext: ./ravin
     healthCheckPath: /api/health
-    maxShutdownDelaySeconds: 30
     envVars:
       - key: NODE_ENV
         value: production
