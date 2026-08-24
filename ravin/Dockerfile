@@ -17,7 +17,6 @@ ENV HOST=0.0.0.0
 ENV OMNIROUTE_PORT=20128
 ENV OMNIROUTE_MEMORY_MB=128
 ENV DATA_DIR=/tmp/omniroute
-ENV OMNIROUTE_WS_BRIDGE_SECRET=render-internal-bridge-secret
 
 # Render only needs the RAVIN HTTP port. OmniRoute is private to the container.
 EXPOSE 3000
