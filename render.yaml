@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ravin
+    runtime: docker
+    plan: free
+    region: ohio
+    branch: deployment-prep
+    dockerfilePath: ./ravin/Dockerfile
+    dockerContext: ./ravin
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: OMNIROUTE_BASE_URL
+        value: http://localhost:20128/v1
+      - key: FRONTEND_ORIGIN
+        value: https://link9060.github.io
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: OMNIROUTE_SETUP_PASSWORD
+        sync: false
