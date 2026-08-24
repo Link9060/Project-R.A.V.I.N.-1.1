@@ -6,8 +6,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# OmniRoute is the local OpenAI-compatible router used by RAVIN.
-RUN npm install -g omniroute@3.8.50 && npm cache clean --force
+# OmniRoute 3.8.50 is not published to npm yet. Use the latest published
+# stable package so the Render image can actually build.
+RUN npm install -g omniroute@3.8.49 && npm cache clean --force
 
 COPY . .
 RUN chmod +x start.sh
