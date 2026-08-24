@@ -5,11 +5,11 @@ const input=$("messageInput");
 const send=$("sendBtn");
 const composer=$("composer");
 const boot=$("boot");
+const app=$("app");
 
-// The production frontend does not have a separate boot controller. Hide the
-// splash screen once the page scripts have initialized so it cannot remain
-// stuck on "INITIALIZING RAVIN" forever.
+// Reveal the production app after the page scripts initialize.
 function finishBoot(){
+  if(app) app.classList.add("app-visible");
   if(!boot)return;
   boot.classList.add("hidden");
   boot.setAttribute("aria-hidden","true");
