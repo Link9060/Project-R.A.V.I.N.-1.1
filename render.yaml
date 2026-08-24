@@ -27,3 +27,5 @@ services:
         generateValue: true
       - key: INITIAL_PASSWORD
         generateValue: true
+      - key: OMNIROUTE_WS_BRIDGE_SECRET
+        generateValue: true
