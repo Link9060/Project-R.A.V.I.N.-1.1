@@ -13,16 +13,20 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
-const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "").replace(/\/$/, "");
+const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "https://link9060.github.io").replace(/\/$/, "");
 
+// CORS must run before every route, including the browser's OPTIONS preflight.
+// Render's public service is called directly by the GitHub Pages frontend.
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (!FRONTEND_ORIGIN || origin === FRONTEND_ORIGIN) {
-    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  const allowed = !origin || origin === FRONTEND_ORIGIN;
+  if (allowed && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   }
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
