@@ -14,8 +14,8 @@ RUN chmod +x start.sh
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-# Keep OmniRoute's V8 heap above the 128 MB crash point observed on Render.
-ENV OMNIROUTE_MEMORY_MB=256
+# Give OmniRoute enough heap for its embedded schedulers/services on Render Free.
+ENV OMNIROUTE_MEMORY_MB=384
 ENV DATA_DIR=/tmp/omniroute
 
 # Render only needs the RAVIN HTTP port. OmniRoute is private to the container.
