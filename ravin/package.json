@@ -4,15 +4,11 @@
   "description": "RAVIN - a personal AI assistant with a Jarvis-style personality",
   "type": "module",
   "main": "src/index.js",
-  "engines": {
-    "node": ">=22"
-  },
-  "scripts": {
-    "start": "node src/index.js",
-    "web": "node server.js"
-  },
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node src/index.js", "web": "node server.js" },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
   }
 }
