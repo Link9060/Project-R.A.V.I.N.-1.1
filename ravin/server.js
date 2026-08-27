@@ -164,7 +164,18 @@ app.post("/api/build", async (req, res) => {
   } catch (err) { console.error("[RAVIN builder error]", err); res.status(500).json({ error: err instanceof Error ? err.message : String(err) }); }
 });
 
-app.get("/api/health", (_req, res) => res.json({ ok: true, service: "RAVIN", agent: true, builder: true, auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY), omniRouteConfigured: Boolean(process.env.OMNIROUTE_BASE_URL), voiceConfigured: Boolean(process.env.DEEPGRAM_API_KEY && process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) }));
+app.get("/api/health", (_req, res) => res.json({
+  ok: true,
+  service: "RAVIN",
+  agent: true,
+  builder: true,
+  auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY),
+  omniRouteConfigured: Boolean(process.env.OMNIROUTE_BASE_URL),
+  voiceConfigured: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID),
+  voiceProvider: "elevenlabs",
+  sttModel: process.env.ELEVENLABS_STT_MODEL || "scribe_v2_realtime",
+  ttsModel: process.env.ELEVENLABS_MODEL_ID || "eleven_turbo_v2_5",
+}));
 
 const server = http.createServer(app);
 attachVoiceServer(server, getAuthenticatedUser);
