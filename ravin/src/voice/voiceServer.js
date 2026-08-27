@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { createDeepgramStream } from "./sttClient.js";
+import { createElevenLabsSttStream } from "./sttClient.js";
 import { synthesizeSpeech, createSentenceChunker } from "./ttsClient.js";
 import { runHermes } from "../agent/hermesAgent.js";
 
@@ -19,7 +19,7 @@ export function attachVoiceServer(httpServer, authenticate) {
     }
 
     const history = [];
-    let deepgram = null;
+    let stt = null;
     let hermesBusy = false;
     let ttsHadError = false;
     let pendingPlayback = 0;
@@ -80,24 +80,27 @@ export function attachVoiceServer(httpServer, authenticate) {
       } finally {
         hermesBusy = false;
         if (pendingPlayback === 0) {
-          if (ttsHadError) {
-            send({ type: "state", state: "finished" });
-          } else {
-            maybeFinish();
-          }
+          if (ttsHadError) send({ type: "state", state: "finished" });
+          else maybeFinish();
         }
       }
     }
 
-    deepgram = createDeepgramStream({
-      onTranscript: (text, isFinal) => send({ type: "transcript", text, isFinal }),
-      onUtteranceEnd: text => handleUtterance(text),
-      onError: err => send({ type: "error", message: `STT error: ${err.message}` }),
-    });
+    try {
+      stt = createElevenLabsSttStream({
+        onTranscript: (text, isFinal) => send({ type: "transcript", text, isFinal }),
+        onUtteranceEnd: text => handleUtterance(text),
+        onError: err => send({ type: "error", message: `STT failed: ${err.message}` }),
+      });
+    } catch (err) {
+      send({ type: "error", message: `Voice setup failed: ${err.message}` });
+      client.close();
+      return;
+    }
 
     client.on("message", (data, isBinary) => {
       if (isBinary) {
-        deepgram?.sendAudio(data);
+        if (!hermesBusy) stt?.sendAudio(data);
         return;
       }
       let msg;
@@ -110,7 +113,7 @@ export function attachVoiceServer(httpServer, authenticate) {
 
     client.on("close", () => {
       clearTimeout(finishTimer);
-      deepgram?.close();
+      stt?.close();
     });
 
     send({ type: "state", state: "listening" });
