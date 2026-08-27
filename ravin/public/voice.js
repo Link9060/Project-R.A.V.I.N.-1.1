@@ -11,9 +11,14 @@
 
   const isConversation = () => Boolean(window.RavinCore?.isConversationMode?.());
   const getWsUrl = () => {
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const backend = (window.RavinAPI?.getBackendUrl?.() || window.RAVIN_CONFIG?.backendUrl || "").replace(/\/$/, "");
+    if (!backend) throw new Error("RAVIN backend URL is not configured.");
+    const url = new URL(backend);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws/voice";
     const token = window.RavinAuth?.getAccessToken?.() || "";
-    return `${proto}//${location.host}/ws/voice?token=${encodeURIComponent(token)}`;
+    url.search = `?token=${encodeURIComponent(token)}`;
+    return url.toString();
   };
 
   async function ensureAudioContext() {
@@ -81,7 +86,7 @@
 
   function connect() {
     if (ws || !enabled || !isConversation()) return;
-    ws = new WebSocket(getWsUrl());
+    try { ws = new WebSocket(getWsUrl()); } catch (err) { console.error("[Hermes voice]", err); return; }
     ws.binaryType = "arraybuffer";
     ws.onopen = () => startMic();
     ws.onmessage = event => {
