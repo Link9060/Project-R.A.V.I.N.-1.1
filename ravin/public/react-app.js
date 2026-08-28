@@ -242,26 +242,17 @@ function PulsatingBorder({
 
 function HoverBorder({ accent, overdrive }) {
   const [target, setTarget] = useState(null);
-  const targetRef = useRef(null);
   useEffect(() => {
-    let frame = 0;
-    const update = (event) => {
-      const next = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-pulse]") || null;
-      if (next === targetRef.current) return;
-      targetRef.current = next;
+    const over = (event) => setTarget(event.target.closest?.("[data-pulse]") || null);
+    const out = (event) => {
+      const next = event.relatedTarget?.closest?.("[data-pulse]") || null;
       setTarget(next);
     };
-    const move = (event) => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => update(event));
-    };
-    const clear = () => { targetRef.current = null; setTarget(null); };
-    document.addEventListener("pointermove", move, { passive: true });
-    document.addEventListener("pointerleave", clear);
+    document.addEventListener("pointerover", over, true);
+    document.addEventListener("pointerout", out, true);
     return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("pointermove", move);
-      document.removeEventListener("pointerleave", clear);
+      document.removeEventListener("pointerover", over, true);
+      document.removeEventListener("pointerout", out, true);
     };
   }, []);
   if (!target) return null;
@@ -367,10 +358,11 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       canvas.style.width = `${runtime.width}px`;
       canvas.style.height = `${runtime.height}px`;
       context.setTransform(runtime.dpr, 0, 0, runtime.dpr, 0, 0);
-      const count = runtime.width < 700 ? 29 : Math.min(58, Math.max(40, Math.round(runtime.width / 28)));
-      runtime.nodes = Array.from({ length: count }, (_, index) => ({
-        x: (index * 149.3 % runtime.width) + Math.random() * 24 - 12,
-        y: (index * 83.7 % runtime.height) + Math.random() * 24 - 12,
+      const count = runtime.width < 700 ? 26 : 46;
+      runtime.nodes = Array.from({ length: count }, () => ({
+        // Independent positions prevent the old diagonal-chain pattern.
+        x: 35 + Math.random() * (runtime.width - 70),
+        y: 45 + Math.random() * (runtime.height - 90),
         homeX: 0,
         homeY: 0,
         vx: 0,
@@ -733,7 +725,7 @@ function Toggle({ checked, onChange, label }) {
   return h("button", { type: "button", className: `toggle ${checked ? "on" : ""}`, role: "switch", "aria-checked": checked, "aria-label": label, onClick: () => onChange(!checked), "data-pulse": true }, h("span"));
 }
 
-function Settings({ close, accent, setAccent, light, setLight, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
+function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, light, setLight, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
   const [draft, setDraft] = useState("");
   const saveMemory = async () => {
     const text = draft.trim();
@@ -745,6 +737,7 @@ function Settings({ close, accent, setAccent, light, setLight, sound, setSound, 
     h("header", null, h("div", null, h("small", null, "RAVIN"), h("strong", null, "SYSTEM SETTINGS")), h("button", { onClick: close, "aria-label": "Close settings", "data-pulse": true }, "×")),
     h("div", { className: "account-row" }, h("span", null, session.user?.email || "Not signed in"), h("button", { onClick: session.user ? signOut : signIn, "data-pulse": true }, session.user ? "SIGN OUT" : "SIGN IN")),
     h("div", { className: "setting-row" }, h("span", null, "Accent"), h("label", { className: "accent-picker" }, h("input", { type: "color", value: accent, onChange: (event) => setAccent(event.target.value) }), h("code", null, accent.toUpperCase()))),
+    h("div", { className: "setting-row glass-opacity-row" }, h("span", null, "Glass clarity"), h("label", { className: "glass-opacity-control" }, h("input", { type: "range", min: "18", max: "82", value: glassOpacity, onChange: (event) => setGlassOpacity(Number(event.target.value)), "aria-label": "Glass transparency" }), h("code", null, `${glassOpacity}%`))),
     h("div", { className: "setting-row" }, h("span", null, "Light mode"), h(Toggle, { checked: light, onChange: setLight, label: "Light mode" })),
     h("div", { className: "setting-row" }, h("span", null, "Interface sound"), h(Toggle, { checked: sound, onChange: setSound, label: "Interface sound" })),
     h("div", { className: "settings-divider" }),
@@ -813,6 +806,7 @@ function App() {
   const [conversationMode, setConversationMode] = useState(false);
   const [overdrive, setOverdrive] = useState(false);
   const [overdriveStarting, setOverdriveStarting] = useState(false);
+  const [overdriveExiting, setOverdriveExiting] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [promptVisible, setPromptVisible] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState(null);
@@ -825,6 +819,7 @@ function App() {
   const [memories, setMemories] = useState([]);
   const [logs, setLogs] = useState([]);
   const [accent, setAccentState] = useState(() => localStorage.getItem("ravin_accent") || "#8fa7ff");
+  const [glassOpacity, setGlassOpacityState] = useState(() => Number(localStorage.getItem("ravin_glass_opacity") || 44));
   const [light, setLightState] = useState(() => localStorage.getItem("ravin_theme") === "light");
   const [sound, setSoundState] = useState(() => localStorage.getItem("ravin_sound") === "on");
   const inputRef = useRef(null);
@@ -879,6 +874,10 @@ function App() {
     document.documentElement.style.setProperty("--accent-rgb", rgb.join(","));
     localStorage.setItem("ravin_accent", accent);
   }, [accent]);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--glass-opacity", String(glassOpacity / 100));
+    localStorage.setItem("ravin_glass_opacity", String(glassOpacity));
+  }, [glassOpacity]);
   useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
     localStorage.setItem("ravin_theme", light ? "light" : "dark");
@@ -949,9 +948,14 @@ function App() {
   const toggleOverdrive = useCallback(() => {
     playTone(overdrive ? 300 : 110, overdrive ? 0.05 : 0.22);
     if (overdrive || overdriveStarting) {
-      setOverdrive(false);
       setOverdriveStarting(false);
-      addLog("Overdrive disengaged");
+      setOverdriveExiting(true);
+      addLog("Overdrive shutdown started");
+      setTimeout(() => {
+        setOverdrive(false);
+        setOverdriveExiting(false);
+        addLog("Overdrive disengaged");
+      }, 820);
       return;
     }
     setOverdriveStarting(true);
@@ -1095,7 +1099,7 @@ function App() {
     return () => removeEventListener("keydown", keydown);
   }, [conversationMode, exitConversation]);
 
-  return h("div", { className: `ravin-app ${booted ? "ready" : ""} ${overdrive ? "overdrive-mode" : ""} ${overdriveStarting ? "overdrive-boot" : ""}` },
+  return h("div", { className: `ravin-app ${booted ? "ready" : ""} ${overdrive ? "overdrive-mode" : ""} ${overdriveStarting ? "overdrive-boot" : ""} ${overdriveExiting ? "overdrive-exit" : ""}` },
     h(NeuralField, { coreRef, state, overdrive, overdriveStarting, accent }),
     h("div", { className: "ambient-wash", "aria-hidden": "true" }),
     h("header", { className: "topbar" }, h(Clock), h("div", { className: "brand-lockup" }, h("span", null, "RAVIN"), h("small", null, "RESONANT ASSIST"))),
@@ -1104,7 +1108,7 @@ function App() {
     h(Core, { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel }),
     h(Workspace, { tab: workspaceTab, close: () => setWorkspaceTab(null), notes, setNotes, tasks, setTasks, projects, setProjects, logs, memories, loadMemories, signedIn: Boolean(session.user) }),
     workspaceTab === "settings" ? h(Settings, {
-      close: () => setWorkspaceTab(null), accent, setAccent: setAccentState, light, setLight: setLightState, sound, setSound: setSoundState,
+      close: () => setWorkspaceTab(null), accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, light, setLight: setLightState, sound, setSound: setSoundState,
       session, signOut: () => { setSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
     }) : null,
     promptVisible ? h("div", { className: "conversation-prompt glass" }, h("span", null, "Enter Conversation Mode?"), h("button", { onClick: enterConversation, "data-pulse": true }, "ENTER"), h("button", { onClick: () => setPromptVisible(false), "aria-label": "Dismiss" }, "×")) : null,
