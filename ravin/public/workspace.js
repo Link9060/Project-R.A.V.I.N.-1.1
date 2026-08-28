@@ -6,9 +6,6 @@ const panes=$$(".workspace-pane"), legacyTabs=$$(".workspace-tab");
 const store={get:(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const renderEmpty=(el,text)=>{if(el&&!el.children.length)el.innerHTML=`<div class="workspace-empty">${text}</div>`};
 
-/* Load dock-specific layout after the base stylesheet. */
-if(!document.querySelector('link[href*="dock.css"]')){const l=document.createElement("link");l.rel="stylesheet";l.href="dock.css?v=1";document.head.appendChild(l)}
-
 /* Build the persistent dock. */
 const dock=document.createElement("nav");dock.className="ravin-dock";dock.setAttribute("aria-label","RAVIN workspace dock");
 const dockItems=[

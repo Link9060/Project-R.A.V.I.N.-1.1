@@ -1,2 +1,199 @@
-/* RAVIN signal layer */
-(()=>{const canvas=document.createElement("canvas");canvas.id="neuralEnergy";document.body.appendChild(canvas);const ctx=canvas.getContext("2d");let w=0,h=0,dpr=1,active=false,pulses=[],burst=null,overdrive=false;const core=()=>document.getElementById("core");function color(forceRed=false){if(forceRed)return[150,24,32];const c=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#8fa7ff",n=parseInt(c.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255]}function resize(){dpr=Math.min(devicePixelRatio||1,2);w=innerWidth;h=innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+"px";canvas.style.height=h+"px";ctx.setTransform(dpr,0,0,dpr,0,0)}function origin(){const r=core()?.getBoundingClientRect();return r?{x:r.left+r.width/2,y:r.top+r.height/2}:{x:w/2,y:h/2}}function nearest(nodes,x,y){let best=null,bd=Infinity;for(const n of nodes){const d=Math.hypot(n.x-x,n.y-y);if(d<bd){bd=d;best=n}}return best}function neighbors(node,nodes,dist){const out=[];for(const n of nodes){if(n===node)continue;const d=Math.hypot(n.x-node.x,n.y-node.y);if(d<=dist)out.push({n,d})}return out}function buildPath(){const nodes=window.ravinField?.getNodes?.()||[];if(nodes.length<2)return null;const o=origin(),start=nearest(nodes,o.x,o.y);if(!start)return null;const linkDist=window.ravinField?.getLinkDistance?.()||145;let current=start,path=[{x:o.x,y:o.y},start],used=new Set([start]);for(let step=0;step<36;step++){const choices=neighbors(current,nodes,linkDist).filter(v=>!used.has(v.n));if(!choices.length)break;const scored=choices.map(v=>({n:v.n,score:Math.random()*1.4+Math.hypot(v.n.x-w/2,v.n.y-h/2)/Math.hypot(w/2,h/2)*2})).sort((a,b)=>b.score-a.score);const pick=scored[Math.floor(Math.random()*Math.min(3,scored.length))];if(!pick)break;current=pick.n;used.add(current);path.push(current);if(current.x<35||current.x>w-35||current.y<35||current.y>h-35)break}if(path.length<4)return null;return path}function spawn(delay=0,boost=false){setTimeout(()=>{if(!active)return;const path=buildPath();if(path)pulses.push({path,t:-.1,speed:boost?.14:(.065+Math.random()*.035),trail:boost?7:(3+Math.floor(Math.random()*3)),boost})},delay)}function triggerBurst(){overdrive=true;active=true;const o=origin();burst={x:o.x,y:o.y,start:performance.now(),duration:1250,max:Math.hypot(w,h)*.72};pulses=[];for(let i=0;i<22;i++)spawn(i*32,true)}function draw(){ctx.clearRect(0,0,w,h);canvas.style.opacity=active||burst?"1":"0";if(burst){const t=Math.min(1,(performance.now()-burst.start)/burst.duration),ease=1-Math.pow(1-t,3),radius=40+burst.max*ease,alpha=(1-t)*.7;ctx.save();ctx.beginPath();ctx.arc(burst.x,burst.y,radius,0,Math.PI*2);ctx.strokeStyle=`rgba(170,22,30,${alpha})`;ctx.lineWidth=Math.max(1,5*(1-t));ctx.shadowBlur=28;ctx.shadowColor=`rgba(150,12,20,${alpha})`;ctx.stroke();const g=ctx.createRadialGradient(burst.x,burst.y,0,burst.x,burst.y,radius*.8);g.addColorStop(0,`rgba(120,5,12,${.18*(1-t)})`);g.addColorStop(1,"rgba(120,5,12,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(burst.x,burst.y,radius*.8,0,Math.PI*2);ctx.fill();ctx.restore();if(t>=1)burst=null}const [r,g,b]=color(overdrive);if(active&&Math.random()<(overdrive?.2:.08))spawn(0,overdrive);for(let i=pulses.length-1;i>=0;i--){const p=pulses[i];p.t+=p.speed;if(p.t>=p.path.length-1){pulses.splice(i,1);continue}const head=Math.max(0,p.t);for(let k=p.trail;k>=0;k--){const pos=head-k*.5;if(pos<0)continue;const a=Math.floor(pos),f=pos-a,A=p.path[Math.min(a,p.path.length-1)],B=p.path[Math.min(a+1,p.path.length-1)],x=A.x+(B.x-A.x)*f,y=A.y+(B.y-A.y)*f,alpha=(1-k/(p.trail+1))*(p.boost?.95:.72);ctx.beginPath();ctx.arc(x,y,k===0?(p.boost?3.4:2.4):1.25,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${alpha})`;ctx.shadowBlur=k===0?(p.boost?28:16):6;ctx.shadowColor=`rgba(${r},${g},${b},${alpha})`;ctx.fill()}ctx.shadowBlur=0}requestAnimationFrame(draw)}addEventListener("resize",resize);addEventListener("ravin-neural",e=>{active=!!e.detail?.active;overdrive=!!e.detail?.overdrive;if(active){if(!overdrive){pulses=[];for(let i=0;i<6;i++)spawn(i*70)}}else{setTimeout(()=>{pulses=[]},300)}});addEventListener("ravin-overdrive",e=>{if(e.detail?.active)triggerBurst();else{overdrive=false;burst=null;pulses=[]}});resize();draw()})();
+/** Signals share the ambient field's exact line and node styling. */
+(() => {
+  const canvas = document.createElement("canvas");
+  canvas.id = "neuralEnergy";
+  canvas.setAttribute("aria-hidden", "true");
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+  let active = false;
+  let overdrive = false;
+  let signals = [];
+  let burst = null;
+
+  function color(forceRed = false) {
+    if (forceRed) return [145, 26, 34];
+    const value = getComputedStyle(document.documentElement)
+      .getPropertyValue("--accent").trim() || "#8fa7ff";
+    const number = parseInt(value.slice(1), 16);
+    return [(number >> 16) & 255, (number >> 8) & 255, number & 255];
+  }
+
+  function resize() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    width = innerWidth;
+    height = innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function origin() {
+    const bounds = document.getElementById("core")?.getBoundingClientRect();
+    return bounds
+      ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }
+      : { x: width / 2, y: height / 2 };
+  }
+
+  function nearest(nodes, x, y) {
+    let result = null;
+    let distance = Infinity;
+    for (const node of nodes) {
+      const nextDistance = Math.hypot(node.x - x, node.y - y);
+      if (nextDistance < distance) {
+        result = node;
+        distance = nextDistance;
+      }
+    }
+    return result;
+  }
+
+  function createPath() {
+    const nodes = window.ravinField?.getNodes?.() || [];
+    if (nodes.length < 2) return null;
+
+    const start = origin();
+    let current = nearest(nodes, start.x, start.y);
+    if (!current) return null;
+
+    const linkDistance = window.ravinField?.getLinkDistance?.() || 188;
+    const path = [start, current];
+    const used = new Set([current]);
+
+    for (let step = 0; step < 22; step += 1) {
+      const choices = nodes
+        .filter(node => node !== current && !used.has(node))
+        .map(node => ({
+          node,
+          distance: Math.hypot(node.x - current.x, node.y - current.y),
+          outward: Math.hypot(node.x - width / 2, node.y - height / 2),
+        }))
+        .filter(choice => choice.distance <= linkDistance)
+        .sort((first, second) =>
+          second.outward - first.outward + (Math.random() - 0.5) * linkDistance);
+
+      if (!choices.length) break;
+      current = choices[Math.floor(Math.random() * Math.min(3, choices.length))].node;
+      used.add(current);
+      path.push(current);
+      if (current.x < 30 || current.x > width - 30 || current.y < 30 || current.y > height - 30) break;
+    }
+    return path.length >= 4 ? path : null;
+  }
+
+  function spawn(delay = 0, boosted = false) {
+    setTimeout(() => {
+      if (!active) return;
+      const path = createPath();
+      if (!path) return;
+      signals.push({
+        path,
+        progress: 0,
+        speed: boosted ? 0.11 : 0.055 + Math.random() * 0.022,
+        visibleSegments: boosted ? 5 : 3,
+        boosted,
+      });
+    }, delay);
+  }
+
+  function startOverdrive() {
+    active = true;
+    overdrive = true;
+    const start = origin();
+    burst = {
+      x: start.x,
+      y: start.y,
+      startedAt: performance.now(),
+      duration: 1150,
+      maxRadius: Math.hypot(width, height) * 0.68,
+    };
+    signals = [];
+    for (let index = 0; index < 12; index += 1) spawn(index * 48, true);
+  }
+
+  function drawSignal(signal, rgb, style) {
+    signal.progress += signal.speed;
+    const head = Math.floor(signal.progress);
+    if (head >= signal.path.length - 1) return false;
+
+    const firstVisible = Math.max(0, head - signal.visibleSegments + 1);
+    for (let segment = firstVisible; segment <= head; segment += 1) {
+      const from = signal.path[segment];
+      const to = signal.path[Math.min(segment + 1, signal.path.length - 1)];
+      const progress = segment === head ? signal.progress - head : 1;
+      const x = from.x + (to.x - from.x) * progress;
+      const y = from.y + (to.y - from.y) * progress;
+      const age = head - segment;
+      const alpha = style.lineAlpha * (1 - age / (signal.visibleSegments + 1));
+
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = `rgba(${rgb.join(",")},${signal.boosted ? alpha * 1.2 : alpha})`;
+      ctx.lineWidth = style.lineWidth;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, style.dotRadius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rgb.join(",")},${style.dotAlpha})`;
+      ctx.fill();
+    }
+    return true;
+  }
+
+  function drawBurst() {
+    if (!burst) return;
+    const elapsed = Math.min(1, (performance.now() - burst.startedAt) / burst.duration);
+    const eased = 1 - (1 - elapsed) ** 3;
+    ctx.beginPath();
+    ctx.arc(burst.x, burst.y, 30 + burst.maxRadius * eased, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(150,24,32,${(1 - elapsed) * 0.42})`;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    if (elapsed >= 1) burst = null;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, width, height);
+    canvas.style.opacity = active || burst ? "1" : "0";
+    drawBurst();
+
+    const rgb = color(overdrive);
+    const style = window.ravinField?.getReactiveStyle?.() || {
+      dotRadius: 1.9,
+      dotAlpha: 0.68,
+      lineAlpha: 0.3,
+      lineWidth: 0.75,
+    };
+    if (active && Math.random() < (overdrive ? 0.085 : 0.025)) spawn(0, overdrive);
+    signals = signals.filter(signal => drawSignal(signal, rgb, style));
+    requestAnimationFrame(draw);
+  }
+
+  addEventListener("resize", resize);
+  addEventListener("ravin-neural", event => {
+    active = Boolean(event.detail?.active);
+    overdrive = Boolean(event.detail?.overdrive);
+    if (active && !overdrive) {
+      signals = [];
+      for (let index = 0; index < 3; index += 1) spawn(index * 120);
+    }
+    if (!active) setTimeout(() => { signals = []; }, 350);
+  });
+  addEventListener("ravin-overdrive", event => {
+    if (event.detail?.active) startOverdrive();
+    else {
+      overdrive = false;
+      burst = null;
+      signals = [];
+    }
+  });
+
+  resize();
+  draw();
+})();

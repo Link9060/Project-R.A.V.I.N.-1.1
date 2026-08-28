@@ -1,2 +1,177 @@
-/** RAVIN ambient neural field */
-(function(){const canvas=document.getElementById("field");if(!canvas)return;const ctx=canvas.getContext("2d");let width=0,height=0,dpr=1,nodes=[],mouse={x:-9999,y:-9999,active:false},rgb="225,230,238";const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;const C={density:8800,max:230,link:145,mouseRadius:190,speed:.075,dot:1.35,dotAlpha:.32,lineAlpha:.09,nearLine:.38};function color(){rgb=getComputedStyle(document.documentElement).getPropertyValue("--particle-rgb").trim()||rgb}function seed(){const count=Math.min(C.max,Math.max(80,Math.floor(width*height/C.density))),cols=Math.ceil(Math.sqrt(count*width/height)),rows=Math.ceil(count/cols),cw=width/cols,ch=height/rows;nodes=[];for(let y=0;y<rows&&nodes.length<count;y++)for(let x=0;x<cols&&nodes.length<count;x++){const jitterX=(Math.random()-.5)*cw*.82,jitterY=(Math.random()-.5)*ch*.82;nodes.push({x:(x+.5)*cw+jitterX,y:(y+.5)*ch+jitterY,vx:(Math.random()-.5)*C.speed,vy:(Math.random()-.5)*C.speed})}}function resize(){dpr=Math.min(devicePixelRatio||1,2);width=innerWidth;height=innerHeight;canvas.width=width*dpr;canvas.height=height*dpr;canvas.style.width=width+"px";canvas.style.height=height+"px";ctx.setTransform(dpr,0,0,dpr,0,0);seed();draw(false)}function draw(move){ctx.clearRect(0,0,width,height);for(const n of nodes){if(move){n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>width)n.vx*=-1;if(n.y<0||n.y>height)n.vy*=-1}const d=Math.hypot(n.x-mouse.x,n.y-mouse.y),near=mouse.active&&d<C.mouseRadius;ctx.beginPath();ctx.arc(n.x,n.y,near?C.dot*1.65:C.dot,0,Math.PI*2);ctx.fillStyle=`rgba(${rgb},${near?.75:C.dotAlpha})`;ctx.fill()}for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const a=nodes[i],b=nodes[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d>C.link)continue;const mx=(a.x+b.x)/2,my=(a.y+b.y)/2,near=mouse.active&&Math.hypot(mx-mouse.x,my-mouse.y)<C.mouseRadius,alpha=(1-d/C.link)*(near?C.nearLine:C.lineAlpha);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(${rgb},${alpha})`;ctx.lineWidth=near?.72:.5;ctx.stroke()}if(mouse.active){for(const n of nodes){const d=Math.hypot(n.x-mouse.x,n.y-mouse.y);if(d<C.mouseRadius*.75){ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(mouse.x,mouse.y);ctx.strokeStyle=`rgba(${rgb},${(1-d/(C.mouseRadius*.75))*.22})`;ctx.lineWidth=.6;ctx.stroke()}}}}function loop(){draw(true);requestAnimationFrame(loop)}function point(x,y){mouse={x,y,active:true};if(reduced)draw(false)}function clear(){mouse.active=false;if(reduced)draw(false)}window.ravinField={getNodes:()=>nodes,getLinkDistance:()=>C.link};new MutationObserver(()=>{color();draw(false)}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme","class","style"]});addEventListener("resize",resize);addEventListener("mousemove",e=>point(e.clientX,e.clientY));addEventListener("mouseleave",clear);addEventListener("touchstart",e=>{if(e.touches[0])point(e.touches[0].clientX,e.touches[0].clientY)},{passive:true});addEventListener("touchmove",e=>{if(e.touches[0])point(e.touches[0].clientX,e.touches[0].clientY)},{passive:true});addEventListener("touchend",clear);color();resize();if(!reduced)requestAnimationFrame(loop)})();
+/** RAVIN ambient neural field. */
+(() => {
+  const canvas = document.getElementById("field");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const config = {
+    density: 26000,
+    minNodes: 34,
+    maxNodes: 105,
+    linkDistance: 188,
+    mouseRadius: 185,
+    speed: 0.055,
+    dotRadius: 1.2,
+    dotAlpha: 0.25,
+    lineAlpha: 0.07,
+    reactiveDotAlpha: 0.68,
+    reactiveLineAlpha: 0.3,
+    reactiveLineWidth: 0.75,
+  };
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+  let nodes = [];
+  let particleRgb = "225,230,238";
+  const pointer = { x: -9999, y: -9999, active: false };
+
+  function syncColor() {
+    particleRgb = getComputedStyle(document.documentElement)
+      .getPropertyValue("--particle-rgb")
+      .trim() || particleRgb;
+  }
+
+  function seedNodes() {
+    const count = Math.min(
+      config.maxNodes,
+      Math.max(config.minNodes, Math.floor((width * height) / config.density)),
+    );
+    const columns = Math.ceil(Math.sqrt((count * width) / height));
+    const rows = Math.ceil(count / columns);
+    const cellWidth = width / columns;
+    const cellHeight = height / rows;
+
+    nodes = [];
+    for (let row = 0; row < rows && nodes.length < count; row += 1) {
+      for (let column = 0; column < columns && nodes.length < count; column += 1) {
+        nodes.push({
+          x: (column + 0.5) * cellWidth + (Math.random() - 0.5) * cellWidth * 0.72,
+          y: (row + 0.5) * cellHeight + (Math.random() - 0.5) * cellHeight * 0.72,
+          vx: (Math.random() - 0.5) * config.speed,
+          vy: (Math.random() - 0.5) * config.speed,
+        });
+      }
+    }
+  }
+
+  function resize() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    width = innerWidth;
+    height = innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seedNodes();
+    draw(false);
+  }
+
+  function draw(moveNodes) {
+    ctx.clearRect(0, 0, width, height);
+
+    for (const node of nodes) {
+      if (moveNodes) {
+        node.x += node.vx;
+        node.y += node.vy;
+        if (node.x < 0 || node.x > width) node.vx *= -1;
+        if (node.y < 0 || node.y > height) node.vy *= -1;
+      }
+
+      const distance = Math.hypot(node.x - pointer.x, node.y - pointer.y);
+      const reactive = pointer.active && distance < config.mouseRadius;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, reactive ? 1.9 : config.dotRadius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${particleRgb},${reactive ? config.reactiveDotAlpha : config.dotAlpha})`;
+      ctx.fill();
+    }
+
+    for (let index = 0; index < nodes.length; index += 1) {
+      for (let next = index + 1; next < nodes.length; next += 1) {
+        const first = nodes[index];
+        const second = nodes[next];
+        const distance = Math.hypot(first.x - second.x, first.y - second.y);
+        if (distance > config.linkDistance) continue;
+
+        const midpointX = (first.x + second.x) / 2;
+        const midpointY = (first.y + second.y) / 2;
+        const reactive = pointer.active
+          && Math.hypot(midpointX - pointer.x, midpointY - pointer.y) < config.mouseRadius;
+        const strength = 1 - distance / config.linkDistance;
+
+        ctx.beginPath();
+        ctx.moveTo(first.x, first.y);
+        ctx.lineTo(second.x, second.y);
+        ctx.strokeStyle = `rgba(${particleRgb},${strength * (reactive ? config.reactiveLineAlpha : config.lineAlpha)})`;
+        ctx.lineWidth = reactive ? config.reactiveLineWidth : 0.5;
+        ctx.stroke();
+      }
+    }
+
+    if (pointer.active) {
+      for (const node of nodes) {
+        const distance = Math.hypot(node.x - pointer.x, node.y - pointer.y);
+        if (distance >= config.mouseRadius * 0.72) continue;
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(pointer.x, pointer.y);
+        ctx.strokeStyle = `rgba(${particleRgb},${(1 - distance / (config.mouseRadius * 0.72)) * 0.18})`;
+        ctx.lineWidth = config.reactiveLineWidth;
+        ctx.stroke();
+      }
+    }
+  }
+
+  function animate() {
+    draw(true);
+    requestAnimationFrame(animate);
+  }
+
+  function updatePointer(x, y) {
+    pointer.x = x;
+    pointer.y = y;
+    pointer.active = true;
+    if (reducedMotion) draw(false);
+  }
+
+  function clearPointer() {
+    pointer.active = false;
+    if (reducedMotion) draw(false);
+  }
+
+  window.ravinField = {
+    getNodes: () => nodes,
+    getLinkDistance: () => config.linkDistance,
+    getReactiveStyle: () => ({
+      dotRadius: 1.9,
+      dotAlpha: config.reactiveDotAlpha,
+      lineAlpha: config.reactiveLineAlpha,
+      lineWidth: config.reactiveLineWidth,
+    }),
+  };
+
+  new MutationObserver(() => {
+    syncColor();
+    draw(false);
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme", "class", "style"],
+  });
+
+  addEventListener("resize", resize);
+  addEventListener("mousemove", event => updatePointer(event.clientX, event.clientY));
+  addEventListener("mouseleave", clearPointer);
+  addEventListener("touchstart", event => {
+    if (event.touches[0]) updatePointer(event.touches[0].clientX, event.touches[0].clientY);
+  }, { passive: true });
+  addEventListener("touchmove", event => {
+    if (event.touches[0]) updatePointer(event.touches[0].clientX, event.touches[0].clientY);
+  }, { passive: true });
+  addEventListener("touchend", clearPointer);
+
+  syncColor();
+  resize();
+  if (!reducedMotion) requestAnimationFrame(animate);
+})();

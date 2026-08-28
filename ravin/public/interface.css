@@ -1,0 +1,551 @@
+/*
+ * RAVIN interface material layer.
+ * Keeps the existing behavior while replacing stacked sci-fi decoration with
+ * one restrained Core and one shared liquid-glass system.
+ */
+:root {
+  --glass-fill: rgba(12, 14, 18, 0.58);
+  --glass-fill-strong: rgba(10, 12, 15, 0.78);
+  --glass-line: rgba(255, 255, 255, 0.13);
+  --glass-highlight: rgba(255, 255, 255, 0.09);
+  --glass-shadow: 0 22px 70px rgba(0, 0, 0, 0.35);
+  --glass-blur: blur(26px) saturate(145%);
+}
+
+[data-theme="light"] {
+  --glass-fill: rgba(255, 255, 255, 0.58);
+  --glass-fill-strong: rgba(255, 255, 255, 0.76);
+  --glass-line: rgba(255, 255, 255, 0.72);
+  --glass-highlight: rgba(255, 255, 255, 0.82);
+  --glass-shadow: 0 22px 70px rgba(33, 38, 48, 0.14);
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(var(--accent-rgb), 0.025), transparent 30%),
+    var(--bg);
+}
+
+#field {
+  opacity: 0.46;
+}
+
+#neuralEnergy {
+  opacity: 0;
+}
+
+/* Shared liquid-glass material */
+.conversation-panel,
+.composer,
+.ravin-dock,
+.workspace-panel,
+.settings-panel,
+.quick-prompt,
+.icon-btn,
+.mobile-chat-open,
+.ravin-auth-card {
+  border: 1px solid var(--glass-line) !important;
+  background:
+    linear-gradient(135deg, var(--glass-highlight), transparent 36%),
+    var(--glass-fill) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.025),
+    var(--glass-shadow) !important;
+}
+
+.conversation-panel,
+.workspace-panel,
+.settings-panel {
+  overflow: hidden;
+}
+
+.conversation-head,
+.workspace-head {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+}
+
+/* Clean Core */
+.core-wrap {
+  top: 43%;
+}
+
+.core {
+  width: 152px;
+  height: 152px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 36% 28%, #17191d 0, #0d0f12 48%, #08090b 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.13),
+    inset 0 -14px 30px rgba(0, 0, 0, 0.36),
+    0 12px 40px rgba(0, 0, 0, 0.38);
+  isolation: isolate;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.core:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px) scale(1.018);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.16),
+    inset 0 -14px 30px rgba(0, 0, 0, 0.36),
+    0 18px 54px rgba(0, 0, 0, 0.45);
+}
+
+.core::before {
+  display: none;
+}
+
+.core::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.045);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent 42%);
+  pointer-events: none;
+}
+
+.core-lens {
+  position: relative;
+  z-index: 3;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.18), transparent 18%),
+    radial-gradient(circle, #15181d 0, #0a0c0f 70%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.13),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.45),
+    0 5px 18px rgba(0, 0, 0, 0.38);
+  transition:
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 280ms ease,
+    box-shadow 280ms ease;
+}
+
+.core-lens::after {
+  content: "";
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background: rgba(235, 240, 248, 0.82);
+  box-shadow: 0 0 12px rgba(235, 240, 248, 0.28);
+  transition: background 280ms ease, box-shadow 280ms ease;
+}
+
+.core-aura {
+  inset: -48px;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.12), transparent 68%);
+  filter: blur(20px);
+}
+
+.core-ring {
+  inset: -9px;
+  border-width: 1px;
+  border-style: solid;
+  opacity: 0;
+}
+
+.ring-two {
+  display: none;
+}
+
+.core-scan {
+  display: none;
+}
+
+.core-status {
+  top: 181px;
+  width: 350px;
+  color: rgba(210, 216, 226, 0.47);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  opacity: 0.62;
+}
+
+.core-wrap:hover .core-status,
+.stage.active .core-status {
+  opacity: 0.9;
+}
+
+.stage.active .core {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.14),
+    inset 0 -14px 30px rgba(0, 0, 0, 0.32),
+    0 0 0 7px rgba(var(--accent-rgb), 0.035),
+    0 18px 65px rgba(var(--accent-rgb), 0.14);
+}
+
+.stage.active .core-lens {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.14),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.38),
+    0 0 24px rgba(var(--accent-rgb), 0.18);
+}
+
+.stage.active .core-lens::after {
+  background: var(--accent);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.68);
+}
+
+.stage.active .core::after {
+  border-color: rgba(var(--accent-rgb), 0.12);
+}
+
+.stage.active .core-ring {
+  display: block;
+  opacity: 0.42;
+  animation: cleanPulse 2.4s ease-out infinite;
+}
+
+.core.thinking .ring-one {
+  opacity: 0.7;
+  animation: cleanThink 1.25s ease-in-out infinite;
+}
+
+.core.speaking .ring-one {
+  opacity: 0.6;
+  animation: cleanSpeak 0.85s ease-out infinite;
+}
+
+/* Overdrive retains drama, but the normal Core stays clean. */
+.overdrive .core {
+  border-color: rgba(145, 26, 34, 0.82) !important;
+  background:
+    radial-gradient(circle at 36% 28%, #251317 0, #120b0d 50%, #080809 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 0 0 7px rgba(145, 26, 34, 0.055),
+    0 18px 80px rgba(115, 8, 16, 0.28) !important;
+}
+
+.overdrive .core-lens {
+  border-color: rgba(170, 30, 40, 0.62);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.42),
+    0 0 28px rgba(150, 20, 30, 0.27);
+}
+
+.overdrive .core-lens::after {
+  background: #a51e28;
+  box-shadow: 0 0 18px rgba(175, 28, 40, 0.78);
+}
+
+.overdrive-starting .ring-two {
+  display: block;
+  border-style: solid;
+}
+
+.overdrive-label {
+  top: 90px;
+}
+
+/* Dock and composer */
+.ravin-dock {
+  height: 48px;
+  bottom: 90px;
+  padding: 5px;
+  gap: 3px;
+  border-radius: 18px;
+}
+
+.ravin-dock button {
+  height: 36px;
+  min-width: 72px;
+  padding: 0 13px;
+  border-radius: 12px;
+  color: rgba(190, 197, 208, 0.55);
+  transition: color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.ravin-dock button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.ravin-dock button.active {
+  color: var(--white);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
+    rgba(var(--accent-rgb), 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.14);
+}
+
+.composer {
+  height: 58px;
+  bottom: 22px !important;
+  width: min(620px, calc(100% - 64px)) !important;
+  padding: 0 7px 0 18px;
+  border-radius: 21px;
+}
+
+.composer:focus-within {
+  border-color: rgba(var(--accent-rgb), 0.35) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 22px 70px rgba(0, 0, 0, 0.36),
+    0 0 34px rgba(var(--accent-rgb), 0.07) !important;
+}
+
+.composer-state {
+  padding-right: 13px;
+  color: rgba(190, 197, 208, 0.47);
+}
+
+.composer-input {
+  font-size: 14px;
+  padding: 0 16px;
+}
+
+.composer-send {
+  width: 43px;
+  height: 43px;
+  border-radius: 15px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Originkit-inspired border motion, adapted for RAVIN's no-framework UI. */
+@property --ravin-border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+:is(
+  .ravin-dock button,
+  .composer-send,
+  .panel-collapse,
+  .mobile-chat-open,
+  .workspace-input button,
+  .settings-action
+) {
+  position: relative;
+  isolation: isolate;
+}
+
+:is(
+  .ravin-dock button,
+  .composer-send,
+  .panel-collapse,
+  .mobile-chat-open,
+  .workspace-input button,
+  .settings-action
+)::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--ravin-border-angle),
+    transparent 0 18%,
+    rgba(255, 255, 255, 0.52) 24%,
+    rgba(var(--accent-rgb), 0.9) 32%,
+    transparent 43% 72%,
+    rgba(var(--accent-rgb), 0.46) 82%,
+    transparent 91%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+:is(
+  .ravin-dock button,
+  .composer-send,
+  .panel-collapse,
+  .mobile-chat-open,
+  .workspace-input button,
+  .settings-action
+):is(:hover, :focus-visible)::before {
+  opacity: 1;
+  animation: ravinBorderOrbit 2.4s linear infinite;
+}
+
+/* Chat, workspace, settings */
+.conversation-panel {
+  width: 318px !important;
+  height: min(430px, calc(100vh - 230px)) !important;
+  border-radius: 22px !important;
+}
+
+.conversation-panel.collapsed {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 17px !important;
+}
+
+.conversation-head {
+  height: 48px;
+  border-bottom-color: rgba(255, 255, 255, 0.075);
+}
+
+.panel-collapse {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 11px;
+}
+
+.chat {
+  height: calc(100% - 48px);
+  padding: 14px;
+}
+
+.message {
+  border-color: rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent),
+    rgba(255, 255, 255, 0.025);
+  border-radius: 15px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.message.user {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.09), transparent),
+    rgba(var(--accent-rgb), 0.055);
+}
+
+.workspace-panel {
+  bottom: 150px !important;
+  height: 310px !important;
+  border-radius: 22px !important;
+}
+
+.settings-panel {
+  bottom: 150px !important;
+  border-radius: 22px !important;
+}
+
+.workspace-panel,
+.settings-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.085), transparent 34%),
+    var(--glass-fill-strong) !important;
+}
+
+#notesArea,
+.key-input,
+.workspace-input input {
+  border-color: rgba(255, 255, 255, 0.095);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent),
+    rgba(0, 0, 0, 0.13);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.quick-prompt {
+  bottom: 154px !important;
+  border-radius: 999px;
+}
+
+.ravin-auth-card {
+  border-radius: 24px !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 36%),
+    rgba(12, 14, 18, 0.88) !important;
+}
+
+@keyframes cleanPulse {
+  0% { transform: scale(0.98); opacity: 0.42; }
+  100% { transform: scale(1.16); opacity: 0; }
+}
+
+@keyframes cleanThink {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.075); opacity: 0.72; }
+}
+
+@keyframes cleanSpeak {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.12); opacity: 0; }
+}
+
+@keyframes ravinBorderOrbit {
+  to { --ravin-border-angle: 360deg; }
+}
+
+@media (max-width: 900px) {
+  .core-wrap {
+    top: 40%;
+  }
+
+  .core {
+    width: 134px;
+    height: 134px;
+  }
+
+  .core-lens {
+    width: 48px;
+    height: 48px;
+  }
+
+  .core-lens::after {
+    inset: 18px;
+  }
+
+  .core-status {
+    top: 162px;
+    width: 290px;
+  }
+
+  .ravin-dock {
+    bottom: 82px;
+    height: 48px;
+  }
+
+  .composer {
+    bottom: 14px !important;
+    width: calc(100% - 24px) !important;
+  }
+
+  .workspace-panel,
+  .settings-panel {
+    bottom: 138px !important;
+  }
+
+  .quick-prompt {
+    bottom: 142px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .core-status {
+    font-size: 6px;
+    width: 260px;
+  }
+
+  .ravin-dock button {
+    min-width: 66px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core-ring {
+    animation: none !important;
+  }
+}
