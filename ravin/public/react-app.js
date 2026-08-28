@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { createPortal } from "react-dom";
+import * as THREE from "https://esm.sh/three@0.179.1";
 import { PulsingBorder as PaperPulsingBorder } from "https://esm.sh/@paper-design/shaders-react@0.0.61?external=react,react-dom&deps=@paper-design/shaders@0.0.61";
 
 const h = React.createElement;
@@ -241,27 +242,32 @@ function PulsatingBorder({
 
 function HoverBorder({ accent, overdrive }) {
   const [target, setTarget] = useState(null);
+  const targetRef = useRef(null);
   useEffect(() => {
-    const enter = (event) => {
-      const next = event.target.closest?.("[data-pulse]");
-      if (next) setTarget(next);
+    let frame = 0;
+    const update = (event) => {
+      const next = document.elementFromPoint(event.clientX, event.clientY)?.closest?.("[data-pulse]") || null;
+      if (next === targetRef.current) return;
+      targetRef.current = next;
+      setTarget(next);
     };
-    const leave = (event) => {
-      if (!target) return;
-      const next = event.relatedTarget;
-      if (!next || !target.contains(next)) setTarget(null);
+    const move = (event) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => update(event));
     };
-    document.addEventListener("pointerover", enter);
-    document.addEventListener("pointerout", leave);
+    const clear = () => { targetRef.current = null; setTarget(null); };
+    document.addEventListener("pointermove", move, { passive: true });
+    document.addEventListener("pointerleave", clear);
     return () => {
-      document.removeEventListener("pointerover", enter);
-      document.removeEventListener("pointerout", leave);
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerleave", clear);
     };
-  }, [target]);
+  }, []);
   if (!target) return null;
   const rect = target.getBoundingClientRect();
   return h("div", {
-    className: "hover-shader-anchor",
+    className: "hover-shader-anchor is-active",
     style: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
   }, h(PulsatingBorder, {
     colors: overdrive ? ["#4d050b", "#d22b38", "#74101a"] : [accent, "#ffffff", accent],
@@ -272,6 +278,60 @@ function HoverBorder({ accent, overdrive }) {
     bloom: 18,
     zIndex: 160,
   }));
+}
+
+// RAVIN's center piece, adapted from the supplied ParticleSphereRefactor.
+// It keeps the globe's rotation, cursor push-away, click scatter, and spring return.
+function ParticleSphere({ accent, state, overdrive }) {
+  const hostRef = useRef(null);
+  const values = useRef({ accent, state, overdrive });
+  useEffect(() => { values.current = { accent, state, overdrive }; }, [accent, state, overdrive]);
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return undefined;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 10);
+    camera.position.z = 3.25;
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+    renderer.setClearColor(0x000000, 0);
+    host.appendChild(renderer.domElement);
+    const count = innerWidth < 700 ? 1800 : 4200;
+    const positions = new Float32Array(count * 3), base = new Float32Array(count * 3), velocity = new Float32Array(count * 3);
+    for (let i = 0; i < count; i += 1) {
+      const y = 1 - i / (count - 1) * 2, ring = Math.sqrt(1 - y * y), theta = Math.PI * (3 - Math.sqrt(5)) * i, o = i * 3, r = 0.87 + (Math.random() - .5) * .025;
+      base[o] = Math.cos(theta) * ring * r; base[o + 1] = y * r; base[o + 2] = Math.sin(theta) * ring * r;
+      positions[o] = base[o]; positions[o + 1] = base[o + 1]; positions[o + 2] = base[o + 2];
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ color: 0xffffff, size: .018, sizeAttenuation: true, transparent: true, opacity: .9, depthWrite: false, blending: THREE.AdditiveBlending });
+    const globe = new THREE.Points(geometry, material); scene.add(globe);
+    const pointer = new THREE.Vector3(99, 99, 99);
+    const setPointer = (event) => {
+      const rect = host.getBoundingClientRect(), x = ((event.clientX - rect.left) / rect.width) * 2 - 1, y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      if (Math.hypot(x, y) > 1.2) pointer.set(99, 99, 99); else pointer.set(x * 1.12, y * 1.12, .15);
+    };
+    const scatter = (event) => {
+      setPointer(event); if (pointer.x > 10) return;
+      for (let i = 0; i < count; i += 1) { const o = i * 3, dx = positions[o] - pointer.x, dy = positions[o + 1] - pointer.y, dz = positions[o + 2] - pointer.z, d = Math.hypot(dx, dy, dz) || .001, f = Math.max(0, 1 - d / 1.55) * .07; velocity[o] += dx / d * f; velocity[o + 1] += dy / d * f; velocity[o + 2] += dz / d * f; }
+    };
+    const resize = () => { const { width, height } = host.getBoundingClientRect(); renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); };
+    const core = host.closest(".ravin-core");
+    addEventListener("pointermove", setPointer, { passive: true }); core?.addEventListener("pointerdown", scatter);
+    const observer = new ResizeObserver(resize); observer.observe(host); resize();
+    let frame = 0;
+    const render = (now) => {
+      const current = values.current, active = current.state !== "idle";
+      material.color.set(current.overdrive ? "#e13e48" : current.accent); material.size = active ? .021 : .018; material.opacity = active ? 1 : .84;
+      globe.rotation.y += active ? .007 : .0024; globe.rotation.x = Math.sin(now * .00022) * .12;
+      for (let i = 0; i < count; i += 1) { const o = i * 3, dx = positions[o] - pointer.x, dy = positions[o + 1] - pointer.y, dz = positions[o + 2] - pointer.z, d = Math.hypot(dx, dy, dz) || .001; if (d < .58) { const f = (.58 - d) / .58 * .01; velocity[o] += dx / d * f; velocity[o + 1] += dy / d * f; velocity[o + 2] += dz / d * f; } velocity[o] += (base[o] - positions[o]) * .015; velocity[o + 1] += (base[o + 1] - positions[o + 1]) * .015; velocity[o + 2] += (base[o + 2] - positions[o + 2]) * .015; velocity[o] *= .94; velocity[o + 1] *= .94; velocity[o + 2] *= .94; positions[o] += velocity[o]; positions[o + 1] += velocity[o + 1]; positions[o + 2] += velocity[o + 2]; }
+      geometry.attributes.position.needsUpdate = true; renderer.render(scene, camera); frame = requestAnimationFrame(render);
+    };
+    frame = requestAnimationFrame(render);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); removeEventListener("pointermove", setPointer); core?.removeEventListener("pointerdown", scatter); geometry.dispose(); material.dispose(); renderer.dispose(); renderer.domElement.remove(); };
+  }, []);
+  return h("div", { ref: hostRef, className: "particle-sphere", "aria-hidden": "true" });
 }
 
 function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
@@ -585,7 +645,9 @@ function Core({ coreRef, state, conversationMode, overdrive, overdriveStarting, 
         h("span", { className: "core-shell" }),
         h("span", { className: "core-orbit orbit-one" }),
         h("span", { className: "core-orbit orbit-two" }),
-        h("span", { className: "core-lens" }, h("i"), h("i"), h("i")),
+        h("span", { className: "core-lens" },
+          h(ParticleSphere, { accent, state, overdrive: overdrive || overdriveStarting }),
+        ),
       )),
       h("div", { className: "core-status" }, status),
     ),
