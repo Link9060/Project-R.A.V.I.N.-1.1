@@ -57,7 +57,7 @@ window.addEventListener("ravin:state",e=>log(`Core → ${e.detail?.state||"unkno
 const memoryHost=$("workspaceMemory");async function renderMemory(){if(!memoryHost)return;memoryHost.innerHTML="";if(!window.RavinAuth?.isSignedIn?.()){memoryHost.innerHTML='<div class="workspace-empty">Sign in to view permanent memory.</div>';return}if(!window.RavinMemory?.listPermanentMemories){memoryHost.innerHTML='<div class="workspace-empty">Memory service unavailable.</div>';return}try{const items=await window.RavinMemory.listPermanentMemories();(items||[]).forEach(m=>{const row=document.createElement("div");row.className="workspace-item";row.textContent=typeof m==="string"?m:(m?.content||"");memoryHost.appendChild(row)});renderEmpty(memoryHost,"Nothing saved yet.")}catch{memoryHost.innerHTML='<div class="workspace-empty">Could not load memory.</div>'}}
 window.addEventListener("ravin-auth-changed",renderMemory);
 
-document.addEventListener("click",e=>{if(settingsPanel?.classList.contains("open")&&!settingsPanel.contains(e.target)&&!e.target.closest?.('[data-dock="settings"]')){settingsPanel.classList.remove("open");mark(null)}});
+document.addEventListener("click",e=>{const topSettings=document.getElementById("settingsBtn");if(settingsPanel?.classList.contains("open")&&!settingsPanel.contains(e.target)&&!topSettings?.contains(e.target)&&!e.target.closest?.('[data-dock="settings"]')){settingsPanel.classList.remove("open");mark(null)}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){panel?.classList.remove("open");settingsPanel?.classList.remove("open");mark(null)}});
 window.RavinWorkspace={open:()=>showPane("notes"),close:closeWorkspace,log,showPane};
 })();
