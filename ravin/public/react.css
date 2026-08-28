@@ -5,6 +5,7 @@
   --bg: #050608;
   --surface: rgba(11, 13, 17, 0.58);
   --surface-strong: rgba(9, 11, 14, 0.82);
+  --glass-opacity: 0.44;
   --glass-line: rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.09);
   --text: #f4f6fb;
@@ -108,15 +109,15 @@ textarea:focus-visible {
     radial-gradient(130% 95% at 2% 0%, rgba(255, 255, 255, 0.17), transparent 47%),
     radial-gradient(80% 75% at 100% 112%, rgba(var(--accent-rgb), 0.09), transparent 62%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.012) 46%, rgba(0, 0, 0, 0.12)),
-    rgba(13, 16, 23, 0.46);
+    rgba(18, 22, 31, var(--glass-opacity));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
     inset 18px 18px 38px rgba(255, 255, 255, 0.018),
     inset -16px -20px 38px rgba(0, 0, 0, 0.24),
     0 18px 42px rgba(0, 0, 0, 0.26),
     0 3px 11px rgba(0, 0, 0, 0.16);
-  -webkit-backdrop-filter: blur(34px) saturate(175%) brightness(1.12);
-  backdrop-filter: blur(34px) saturate(175%) brightness(1.12);
+  -webkit-backdrop-filter: blur(42px) saturate(190%) brightness(1.16);
+  backdrop-filter: blur(42px) saturate(190%) brightness(1.16);
 }
 
 .glass::before {
@@ -358,7 +359,7 @@ textarea:focus-visible {
 
 .core-stack {
   position: absolute;
-  top: 43%;
+  top: 48%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -368,8 +369,8 @@ textarea:focus-visible {
 }
 
 .core-shader-host {
-  width: 174px;
-  height: 174px;
+  width: 288px;
+  height: 288px;
 }
 
 .ravin-core {
@@ -417,8 +418,8 @@ textarea:focus-visible {
 .core-lens {
   position: relative;
   z-index: 4;
-  width: 108px;
-  height: 108px;
+  width: 188px;
+  height: 188px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
@@ -436,7 +437,7 @@ textarea:focus-visible {
 
 .particle-sphere {
   position: absolute;
-  inset: -7px;
+  inset: -12px;
   z-index: 3;
   pointer-events: none;
   mix-blend-mode: screen;
@@ -668,6 +669,10 @@ textarea:focus-visible {
 .overdrive-boot .overdrive-shockwave {
   animation: shockwave 1.48s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+
+.overdrive-exit .ravin-core { animation: overdriveRelease 820ms cubic-bezier(0.22, 0.8, 0.2, 1) both; }
+.overdrive-exit .ambient-wash { animation: overdriveFade 820ms ease-out both; }
+.overdrive-exit .neural-field { animation: neuralRelease 820ms ease-out both; }
 
 .dock {
   position: absolute;
@@ -1028,6 +1033,17 @@ textarea:focus-visible {
   color: var(--faint);
   font: 500 7px var(--mono);
 }
+
+.glass-opacity-control {
+  width: 156px;
+  display: grid;
+  grid-template-columns: 1fr 30px;
+  align-items: center;
+  gap: 8px;
+}
+
+.glass-opacity-control input { width: 100%; accent-color: var(--accent); }
+.glass-opacity-control code { color: var(--faint); font: 500 7px var(--mono); text-align: right; }
 
 .toggle {
   width: 38px;
@@ -1408,6 +1424,14 @@ textarea:focus-visible {
   43% { opacity: 1; }
   100% { opacity: 0; transform: scale(12); }
 }
+
+@keyframes overdriveRelease {
+  0% { transform: scale(1); filter: saturate(1.45); }
+  38% { transform: scale(0.93); filter: brightness(1.55) saturate(1.75); }
+  100% { transform: scale(1); filter: saturate(1); }
+}
+@keyframes overdriveFade { from { opacity: 1; filter: saturate(1.4); } to { opacity: 0.35; filter: saturate(0.8); } }
+@keyframes neuralRelease { 0% { opacity: 0.95; filter: saturate(1.45); } 100% { opacity: 0.66; filter: saturate(0.82); } }
 
 @keyframes panelEnter {
   from { opacity: 0; transform: translate(-50%, 12px) scale(0.98); }
