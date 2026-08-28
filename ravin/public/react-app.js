@@ -443,7 +443,7 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       const rgb = runtime.overdrive || runtime.overdriveStarting ? [151, 24, 34] : hexToRgb(runtime.accent);
       const link = runtime.width < 700 ? 155 : 188;
       const nodeRadius = 1.45;
-      const baseAlpha = runtime.overdrive ? 0.2 : 0.14;
+      const baseAlpha = runtime.overdrive ? 0.24 : 0.18;
 
       runtime.nodes.forEach((node) => {
         const dx = node.x - runtime.pointer.x;
@@ -486,7 +486,7 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
         const reaction = pointerDistance < 170 ? (170 - pointerDistance) / 170 : 0;
         context.beginPath();
         context.arc(node.x, node.y, nodeRadius + reaction * 0.75, 0, Math.PI * 2);
-        context.fillStyle = `rgba(${rgb.join(",")},${0.34 + reaction * 0.46})`;
+        context.fillStyle = `rgba(${rgb.join(",")},${0.42 + reaction * 0.46})`;
         context.fill();
       });
 
@@ -588,9 +588,14 @@ function Markup({ text }) {
 }
 
 function Chevron({ direction = "right" }) {
-  const path = direction === "left" ? "M14.5 5 8 12l6.5 7" : "M9.5 5 16 12l-6.5 7";
+  const paths = {
+    left: "M14.5 5 8 12l6.5 7",
+    right: "M9.5 5 16 12l-6.5 7",
+    up: "M5 14.5 12 8l7 6.5",
+    down: "M5 9.5 12 16l7-6.5",
+  };
   return h("svg", { className: "chat-chevron", viewBox: "0 0 24 24", "aria-hidden": "true" },
-    h("path", { d: path }),
+    h("path", { d: paths[direction] || paths.right }),
   );
 }
 
@@ -677,7 +682,7 @@ function Composer({ inputRef, value, setValue, state, overdrive, disabled, onSub
   );
 }
 
-const DOCK_ITEMS = ["notes", "tasks", "memory", "projects", "logs", "settings"];
+const DOCK_ITEMS = ["calendar", "workshop", "core", "email", "settings"];
 
 function Dock({ active, onSelect }) {
   return h("nav", { className: "dock glass", "aria-label": "RAVIN workspace" },
@@ -687,51 +692,53 @@ function Dock({ active, onSelect }) {
       className: active === item ? "active" : "",
       onClick: () => onSelect(item),
       "data-pulse": true,
-    }, item.toUpperCase())),
+    }, h("span", null, item.toUpperCase()))),
   );
 }
 
-function Workspace({ tab, close, notes, setNotes, tasks, setTasks, projects, setProjects, logs, memories, loadMemories, signedIn }) {
-  const [taskDraft, setTaskDraft] = useState("");
-  const [projectDraft, setProjectDraft] = useState("");
-  useEffect(() => { if (tab === "memory") loadMemories(); }, [tab, loadMemories]);
+function Workspace({ tab, close, emailAccounts, setEmailAccounts }) {
+  const [emailType, setEmailType] = useState("personal");
+  const [emailDraft, setEmailDraft] = useState("");
   if (!tab || tab === "settings") return null;
-  const addTask = () => {
-    const text = taskDraft.trim();
-    if (!text) return;
-    setTasks((items) => [...items, { id: crypto.randomUUID(), text, done: false }]);
-    setTaskDraft("");
-  };
-  const addProject = () => {
-    const text = projectDraft.trim();
-    if (!text) return;
-    setProjects((items) => [...items, { id: crypto.randomUUID(), text }]);
-    setProjectDraft("");
+  const addEmail = () => {
+    const address = emailDraft.trim().toLowerCase();
+    if (!address || !address.includes("@")) return;
+    setEmailAccounts((items) => items.some((item) => item.address === address)
+      ? items
+      : [...items, { id: crypto.randomUUID(), address, type: emailType, connected: false }]);
+    setEmailDraft("");
   };
   const title = tab[0].toUpperCase() + tab.slice(1);
   let body;
-  if (tab === "notes") body = h("textarea", { className: "notes-area", value: notes, onChange: (event) => setNotes(event.target.value), placeholder: "Capture an idea, reminder, calculation…" });
-  if (tab === "tasks") body = h(React.Fragment, null,
-    h("div", { className: "workspace-input" }, h("input", { value: taskDraft, onChange: (event) => setTaskDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") addTask(); }, placeholder: "Add a task…" }), h("button", { onClick: addTask, "data-pulse": true }, "+")),
-    h("div", { className: "workspace-list" }, tasks.length ? tasks.map((task) => h("label", { className: "workspace-item", key: task.id },
-      h("input", { type: "checkbox", checked: task.done, onChange: () => setTasks((items) => items.map((item) => item.id === task.id ? { ...item, done: !item.done } : item)) }),
-      h("span", { className: task.done ? "done" : "" }, task.text),
-      h("button", { onClick: () => setTasks((items) => items.filter((item) => item.id !== task.id)), "aria-label": "Delete task" }, "×"))) : h("div", { className: "workspace-empty" }, "No tasks yet.")),
-  );
-  if (tab === "projects") body = h(React.Fragment, null,
-    h("div", { className: "workspace-input" }, h("input", { value: projectDraft, onChange: (event) => setProjectDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") addProject(); }, placeholder: "Pin a project…" }), h("button", { onClick: addProject, "data-pulse": true }, "+")),
-    h("div", { className: "workspace-list" }, projects.length ? projects.map((project) => h("div", { className: "workspace-item", key: project.id }, h("span", null, project.text), h("button", { onClick: () => setProjects((items) => items.filter((item) => item.id !== project.id)), "aria-label": "Delete project" }, "×"))) : h("div", { className: "workspace-empty" }, "No projects pinned.")),
-  );
-  if (tab === "memory") body = h("div", { className: "workspace-list" }, !signedIn
-    ? h("div", { className: "workspace-empty" }, "Sign in to view permanent memory.")
-    : memories.length
-      ? memories.map((memory) => h("div", { className: "workspace-item", key: memory.id || memory.content }, h("span", null, memory.content || String(memory))))
-      : h("div", { className: "workspace-empty" }, "Nothing saved yet."));
-  if (tab === "logs") body = h("div", { className: "workspace-list logs" }, logs.map((entry) => h("div", { className: "log-row", key: entry.id }, h("time", null, entry.time), h("span", null, entry.text))));
+  if (tab === "calendar") body = h("div", { className: "workspace-placeholder" },
+    h("span", { className: "placeholder-orbit" }, "31"),
+    h("strong", null, "Plan what comes next"),
+    h("p", null, "Events, repeating schedules, and group planning will live here."));
+  if (tab === "workshop") body = h("div", { className: "workspace-placeholder" },
+    h("span", { className: "placeholder-mark" }, "W"),
+    h("strong", null, "Build with RAVIN"),
+    h("p", null, "Projects, files, and coding tools will live in Workshop."));
+  if (tab === "email") {
+    const visibleAccounts = emailAccounts.filter((account) => account.type === emailType);
+    body = h(React.Fragment, null,
+      h("div", { className: "email-switch", role: "tablist", "aria-label": "Email type" },
+        h("button", { className: emailType === "personal" ? "active" : "", onClick: () => setEmailType("personal"), role: "tab", "aria-selected": emailType === "personal", "data-pulse": true }, "PERSONAL"),
+        h("button", { className: emailType === "school" ? "active" : "", onClick: () => setEmailType("school"), role: "tab", "aria-selected": emailType === "school", "data-pulse": true }, "SCHOOL / WORK")),
+      h("div", { className: "workspace-input email-add" },
+        h("input", { type: "email", value: emailDraft, onChange: (event) => setEmailDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") addEmail(); }, placeholder: "Add an email address…" }),
+        h("button", { onClick: addEmail, "data-pulse": true }, "ADD")),
+      h("div", { className: "workspace-list email-list" }, visibleAccounts.length
+        ? visibleAccounts.map((account) => h("div", { className: "email-account", key: account.id },
+          h("span", { className: "email-avatar" }, account.address[0].toUpperCase()),
+          h("div", null, h("strong", null, account.address), h("small", null, account.connected ? "LIVE SYNC" : "CONNECTION REQUIRED")),
+          h("button", { onClick: () => setEmailAccounts((items) => items.filter((item) => item.id !== account.id)), "aria-label": `Remove ${account.address}` }, "×")))
+        : h("div", { className: "workspace-empty email-empty" }, `No ${emailType === "personal" ? "personal" : "school or work"} accounts listed.`)),
+      h("p", { className: "email-disclaimer" }, "Live inbox sync becomes available after provider authorization is connected."));
+  }
 
   return h("section", { className: "workspace-panel glass" },
     h("header", null, h("div", null, h("small", null, "RAVIN WORKSPACE"), h("strong", null, title)), h("button", { onClick: close, "aria-label": "Close workspace", "data-pulse": true }, "×")),
-    h("div", { className: "workspace-meta" }, h("span", null, tab === "notes" ? "AUTOSAVED" : tab === "memory" ? "ACCOUNT" : tab === "logs" ? "LIVE" : "LOCAL")),
+    h("div", { className: "workspace-meta" }, h("span", null, tab === "email" ? "ACCOUNTS" : "WORKSPACE")),
     h("div", { className: "workspace-content" }, body),
   );
 }
@@ -740,7 +747,7 @@ function Toggle({ checked, onChange, label }) {
   return h("button", { type: "button", className: `toggle ${checked ? "on" : ""}`, role: "switch", "aria-checked": checked, "aria-label": label, onClick: () => onChange(!checked), "data-pulse": true }, h("span"));
 }
 
-function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, light, setLight, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
+function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
   const [draft, setDraft] = useState("");
   const saveMemory = async () => {
     const text = draft.trim();
@@ -753,12 +760,35 @@ function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, lig
     h("div", { className: "account-row" }, h("span", null, session.user?.email || "Not signed in"), h("button", { onClick: session.user ? signOut : signIn, "data-pulse": true }, session.user ? "SIGN OUT" : "SIGN IN")),
     h("div", { className: "setting-row" }, h("span", null, "Accent"), h("label", { className: "accent-picker" }, h("input", { type: "color", value: accent, onChange: (event) => setAccent(event.target.value) }), h("code", null, accent.toUpperCase()))),
     h("div", { className: "setting-row glass-opacity-row" }, h("span", null, "Glass opacity"), h("label", { className: "glass-opacity-control" }, h("input", { type: "range", min: "2", max: "96", value: glassOpacity, onChange: (event) => setGlassOpacity(Number(event.target.value)), "aria-label": "Glass opacity" }), h("code", null, `${glassOpacity}%`))),
-    h("div", { className: "setting-row" }, h("span", null, "Light mode"), h(Toggle, { checked: light, onChange: setLight, label: "Light mode" })),
     h("div", { className: "setting-row" }, h("span", null, "Interface sound"), h(Toggle, { checked: sound, onChange: setSound, label: "Interface sound" })),
     h("div", { className: "settings-divider" }),
     h("div", { className: "memory-heading" }, h("span", null, "REMEMBERED"), h("code", null, String(memories.length))),
     session.user ? h("div", { className: "memory-add" }, h("input", { value: draft, onChange: (event) => setDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") saveMemory(); }, placeholder: "Add something to remember…" }), h("button", { onClick: saveMemory, "data-pulse": true }, "ADD")) : h("p", { className: "settings-hint" }, "Sign in to manage permanent memory."),
+    session.user && memories.length ? h("div", { className: "settings-memory-list" },
+      ...memories.slice(0, 6).map((memory) => h("div", { key: memory.id || memory.content }, h("span", null, memory.content || String(memory))))) : null,
     h("button", { className: "clear-conversation", onClick: clearConversation, "data-pulse": true }, "CLEAR CONVERSATION"),
+  );
+}
+
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function WeeklyTodo() {
+  const todayIndex = (new Date().getDay() + 6) % 7;
+  const [openDay, setOpenDay] = useState(WEEK_DAYS[todayIndex]);
+  return h("aside", { className: "weekly-todo glass", "aria-label": "Weekly to-do list" },
+    h("header", null,
+      h("div", null, h("small", null, "THIS WEEK"), h("strong", null, "TO-DO")),
+      h("span", null, "7 DAYS")),
+    h("div", { className: "week-days" }, ...WEEK_DAYS.map((day, index) => {
+      const expanded = openDay === day;
+      return h("section", { className: `week-day ${expanded ? "expanded" : ""}`, key: day },
+        h("button", { type: "button", onClick: () => setOpenDay(expanded ? null : day), "aria-expanded": expanded, "data-pulse": true },
+          h("span", { className: "day-index" }, String(index + 1).padStart(2, "0")),
+          h("strong", null, day),
+          h(Chevron, { direction: expanded ? "up" : "down" })),
+        h("div", { className: "day-content", "aria-hidden": !expanded },
+          h("span", null, "No items planned.")));
+    })),
   );
 }
 
@@ -828,14 +858,11 @@ function App() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useStoredState("ravin_chat_messages", []);
   const [conversationId, setConversationId] = useStoredState("ravin_conversation_id", null);
-  const [notes, setNotes] = useStoredText("ravin_workspace_notes", "");
-  const [tasks, setTasks] = useStoredState("ravin_workspace_tasks", []);
-  const [projects, setProjects] = useStoredState("ravin_workspace_projects", []);
+  const [emailAccounts, setEmailAccounts] = useStoredState("ravin_email_accounts", []);
   const [memories, setMemories] = useState([]);
   const [logs, setLogs] = useState([]);
   const [accent, setAccentState] = useState(() => localStorage.getItem("ravin_accent") || "#8fa7ff");
   const [glassOpacity, setGlassOpacityState] = useState(() => Number(localStorage.getItem("ravin_glass_opacity") || 44));
-  const [light, setLightState] = useState(() => localStorage.getItem("ravin_theme") === "light");
   const [sound, setSoundState] = useState(() => localStorage.getItem("ravin_sound") === "on");
   const inputRef = useRef(null);
   const coreRef = useRef(null);
@@ -851,18 +878,6 @@ function App() {
     const timer = setTimeout(() => setBooted(true), 800);
     return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    setTasks((items) => items.map((item) => ({
-      id: item?.id || crypto.randomUUID(),
-      text: typeof item === "string" ? item : item?.text || "",
-      done: Boolean(item?.done),
-    })).filter((item) => item.text));
-    setProjects((items) => items.map((item) => ({
-      id: item?.id || crypto.randomUUID(),
-      text: typeof item === "string" ? item : item?.text || "",
-    })).filter((item) => item.text));
-  }, [setTasks, setProjects]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.hash.replace(/^#/, ""));
@@ -897,9 +912,9 @@ function App() {
     localStorage.setItem("ravin_glass_opacity", String(glassOpacity));
   }, [glassOpacity]);
   useEffect(() => {
-    document.documentElement.dataset.theme = light ? "light" : "dark";
-    localStorage.setItem("ravin_theme", light ? "light" : "dark");
-  }, [light]);
+    document.documentElement.dataset.theme = "dark";
+    localStorage.removeItem("ravin_theme");
+  }, []);
   useEffect(() => localStorage.setItem("ravin_sound", sound ? "on" : "off"), [sound]);
   useEffect(() => addLog(`Core → ${state}${overdrive ? " · OVERDRIVE" : ""}`), [state, overdrive, addLog]);
 
@@ -1090,8 +1105,12 @@ function App() {
   };
 
   const selectDock = (item) => {
+    if (item === "core") {
+      setWorkspaceTab(null);
+      setPromptVisible(false);
+      return;
+    }
     setWorkspaceTab((current) => current === item ? null : item);
-    if (item === "memory") loadMemories();
   };
 
   const clearConversation = () => {
@@ -1124,9 +1143,10 @@ function App() {
     h(ChatPanel, { open: chatOpen, setOpen: setChatOpen, messages }),
     !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat", "data-pulse": true }, h(Chevron, { direction: "right" })) : null,
     h(Core, { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel }),
-    h(Workspace, { tab: workspaceTab, close: () => setWorkspaceTab(null), notes, setNotes, tasks, setTasks, projects, setProjects, logs, memories, loadMemories, signedIn: Boolean(session.user) }),
+    h(WeeklyTodo),
+    h(Workspace, { tab: workspaceTab, close: () => setWorkspaceTab(null), emailAccounts, setEmailAccounts }),
     workspaceTab === "settings" ? h(Settings, {
-      close: () => setWorkspaceTab(null), accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, light, setLight: setLightState, sound, setSound: setSoundState,
+      close: () => setWorkspaceTab(null), accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, sound, setSound: setSoundState,
       session, signOut: () => { setSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
     }) : null,
     promptVisible ? h("div", { className: "conversation-prompt glass" }, h("span", null, "Enter Conversation Mode?"), h("button", { onClick: enterConversation, "data-pulse": true }, "ENTER"), h("button", { onClick: () => setPromptVisible(false), "aria-label": "Dismiss" }, "×")) : null,
