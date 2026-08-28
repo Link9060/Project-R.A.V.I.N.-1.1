@@ -3,8 +3,10 @@ FROM node:24-alpine
 WORKDIR /app
 
 # RAVIN backend dependencies.
+# Use npm install here so Render can recover when package.json changes before
+# package-lock.json is regenerated. This avoids npm ci hard-failing on lock drift.
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # OmniRoute 3.8.49 is the latest published npm version currently available.
 RUN npm install -g omniroute@3.8.49 && npm cache clean --force
