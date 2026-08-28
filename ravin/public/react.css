@@ -1275,9 +1275,43 @@ textarea:focus-visible {
   height: 100%;
 }
 
+.pulse-host.shader-fallback::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: 10;
+  padding: 1px;
+  border-radius: 15px;
+  background: conic-gradient(from var(--fallback-angle), transparent 0 58%, var(--accent) 72%, rgba(255, 255, 255, 0.82) 79%, transparent 91%);
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 5px rgba(var(--accent-rgb), 0.55));
+  animation: fallbackBorder 2.1s linear infinite;
+}
+
+.core-shader-host.shader-fallback::after {
+  inset: -4px;
+  padding: 1px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 9px rgba(var(--accent-rgb), 0.48));
+  animation-duration: 4.5s;
+}
+
+@property --fallback-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @keyframes coreFloat {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-4px) scale(1.012); }
+}
+
+@keyframes fallbackBorder {
+  to { --fallback-angle: 360deg; }
 }
 
 @keyframes liquidTurn {

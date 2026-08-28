@@ -12,6 +12,14 @@ import { PulsingBorder as PaperPulsingBorder } from "https://esm.sh/@paper-desig
 const h = React.createElement;
 const BACKEND_URL = "https://ravin-ap66.onrender.com";
 const AUTH_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co/functions/v1/ravin-auth";
+const WEBGL_SUPPORTED = (() => {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+  } catch {
+    return false;
+  }
+})();
 const AUTH_KEYS = {
   access: "ravin_access_token",
   refresh: "ravin_refresh_token",
@@ -182,7 +190,7 @@ function PulsatingBorder({
   const room = Math.min(480, Math.ceil(0.4 * Math.min(worldW, worldH)));
   const bleed = spread + room;
   const measured = rect.w > 0 && rect.h > 0;
-  const layer = measured ? h(PaperPulsingBorder, {
+  const layer = measured && WEBGL_SUPPORTED ? h(PaperPulsingBorder, {
     colors,
     colorBack,
     speed,
@@ -223,7 +231,7 @@ function PulsatingBorder({
 
   return h("div", {
     ref: hostRef,
-    className: `pulse-host ${className}`,
+    className: `pulse-host ${WEBGL_SUPPORTED ? "" : "shader-fallback"} ${className}`,
     style: { position: "relative", ...style },
   }, children, portalTarget && layer ? createPortal(layer, portalTarget) : null);
 }
