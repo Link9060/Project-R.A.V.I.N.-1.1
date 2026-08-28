@@ -21,6 +21,22 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: EMAIL_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: OAUTH_REDIRECT_BASE
+        value: https://ravin-hyeq.onrender.com
+      - key: FRONTEND_APP_URL
+        value: https://link9060.github.io/Project-R.A.V.I.N.-1.1/
       - key: JWT_SECRET
         generateValue: true
       - key: API_KEY_SECRET

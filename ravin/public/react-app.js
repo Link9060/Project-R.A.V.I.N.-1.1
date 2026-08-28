@@ -11,7 +11,7 @@ import * as THREE from "https://esm.sh/three@0.179.1";
 import { PulsingBorder as PaperPulsingBorder } from "https://esm.sh/@paper-design/shaders-react@0.0.61?external=react,react-dom&deps=@paper-design/shaders@0.0.61";
 
 const h = React.createElement;
-const BACKEND_URL = "https://ravin-ap66.onrender.com";
+const BACKEND_URL = "https://ravin-hyeq.onrender.com";
 const AUTH_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co/functions/v1/ravin-auth";
 const WEBGL_SUPPORTED = (() => {
   try {
@@ -368,15 +368,9 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       context.setTransform(runtime.dpr, 0, 0, runtime.dpr, 0, 0);
       const count = runtime.width < 700 ? 26 : 46;
       runtime.nodes = Array.from({ length: count }, () => ({
-        // Independent positions prevent the old diagonal-chain pattern.
         x: 35 + Math.random() * (runtime.width - 70),
         y: 45 + Math.random() * (runtime.height - 90),
-        homeX: 0,
-        homeY: 0,
-        vx: 0,
-        vy: 0,
-        phase: Math.random() * Math.PI * 2,
-      })).map((node) => ({ ...node, homeX: node.x, homeY: node.y }));
+      }));
     };
 
     const coreOrigin = () => {
@@ -388,25 +382,32 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
 
     const makePath = () => {
       const origin = coreOrigin();
-      let currentIndex = runtime.nodes.reduce((best, node, index) =>
-        Math.hypot(node.x - origin.x, node.y - origin.y) < Math.hypot(runtime.nodes[best].x - origin.x, runtime.nodes[best].y - origin.y) ? index : best, 0);
-      const path = [origin, runtime.nodes[currentIndex]];
-      const used = new Set([currentIndex]);
-      for (let step = 0; step < 18; step += 1) {
-        const current = runtime.nodes[currentIndex];
-        const choices = runtime.nodes.map((node, index) => ({
-          index,
+      const angle = Math.random() * Math.PI * 2;
+      const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+      const candidates = runtime.nodes.map((node) => {
+        const dx = node.x - origin.x;
+        const dy = node.y - origin.y;
+        return {
           node,
-          distance: Math.hypot(node.x - current.x, node.y - current.y),
-          outward: Math.hypot(node.x - runtime.width / 2, node.y - runtime.height / 2),
-        })).filter((choice) => !used.has(choice.index) && choice.distance < 215)
-          .sort((a, b) => b.outward - a.outward + (Math.random() - 0.5) * 110);
-        if (!choices.length) break;
-        currentIndex = choices[Math.floor(Math.random() * Math.min(3, choices.length))].index;
-        used.add(currentIndex);
-        path.push(runtime.nodes[currentIndex]);
+          forward: dx * direction.x + dy * direction.y,
+          sideways: Math.abs(dx * direction.y - dy * direction.x),
+        };
+      }).filter((choice) => choice.forward > 44 && choice.sideways < 145)
+        .sort((a, b) => a.forward - b.forward);
+      const path = [origin];
+      let lastForward = 0;
+      for (const choice of candidates) {
+        if (choice.forward - lastForward < 68) continue;
+        path.push(choice.node);
+        lastForward = choice.forward;
+        if (path.length >= 7) break;
       }
-      return path.length >= 4 ? path : null;
+      const edgeDistance = Math.hypot(runtime.width, runtime.height) * 0.72;
+      path.push({
+        x: origin.x + direction.x * edgeDistance,
+        y: origin.y + direction.y * edgeDistance,
+      });
+      return path;
     };
 
     const spawnSignal = (boosted = false) => {
@@ -431,13 +432,6 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       }
     };
 
-    const pointerMove = (event) => {
-      runtime.pointer.x = event.clientX;
-      runtime.pointer.y = event.clientY;
-      runtime.pointer.active = true;
-    };
-    const pointerLeave = () => { runtime.pointer.active = false; };
-
     const draw = (now) => {
       context.clearRect(0, 0, runtime.width, runtime.height);
       const rgb = runtime.overdrive || runtime.overdriveStarting ? [151, 24, 34] : hexToRgb(runtime.accent);
@@ -445,48 +439,25 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       const nodeRadius = 1.45;
       const baseAlpha = runtime.overdrive ? 0.24 : 0.18;
 
-      runtime.nodes.forEach((node) => {
-        const dx = node.x - runtime.pointer.x;
-        const dy = node.y - runtime.pointer.y;
-        const distance = Math.hypot(dx, dy) || 1;
-        if (runtime.pointer.active && distance < 150) {
-          const force = (150 - distance) / 150;
-          node.vx += (dx / distance) * force * 0.13;
-          node.vy += (dy / distance) * force * 0.13;
-        }
-        node.vx += (node.homeX - node.x) * 0.0007;
-        node.vy += (node.homeY - node.y) * 0.0007;
-        node.vx *= 0.965;
-        node.vy *= 0.965;
-        node.x += node.vx + Math.sin(now * 0.00018 + node.phase) * 0.018;
-        node.y += node.vy + Math.cos(now * 0.00016 + node.phase) * 0.018;
-      });
-
       for (let first = 0; first < runtime.nodes.length; first += 1) {
         for (let second = first + 1; second < runtime.nodes.length; second += 1) {
           const a = runtime.nodes[first];
           const b = runtime.nodes[second];
           const distance = Math.hypot(a.x - b.x, a.y - b.y);
           if (distance > link) continue;
-          const pointerDistance = runtime.pointer.active
-            ? Math.min(Math.hypot(a.x - runtime.pointer.x, a.y - runtime.pointer.y), Math.hypot(b.x - runtime.pointer.x, b.y - runtime.pointer.y))
-            : 999;
-          const reaction = pointerDistance < 180 ? (180 - pointerDistance) / 180 : 0;
           context.beginPath();
           context.moveTo(a.x, a.y);
           context.lineTo(b.x, b.y);
-          context.strokeStyle = `rgba(${rgb.join(",")},${baseAlpha * (1 - distance / link) + reaction * 0.2})`;
-          context.lineWidth = 0.65 + reaction * 0.25;
+          context.strokeStyle = `rgba(${rgb.join(",")},${baseAlpha * (1 - distance / link)})`;
+          context.lineWidth = 0.65;
           context.stroke();
         }
       }
 
       runtime.nodes.forEach((node) => {
-        const pointerDistance = runtime.pointer.active ? Math.hypot(node.x - runtime.pointer.x, node.y - runtime.pointer.y) : 999;
-        const reaction = pointerDistance < 170 ? (170 - pointerDistance) / 170 : 0;
         context.beginPath();
-        context.arc(node.x, node.y, nodeRadius + reaction * 0.75, 0, Math.PI * 2);
-        context.fillStyle = `rgba(${rgb.join(",")},${0.42 + reaction * 0.46})`;
+        context.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+        context.fillStyle = `rgba(${rgb.join(",")},0.42)`;
         context.fill();
       });
 
@@ -536,14 +507,10 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
 
     resize();
     addEventListener("resize", resize);
-    addEventListener("pointermove", pointerMove, { passive: true });
-    document.documentElement.addEventListener("pointerleave", pointerLeave);
     runtime.frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(runtime.frame);
       removeEventListener("resize", resize);
-      removeEventListener("pointermove", pointerMove);
-      document.documentElement.removeEventListener("pointerleave", pointerLeave);
     };
   }, [coreRef]);
 
@@ -605,7 +572,7 @@ function ChatPanel({ open, setOpen, messages }) {
   return h("aside", { className: `chat-panel glass ${open ? "open" : "collapsed"}`, "aria-label": "RAVIN chat" },
     h("div", { className: "panel-head" },
       h("span", null, "CHAT"),
-      h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(!open), "aria-label": open ? "Collapse chat" : "Open chat", "data-pulse": true },
+      h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(!open), "aria-label": open ? "Collapse chat" : "Open chat" },
         h(Chevron, { direction: "left" })),
     ),
     open ? h("div", { className: "chat-scroll" },
@@ -667,7 +634,7 @@ function Core({ coreRef, state, conversationMode, overdrive, overdriveStarting, 
 }
 
 function Composer({ inputRef, value, setValue, state, overdrive, disabled, onSubmit }) {
-  return h("form", { className: "composer glass", onSubmit },
+  return h("form", { className: "composer glass", onSubmit, "data-pulse": "true" },
     h("span", { className: "composer-state" }, overdrive ? `OVR · ${state.toUpperCase()}` : state.toUpperCase()),
     h("input", {
       ref: inputRef,
@@ -677,7 +644,7 @@ function Composer({ inputRef, value, setValue, state, overdrive, disabled, onSub
       disabled,
       "aria-label": "Message RAVIN",
     }),
-    h("button", { type: "submit", disabled, "aria-label": "Send", "data-pulse": true },
+    h("button", { type: "submit", disabled, "aria-label": "Send" },
       h("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, h("path", { d: "M4 12h16m0 0-6-6m6 6-6 6" }))),
   );
 }
@@ -691,63 +658,15 @@ function Dock({ active, onSelect }) {
       type: "button",
       className: active === item ? "active" : "",
       onClick: () => onSelect(item),
-      "data-pulse": true,
     }, h("span", null, item.toUpperCase()))),
   );
 }
 
-function Workspace({ tab, close, emailAccounts, setEmailAccounts }) {
-  const [emailType, setEmailType] = useState("personal");
-  const [emailDraft, setEmailDraft] = useState("");
-  if (!tab || tab === "settings") return null;
-  const addEmail = () => {
-    const address = emailDraft.trim().toLowerCase();
-    if (!address || !address.includes("@")) return;
-    setEmailAccounts((items) => items.some((item) => item.address === address)
-      ? items
-      : [...items, { id: crypto.randomUUID(), address, type: emailType, connected: false }]);
-    setEmailDraft("");
-  };
-  const title = tab[0].toUpperCase() + tab.slice(1);
-  let body;
-  if (tab === "calendar") body = h("div", { className: "workspace-placeholder" },
-    h("span", { className: "placeholder-orbit" }, "31"),
-    h("strong", null, "Plan what comes next"),
-    h("p", null, "Events, repeating schedules, and group planning will live here."));
-  if (tab === "workshop") body = h("div", { className: "workspace-placeholder" },
-    h("span", { className: "placeholder-mark" }, "W"),
-    h("strong", null, "Build with RAVIN"),
-    h("p", null, "Projects, files, and coding tools will live in Workshop."));
-  if (tab === "email") {
-    const visibleAccounts = emailAccounts.filter((account) => account.type === emailType);
-    body = h(React.Fragment, null,
-      h("div", { className: "email-switch", role: "tablist", "aria-label": "Email type" },
-        h("button", { className: emailType === "personal" ? "active" : "", onClick: () => setEmailType("personal"), role: "tab", "aria-selected": emailType === "personal", "data-pulse": true }, "PERSONAL"),
-        h("button", { className: emailType === "school" ? "active" : "", onClick: () => setEmailType("school"), role: "tab", "aria-selected": emailType === "school", "data-pulse": true }, "SCHOOL / WORK")),
-      h("div", { className: "workspace-input email-add" },
-        h("input", { type: "email", value: emailDraft, onChange: (event) => setEmailDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") addEmail(); }, placeholder: "Add an email address…" }),
-        h("button", { onClick: addEmail, "data-pulse": true }, "ADD")),
-      h("div", { className: "workspace-list email-list" }, visibleAccounts.length
-        ? visibleAccounts.map((account) => h("div", { className: "email-account", key: account.id },
-          h("span", { className: "email-avatar" }, account.address[0].toUpperCase()),
-          h("div", null, h("strong", null, account.address), h("small", null, account.connected ? "LIVE SYNC" : "CONNECTION REQUIRED")),
-          h("button", { onClick: () => setEmailAccounts((items) => items.filter((item) => item.id !== account.id)), "aria-label": `Remove ${account.address}` }, "×")))
-        : h("div", { className: "workspace-empty email-empty" }, `No ${emailType === "personal" ? "personal" : "school or work"} accounts listed.`)),
-      h("p", { className: "email-disclaimer" }, "Live inbox sync becomes available after provider authorization is connected."));
-  }
-
-  return h("section", { className: "workspace-panel glass" },
-    h("header", null, h("div", null, h("small", null, "RAVIN WORKSPACE"), h("strong", null, title)), h("button", { onClick: close, "aria-label": "Close workspace", "data-pulse": true }, "×")),
-    h("div", { className: "workspace-meta" }, h("span", null, tab === "email" ? "ACCOUNTS" : "WORKSPACE")),
-    h("div", { className: "workspace-content" }, body),
-  );
-}
-
 function Toggle({ checked, onChange, label }) {
-  return h("button", { type: "button", className: `toggle ${checked ? "on" : ""}`, role: "switch", "aria-checked": checked, "aria-label": label, onClick: () => onChange(!checked), "data-pulse": true }, h("span"));
+  return h("button", { type: "button", className: `toggle ${checked ? "on" : ""}`, role: "switch", "aria-checked": checked, "aria-label": label, onClick: () => onChange(!checked) }, h("span"));
 }
 
-function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
+function SettingsView({ accent, setAccent, glassOpacity, setGlassOpacity, sound, setSound, session, signOut, signIn, clearConversation, memories, addMemory }) {
   const [draft, setDraft] = useState("");
   const saveMemory = async () => {
     const text = draft.trim();
@@ -755,18 +674,19 @@ function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, sou
     await addMemory(text);
     setDraft("");
   };
-  return h("section", { className: "settings-panel glass" },
-    h("header", null, h("div", null, h("small", null, "RAVIN"), h("strong", null, "SYSTEM SETTINGS")), h("button", { onClick: close, "aria-label": "Close settings", "data-pulse": true }, "×")),
-    h("div", { className: "account-row" }, h("span", null, session.user?.email || "Not signed in"), h("button", { onClick: session.user ? signOut : signIn, "data-pulse": true }, session.user ? "SIGN OUT" : "SIGN IN")),
+  return h("section", { className: "workspace-window settings-view glass" },
+    h("header", { className: "view-header" }, h("div", null, h("small", null, "RAVIN"), h("strong", null, "SYSTEM SETTINGS"))),
+    h("div", { className: "settings-scroll" },
+    h("div", { className: "account-row" }, h("span", null, session.user?.email || "Not signed in"), h("button", { onClick: session.user ? signOut : signIn, ...(session.user ? {} : { "data-pulse": "true" }) }, session.user ? "SIGN OUT" : "SIGN IN")),
     h("div", { className: "setting-row" }, h("span", null, "Accent"), h("label", { className: "accent-picker" }, h("input", { type: "color", value: accent, onChange: (event) => setAccent(event.target.value) }), h("code", null, accent.toUpperCase()))),
     h("div", { className: "setting-row glass-opacity-row" }, h("span", null, "Glass opacity"), h("label", { className: "glass-opacity-control" }, h("input", { type: "range", min: "2", max: "96", value: glassOpacity, onChange: (event) => setGlassOpacity(Number(event.target.value)), "aria-label": "Glass opacity" }), h("code", null, `${glassOpacity}%`))),
     h("div", { className: "setting-row" }, h("span", null, "Interface sound"), h(Toggle, { checked: sound, onChange: setSound, label: "Interface sound" })),
     h("div", { className: "settings-divider" }),
     h("div", { className: "memory-heading" }, h("span", null, "REMEMBERED"), h("code", null, String(memories.length))),
-    session.user ? h("div", { className: "memory-add" }, h("input", { value: draft, onChange: (event) => setDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") saveMemory(); }, placeholder: "Add something to remember…" }), h("button", { onClick: saveMemory, "data-pulse": true }, "ADD")) : h("p", { className: "settings-hint" }, "Sign in to manage permanent memory."),
+    session.user ? h("div", { className: "memory-add" }, h("input", { value: draft, onChange: (event) => setDraft(event.target.value), onKeyDown: (event) => { if (event.key === "Enter") saveMemory(); }, placeholder: "Add something to remember…" }), h("button", { onClick: saveMemory }, "ADD")) : h("p", { className: "settings-hint" }, "Sign in to manage permanent memory."),
     session.user && memories.length ? h("div", { className: "settings-memory-list" },
       ...memories.slice(0, 6).map((memory) => h("div", { key: memory.id || memory.content }, h("span", null, memory.content || String(memory))))) : null,
-    h("button", { className: "clear-conversation", onClick: clearConversation, "data-pulse": true }, "CLEAR CONVERSATION"),
+    h("button", { className: "clear-conversation", onClick: clearConversation }, "CLEAR CONVERSATION")),
   );
 }
 
@@ -775,6 +695,19 @@ const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 function WeeklyTodo() {
   const todayIndex = (new Date().getDay() + 6) % 7;
   const [openDay, setOpenDay] = useState(WEEK_DAYS[todayIndex]);
+  const [tasks, setTasks] = useStoredState("ravin_weekly_tasks", {});
+  const [drafts, setDrafts] = useState({});
+  const addTask = (day) => {
+    const title = String(drafts[day] || "").trim();
+    if (!title) return;
+    setTasks((current) => ({ ...current, [day]: [...(current[day] || []), { id: crypto.randomUUID(), title, done: false }] }));
+    setDrafts((current) => ({ ...current, [day]: "" }));
+  };
+  const updateTask = (day, id, changes) => setTasks((current) => ({
+    ...current,
+    [day]: (current[day] || []).map((task) => task.id === id ? { ...task, ...changes } : task),
+  }));
+  const removeTask = (day, id) => setTasks((current) => ({ ...current, [day]: (current[day] || []).filter((task) => task.id !== id) }));
   return h("aside", { className: "weekly-todo glass", "aria-label": "Weekly to-do list" },
     h("header", null,
       h("div", null, h("small", null, "THIS WEEK"), h("strong", null, "TO-DO")),
@@ -782,14 +715,208 @@ function WeeklyTodo() {
     h("div", { className: "week-days" }, ...WEEK_DAYS.map((day, index) => {
       const expanded = openDay === day;
       return h("section", { className: `week-day ${expanded ? "expanded" : ""}`, key: day },
-        h("button", { type: "button", onClick: () => setOpenDay(expanded ? null : day), "aria-expanded": expanded, "data-pulse": true },
+        h("button", { type: "button", onClick: () => setOpenDay(expanded ? null : day), "aria-expanded": expanded },
           h("span", { className: "day-index" }, String(index + 1).padStart(2, "0")),
           h("strong", null, day),
           h(Chevron, { direction: expanded ? "up" : "down" })),
-        h("div", { className: "day-content", "aria-hidden": !expanded },
-          h("span", null, "No items planned.")));
+        h("div", { className: "day-content", "aria-hidden": !expanded }, h("div", { className: "day-content-inner" },
+          ...(tasks[day] || []).map((task) => h("div", { className: "todo-item", key: task.id },
+            h("input", { type: "checkbox", checked: task.done, onChange: (event) => updateTask(day, task.id, { done: event.target.checked }), "aria-label": `Complete ${task.title}` }),
+            h("input", { className: task.done ? "done" : "", value: task.title, onChange: (event) => updateTask(day, task.id, { title: event.target.value }), "aria-label": `Edit ${day} task` }),
+            h("button", { type: "button", onClick: () => removeTask(day, task.id), "aria-label": `Delete ${task.title}` }, "×"))),
+          h("div", { className: "todo-add" },
+            h("input", { value: drafts[day] || "", onChange: (event) => setDrafts((current) => ({ ...current, [day]: event.target.value })), onKeyDown: (event) => { if (event.key === "Enter") addTask(day); }, placeholder: "Add a task…", "aria-label": `Add task for ${day}` }),
+            h("button", { type: "button", onClick: () => addTask(day), "aria-label": `Save task for ${day}` }, "+")))));
     })),
   );
+}
+
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromDateKey(value) {
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function startOfWeek(date) {
+  return addDays(new Date(date.getFullYear(), date.getMonth(), date.getDate()), -((date.getDay() + 6) % 7));
+}
+
+function eventOccursOn(event, date) {
+  const target = fromDateKey(dateKey(date));
+  const start = fromDateKey(event.date);
+  if (target < start) return false;
+  if (event.repeatUntil && target > fromDateKey(event.repeatUntil)) return false;
+  const days = Math.round((target - start) / 86400000);
+  if (!event.repeat || event.repeat === "none") return days === 0;
+  if (event.repeat === "daily") return true;
+  if (event.repeat === "weekly") return days % 7 === 0;
+  if (event.repeat === "monthly") return target.getDate() === start.getDate();
+  if (event.repeat === "yearly") return target.getDate() === start.getDate() && target.getMonth() === start.getMonth();
+  return false;
+}
+
+function blankEvent(date) {
+  return { id: crypto.randomUUID(), title: "", date: dateKey(date), start: "09:00", end: "10:00", allDay: false, repeat: "none", repeatUntil: "", location: "", notes: "", color: "#8fa7ff" };
+}
+
+function EventEditor({ event, onSave, onDelete, onClose }) {
+  const [draft, setDraft] = useState(event);
+  const field = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  const submit = (submitEvent) => {
+    submitEvent.preventDefault();
+    if (!draft.title.trim()) return;
+    onSave({ ...draft, title: draft.title.trim() });
+  };
+  return h("div", { className: "event-editor-backdrop" }, h("form", { className: "event-editor glass", onSubmit: submit },
+    h("header", null, h("div", null, h("small", null, "CALENDAR EVENT"), h("strong", null, event.__new ? "NEW EVENT" : "EDIT EVENT")), h("button", { type: "button", onClick: onClose, "aria-label": "Close event editor" }, "×")),
+    h("input", { className: "event-title", value: draft.title, onChange: (e) => field("title", e.target.value), placeholder: "Event title", autoFocus: true }),
+    h("div", { className: "event-form-grid" },
+      h("label", null, h("span", null, "DATE"), h("input", { type: "date", value: draft.date, onChange: (e) => field("date", e.target.value) })),
+      h("label", { className: "all-day-label" }, h("span", null, "ALL DAY"), h("input", { type: "checkbox", checked: draft.allDay, onChange: (e) => field("allDay", e.target.checked) })),
+      !draft.allDay ? h("label", null, h("span", null, "START"), h("input", { type: "time", value: draft.start, onChange: (e) => field("start", e.target.value) })) : null,
+      !draft.allDay ? h("label", null, h("span", null, "END"), h("input", { type: "time", value: draft.end, onChange: (e) => field("end", e.target.value) })) : null,
+      h("label", null, h("span", null, "REPEAT"), h("select", { value: draft.repeat, onChange: (e) => field("repeat", e.target.value) },
+        ...["none", "daily", "weekly", "monthly", "yearly"].map((option) => h("option", { value: option, key: option }, option.toUpperCase())))),
+      draft.repeat !== "none" ? h("label", null, h("span", null, "REPEAT UNTIL"), h("input", { type: "date", value: draft.repeatUntil, onChange: (e) => field("repeatUntil", e.target.value) })) : null,
+      h("label", { className: "event-wide" }, h("span", null, "LOCATION"), h("input", { value: draft.location, onChange: (e) => field("location", e.target.value), placeholder: "Add location" })),
+      h("label", null, h("span", null, "COLOR"), h("input", { type: "color", value: draft.color, onChange: (e) => field("color", e.target.value) })),
+      h("label", { className: "event-wide" }, h("span", null, "NOTES"), h("textarea", { value: draft.notes, onChange: (e) => field("notes", e.target.value), placeholder: "Notes" }))),
+    h("footer", null, !event.__new ? h("button", { type: "button", className: "event-delete", onClick: onDelete }, "DELETE") : h("span"), h("div", null, h("button", { type: "button", onClick: onClose }, "CANCEL"), h("button", { type: "submit", className: "event-save" }, "SAVE")))));
+}
+
+function CalendarView({ events, setEvents }) {
+  const [cursor, setCursor] = useState(() => new Date());
+  const [view, setView] = useState("month");
+  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState(null);
+  const filtered = events.filter((event) => !search.trim() || `${event.title} ${event.location} ${event.notes}`.toLowerCase().includes(search.toLowerCase()));
+  const eventsFor = (date) => filtered.filter((event) => eventOccursOn(event, date)).sort((a, b) => (a.allDay ? "00:00" : a.start).localeCompare(b.allDay ? "00:00" : b.start));
+  const move = (direction) => {
+    const next = new Date(cursor);
+    if (view === "month") next.setMonth(next.getMonth() + direction);
+    else if (view === "week") next.setDate(next.getDate() + direction * 7);
+    else next.setDate(next.getDate() + direction);
+    setCursor(next);
+  };
+  const save = (event) => {
+    const clean = { ...event }; delete clean.__new;
+    setEvents((items) => items.some((item) => item.id === clean.id) ? items.map((item) => item.id === clean.id ? clean : item) : [...items, clean]);
+    setEditing(null);
+  };
+  const openNew = (date = cursor) => setEditing({ ...blankEvent(date), __new: true });
+  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const monthGridStart = startOfWeek(monthStart);
+  const monthDays = Array.from({ length: 42 }, (_, index) => addDays(monthGridStart, index));
+  const weekStart = startOfWeek(cursor);
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const visibleDays = view === "month" ? monthDays : view === "week" ? weekDays : [cursor];
+  const title = view === "month" ? cursor.toLocaleDateString([], { month: "long", year: "numeric" })
+    : view === "week" ? `${weekDays[0].toLocaleDateString([], { month: "short", day: "numeric" })} – ${weekDays[6].toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`
+      : cursor.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  return h("section", { className: "workspace-window calendar-view glass" },
+    h("header", { className: "calendar-toolbar" },
+      h("div", { className: "calendar-nav" }, h("button", { onClick: () => move(-1), "aria-label": "Previous period" }, h(Chevron, { direction: "left" })), h("button", { onClick: () => setCursor(new Date()) }, "TODAY"), h("button", { onClick: () => move(1), "aria-label": "Next period" }, h(Chevron, { direction: "right" }))),
+      h("strong", null, title),
+      h("div", { className: "calendar-actions" }, h("input", { value: search, onChange: (e) => setSearch(e.target.value), placeholder: "Search", "aria-label": "Search calendar" }),
+        h("div", { className: "calendar-view-switch", role: "tablist" }, ...["month", "week", "day"].map((item) => h("button", { key: item, role: "tab", "aria-selected": view === item, className: view === item ? "active" : "", onClick: () => setView(item) }, item.toUpperCase()))),
+        h("button", { className: "calendar-add", onClick: () => openNew() }, "+ EVENT"))),
+    h("div", { className: `calendar-body ${view}-mode` },
+      view !== "day" ? h("div", { className: "calendar-weekdays" }, ...WEEK_DAYS.map((day) => h("span", { key: day }, day.slice(0, 3).toUpperCase()))) : null,
+      h("div", { className: "calendar-grid" }, ...visibleDays.map((date) => {
+        const dayEvents = eventsFor(date);
+        const outside = view === "month" && date.getMonth() !== cursor.getMonth();
+        const today = dateKey(date) === dateKey(new Date());
+        return h("div", { className: `calendar-day ${outside ? "outside" : ""} ${today ? "today" : ""}`, key: dateKey(date), onDoubleClick: () => openNew(date) },
+          h("button", { className: "calendar-date", onClick: () => { setCursor(date); if (view === "month") setView("day"); } }, view === "day" ? date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : String(date.getDate())),
+          h("div", { className: "calendar-events" }, ...(dayEvents.length ? dayEvents.slice(0, view === "month" ? 4 : 20).map((event) => h("button", { className: "calendar-event", key: `${event.id}-${dateKey(date)}`, style: { "--event-color": event.color }, onClick: () => setEditing(event) }, h("i"), h("span", null, event.allDay ? "ALL DAY" : event.start), h("strong", null, event.title))) : [h("span", { className: "calendar-empty-day", key: "empty" }, view === "day" ? "No events scheduled." : "")])));
+      }))),
+    editing ? h(EventEditor, { event: editing, onSave: save, onDelete: () => { setEvents((items) => items.filter((item) => item.id !== editing.id)); setEditing(null); }, onClose: () => setEditing(null) }) : null);
+}
+
+function WorkshopView() {
+  return h("section", { className: "workspace-window workshop-view glass" }, h("header", { className: "view-header" }, h("div", null, h("small", null, "RAVIN WORKSPACE"), h("strong", null, "WORKSHOP"))),
+    h("div", { className: "workspace-placeholder" }, h("span", { className: "placeholder-mark" }, "W"), h("strong", null, "Build with RAVIN"), h("p", null, "Projects, files, and coding tools will live here.")));
+}
+
+function EmailView({ session, request, signIn }) {
+  const [category, setCategory] = useState("personal");
+  const [accounts, setAccounts] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [status, setStatus] = useState("");
+  const loadAccounts = useCallback(async () => {
+    if (!session.user) return;
+    try {
+      const data = await request("/api/email/accounts");
+      setAccounts(data?.accounts || []);
+    } catch (error) { setStatus(error.message); }
+  }, [session.user, request]);
+  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const result = params.get("email_connection");
+    if (result === "success") {
+      setStatus(`${params.get("provider") || "Email"} connected.`);
+      loadAccounts();
+    } else if (result === "error") {
+      setStatus(params.get("email_error") || "The email account could not be connected.");
+    }
+    if (result) {
+      params.delete("email_connection"); params.delete("provider"); params.delete("email_error");
+      history.replaceState({}, document.title, `${location.pathname}${params.toString() ? `?${params}` : ""}`);
+    }
+  }, [loadAccounts]);
+  const connect = async (provider) => {
+    if (!session.user) { signIn(); return; }
+    setStatus(`Opening ${provider === "google" ? "Google" : "Microsoft"} authorization…`);
+    try {
+      const data = await request(`/api/email/connect/${provider}`, { method: "POST", body: JSON.stringify({ category }) });
+      location.assign(data.url);
+    } catch (error) { setStatus(error.message); }
+  };
+  const openInbox = async (account) => {
+    setSelected(account.id); setStatus("Loading inbox…");
+    try { const data = await request(`/api/email/messages?account_id=${encodeURIComponent(account.id)}`); setMessages(data?.messages || []); setStatus(""); }
+    catch (error) { setStatus(error.message); }
+  };
+  const disconnect = async (account) => {
+    await request(`/api/email/accounts/${encodeURIComponent(account.id)}`, { method: "DELETE" });
+    if (selected === account.id) { setSelected(null); setMessages([]); }
+    loadAccounts();
+  };
+  const visible = accounts.filter((account) => account.category === category);
+  return h("section", { className: "workspace-window email-view glass" },
+    h("header", { className: "view-header email-header" }, h("div", null, h("small", null, "RAVIN WORKSPACE"), h("strong", null, "EMAIL")),
+      h("div", { className: "email-switch", role: "tablist", "aria-label": "Email type" }, h("button", { className: category === "personal" ? "active" : "", onClick: () => setCategory("personal"), role: "tab", "aria-selected": category === "personal" }, "PERSONAL"), h("button", { className: category === "school" ? "active" : "", onClick: () => setCategory("school"), role: "tab", "aria-selected": category === "school" }, "SCHOOL / WORK"))),
+    h("div", { className: "email-layout" },
+      h("aside", { className: "email-sidebar" },
+        h("div", { className: "provider-actions" }, h("button", { onClick: () => connect("google") }, h("b", null, "G"), "Connect Google"), h("button", { onClick: () => connect("microsoft") }, h("b", null, "M"), "Connect Outlook")),
+        h("small", null, "CONNECTED ACCOUNTS"),
+        ...visible.map((account) => h("div", { className: `email-account ${selected === account.id ? "active" : ""}`, key: account.id }, h("button", { className: "email-account-main", onClick: () => openInbox(account) }, h("span", { className: "email-avatar" }, account.provider === "google" ? "G" : "M"), h("div", null, h("strong", null, account.email), h("small", null, account.provider.toUpperCase()))), h("button", { className: "email-disconnect", onClick: () => disconnect(account), "aria-label": `Disconnect ${account.email}` }, "×"))),
+        !visible.length ? h("p", { className: "email-none" }, session.user ? "No accounts connected." : "Sign in to RAVIN first.") : null),
+      h("main", { className: "inbox-pane" }, h("div", { className: "inbox-status" }, status), messages.length ? messages.map((message) => h("article", { className: `inbox-message ${message.unread ? "unread" : ""}`, key: message.id }, h("div", null, h("strong", null, message.from || "Unknown sender"), h("time", null, message.date ? new Date(message.date).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "")), h("h3", null, message.subject || "(No subject)"), h("p", null, message.snippet || ""))) : h("div", { className: "inbox-empty" }, h("strong", null, "INBOX"), h("span", null, selected ? "No messages returned." : "Select a connected account.")))));
+}
+
+function WorkspaceDeck({ active, coreProps, events, setEvents, settingsProps, emailProps }) {
+  const activeIndex = DOCK_ITEMS.indexOf(active);
+  return h("div", { className: "workspace-deck" }, h("div", { className: "workspace-track", style: { transform: `translate3d(-${activeIndex * 20}%,0,0)` } },
+    h("div", { className: "workspace-slide" }, h(CalendarView, { events, setEvents })),
+    h("div", { className: "workspace-slide" }, h(WorkshopView)),
+    h("div", { className: "workspace-slide core-slide" }, h(Core, coreProps), h(WeeklyTodo)),
+    h("div", { className: "workspace-slide" }, h(EmailView, emailProps)),
+    h("div", { className: "workspace-slide" }, h(SettingsView, settingsProps))));
 }
 
 function AuthModal({ open, close, onSession }) {
@@ -827,7 +954,7 @@ function AuthModal({ open, close, onSession }) {
       h("form", { onSubmit: submit },
         h("input", { type: "email", value: email, onChange: (event) => setEmail(event.target.value), placeholder: "Email", autoComplete: "email", required: true }),
         h("input", { type: "password", value: password, onChange: (event) => setPassword(event.target.value), placeholder: "Password", autoComplete: mode === "signin" ? "current-password" : "new-password", minLength: 8, required: true }),
-        h("button", { type: "submit", disabled: busy, "data-pulse": true }, busy ? "PLEASE WAIT…" : mode === "signin" ? "SIGN IN" : "CREATE ACCOUNT"),
+        h("button", { type: "submit", disabled: busy, ...(mode === "signin" ? { "data-pulse": "true" } : {}) }, busy ? "PLEASE WAIT…" : mode === "signin" ? "SIGN IN" : "CREATE ACCOUNT"),
       ),
       h("div", { className: "auth-error" }, error),
       h("button", { className: "auth-switch", onClick: () => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); } }, mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"),
@@ -854,11 +981,11 @@ function App() {
   const [overdriveExiting, setOverdriveExiting] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [promptVisible, setPromptVisible] = useState(false);
-  const [workspaceTab, setWorkspaceTab] = useState(null);
+  const [workspaceTab, setWorkspaceTab] = useState("core");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useStoredState("ravin_chat_messages", []);
   const [conversationId, setConversationId] = useStoredState("ravin_conversation_id", null);
-  const [emailAccounts, setEmailAccounts] = useStoredState("ravin_email_accounts", []);
+  const [calendarEvents, setCalendarEvents] = useStoredState("ravin_calendar_events", []);
   const [memories, setMemories] = useState([]);
   const [logs, setLogs] = useState([]);
   const [accent, setAccentState] = useState(() => localStorage.getItem("ravin_accent") || "#8fa7ff");
@@ -1105,18 +1232,13 @@ function App() {
   };
 
   const selectDock = (item) => {
-    if (item === "core") {
-      setWorkspaceTab(null);
-      setPromptVisible(false);
-      return;
-    }
-    setWorkspaceTab((current) => current === item ? null : item);
+    setWorkspaceTab(item);
+    setPromptVisible(false);
   };
 
   const clearConversation = () => {
     setMessages([]);
     setConversationId(null);
-    setWorkspaceTab(null);
     addLog("Conversation cleared");
   };
 
@@ -1127,7 +1249,7 @@ function App() {
         inputRef.current?.focus();
       }
       if (event.key === "Escape") {
-        setWorkspaceTab(null);
+        setWorkspaceTab("core");
         setPromptVisible(false);
         if (conversationMode) exitConversation();
       }
@@ -1141,15 +1263,19 @@ function App() {
     h("div", { className: "ambient-wash", "aria-hidden": "true" }),
     h("header", { className: "topbar" }, h(Clock), h("div", { className: "brand-lockup" }, h("span", null, "RAVIN"), h("small", null, "RESONANT ASSIST"))),
     h(ChatPanel, { open: chatOpen, setOpen: setChatOpen, messages }),
-    !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat", "data-pulse": true }, h(Chevron, { direction: "right" })) : null,
-    h(Core, { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel }),
-    h(WeeklyTodo),
-    h(Workspace, { tab: workspaceTab, close: () => setWorkspaceTab(null), emailAccounts, setEmailAccounts }),
-    workspaceTab === "settings" ? h(Settings, {
-      close: () => setWorkspaceTab(null), accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, sound, setSound: setSoundState,
-      session, signOut: () => { setSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
-    }) : null,
-    promptVisible ? h("div", { className: "conversation-prompt glass" }, h("span", null, "Enter Conversation Mode?"), h("button", { onClick: enterConversation, "data-pulse": true }, "ENTER"), h("button", { onClick: () => setPromptVisible(false), "aria-label": "Dismiss" }, "×")) : null,
+    !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat" }, h(Chevron, { direction: "right" })) : null,
+    h(WorkspaceDeck, {
+      active: workspaceTab,
+      events: calendarEvents,
+      setEvents: setCalendarEvents,
+      coreProps: { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel },
+      settingsProps: {
+        accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, sound, setSound: setSoundState,
+        session, signOut: () => { setSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
+      },
+      emailProps: { session, request, signIn: () => setAuthOpen(true) },
+    }),
+    promptVisible ? h("div", { className: "conversation-prompt glass" }, h("span", null, "Enter Conversation Mode?"), h("button", { onClick: enterConversation }, "ENTER"), h("button", { onClick: () => setPromptVisible(false), "aria-label": "Dismiss" }, "×")) : null,
     h(Dock, { active: workspaceTab, onSelect: selectDock }),
     h(Composer, { inputRef, value: input, setValue: setInput, state, overdrive, disabled: state === "thinking" || state === "speaking", onSubmit: submit }),
     h(HoverBorder, { accent, overdrive: overdrive || overdriveStarting }),
