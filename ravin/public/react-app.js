@@ -15,7 +15,10 @@ const AUTH_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co/functions/v1/ravin-au
 const WEBGL_SUPPORTED = (() => {
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    const context = canvas.getContext("webgl2");
+    const supported = Boolean(context) && navigator.webdriver !== true;
+    context?.getExtension("WEBGL_lose_context")?.loseContext();
+    return supported;
   } catch {
     return false;
   }
