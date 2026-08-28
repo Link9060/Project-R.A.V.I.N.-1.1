@@ -579,6 +579,13 @@ function Markup({ text }) {
   }));
 }
 
+function Chevron({ direction = "right" }) {
+  const path = direction === "left" ? "M14.5 5 8 12l6.5 7" : "M9.5 5 16 12l-6.5 7";
+  return h("svg", { className: "chat-chevron", viewBox: "0 0 24 24", "aria-hidden": "true" },
+    h("path", { d: path }),
+  );
+}
+
 function ChatPanel({ open, setOpen, messages }) {
   const endRef = useRef(null);
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages]);
@@ -586,7 +593,7 @@ function ChatPanel({ open, setOpen, messages }) {
     h("div", { className: "panel-head" },
       h("span", null, "CHAT"),
       h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(!open), "aria-label": open ? "Collapse chat" : "Open chat", "data-pulse": true },
-        h("span"), h("span")),
+        h(Chevron, { direction: "left" })),
     ),
     open ? h("div", { className: "chat-scroll" },
       messages.length === 0 ? h("div", { className: "chat-empty" }, h("strong", null, "RAVIN"), h("span", null, "Ask when you’re ready.")) : null,
@@ -737,7 +744,7 @@ function Settings({ close, accent, setAccent, glassOpacity, setGlassOpacity, lig
     h("header", null, h("div", null, h("small", null, "RAVIN"), h("strong", null, "SYSTEM SETTINGS")), h("button", { onClick: close, "aria-label": "Close settings", "data-pulse": true }, "×")),
     h("div", { className: "account-row" }, h("span", null, session.user?.email || "Not signed in"), h("button", { onClick: session.user ? signOut : signIn, "data-pulse": true }, session.user ? "SIGN OUT" : "SIGN IN")),
     h("div", { className: "setting-row" }, h("span", null, "Accent"), h("label", { className: "accent-picker" }, h("input", { type: "color", value: accent, onChange: (event) => setAccent(event.target.value) }), h("code", null, accent.toUpperCase()))),
-    h("div", { className: "setting-row glass-opacity-row" }, h("span", null, "Glass clarity"), h("label", { className: "glass-opacity-control" }, h("input", { type: "range", min: "18", max: "82", value: glassOpacity, onChange: (event) => setGlassOpacity(Number(event.target.value)), "aria-label": "Glass transparency" }), h("code", null, `${glassOpacity}%`))),
+    h("div", { className: "setting-row glass-opacity-row" }, h("span", null, "Glass opacity"), h("label", { className: "glass-opacity-control" }, h("input", { type: "range", min: "2", max: "96", value: glassOpacity, onChange: (event) => setGlassOpacity(Number(event.target.value)), "aria-label": "Glass opacity" }), h("code", null, `${glassOpacity}%`))),
     h("div", { className: "setting-row" }, h("span", null, "Light mode"), h(Toggle, { checked: light, onChange: setLight, label: "Light mode" })),
     h("div", { className: "setting-row" }, h("span", null, "Interface sound"), h(Toggle, { checked: sound, onChange: setSound, label: "Interface sound" })),
     h("div", { className: "settings-divider" }),
@@ -875,7 +882,10 @@ function App() {
     localStorage.setItem("ravin_accent", accent);
   }, [accent]);
   useEffect(() => {
-    document.documentElement.style.setProperty("--glass-opacity", String(glassOpacity / 100));
+    const normalized = Math.min(0.96, Math.max(0.02, glassOpacity / 100));
+    document.documentElement.style.setProperty("--glass-opacity", String(normalized));
+    document.documentElement.style.setProperty("--glass-sheen-opacity", String(0.16 + normalized * 0.66));
+    document.documentElement.style.setProperty("--glass-blur", `${18 + normalized * 30}px`);
     localStorage.setItem("ravin_glass_opacity", String(glassOpacity));
   }, [glassOpacity]);
   useEffect(() => {
@@ -1104,7 +1114,7 @@ function App() {
     h("div", { className: "ambient-wash", "aria-hidden": "true" }),
     h("header", { className: "topbar" }, h(Clock), h("div", { className: "brand-lockup" }, h("span", null, "RAVIN"), h("small", null, "RESONANT ASSIST"))),
     h(ChatPanel, { open: chatOpen, setOpen: setChatOpen, messages }),
-    !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat", "data-pulse": true }, h("span"), h("span")) : null,
+    !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat", "data-pulse": true }, h(Chevron, { direction: "right" })) : null,
     h(Core, { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel }),
     h(Workspace, { tab: workspaceTab, close: () => setWorkspaceTab(null), notes, setNotes, tasks, setTasks, projects, setProjects, logs, memories, loadMemories, signedIn: Boolean(session.user) }),
     workspaceTab === "settings" ? h(Settings, {

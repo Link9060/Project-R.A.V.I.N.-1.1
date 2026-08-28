@@ -5,7 +5,10 @@
   --bg: #050608;
   --surface: rgba(11, 13, 17, 0.58);
   --surface-strong: rgba(9, 11, 14, 0.82);
+  --glass-rgb: 12, 14, 18;
   --glass-opacity: 0.44;
+  --glass-sheen-opacity: 0.45;
+  --glass-blur: 31px;
   --glass-line: rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.09);
   --text: #f4f6fb;
@@ -22,6 +25,7 @@
   --bg: #e9edf4;
   --surface: rgba(255, 255, 255, 0.54);
   --surface-strong: rgba(255, 255, 255, 0.8);
+  --glass-rgb: 255, 255, 255;
   --glass-line: rgba(255, 255, 255, 0.76);
   --glass-highlight: rgba(255, 255, 255, 0.85);
   --text: #161922;
@@ -85,10 +89,7 @@ textarea:focus-visible {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(var(--accent-rgb), 0.055), transparent 23%),
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.025), transparent 30%),
-    linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.18));
+  background: transparent;
   transition: background 900ms ease;
 }
 
@@ -104,20 +105,16 @@ textarea:focus-visible {
 
 .glass {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   background:
-    radial-gradient(130% 95% at 2% 0%, rgba(255, 255, 255, 0.17), transparent 47%),
-    radial-gradient(80% 75% at 100% 112%, rgba(var(--accent-rgb), 0.09), transparent 62%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.012) 46%, rgba(0, 0, 0, 0.12)),
-    rgba(18, 22, 31, var(--glass-opacity));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 34%),
+    rgba(var(--glass-rgb), var(--glass-opacity));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 18px 18px 38px rgba(255, 255, 255, 0.018),
-    inset -16px -20px 38px rgba(0, 0, 0, 0.24),
-    0 18px 42px rgba(0, 0, 0, 0.26),
-    0 3px 11px rgba(0, 0, 0, 0.16);
-  -webkit-backdrop-filter: blur(42px) saturate(190%) brightness(1.16);
-  backdrop-filter: blur(42px) saturate(190%) brightness(1.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.17),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.025),
+    0 16px 42px rgba(0, 0, 0, 0.24);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(145%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(145%);
 }
 
 .glass::before {
@@ -126,8 +123,8 @@ textarea:focus-visible {
   inset: 1px;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(125deg, rgba(255, 255, 255, 0.16), transparent 23%, transparent 68%, rgba(255, 255, 255, 0.035));
-  opacity: 0.82;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 22%, transparent 78%, rgba(255, 255, 255, 0.025));
+  opacity: var(--glass-sheen-opacity);
 }
 
 .topbar {
@@ -193,12 +190,13 @@ textarea:focus-visible {
 .chat-panel {
   position: absolute;
   z-index: 18;
-  top: 94px;
-  left: 22px;
-  width: 318px;
-  height: min(430px, calc(100vh - 245px));
+  top: 50%;
+  left: 18px;
+  width: 324px;
+  height: min(520px, calc(100vh - 190px));
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 25px;
+  transform: translateY(-50%);
   transition: width 300ms cubic-bezier(0.2, 0.8, 0.2, 1), height 300ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
 }
 
@@ -207,13 +205,13 @@ textarea:focus-visible {
 }
 
 .panel-head {
-  height: 49px;
-  padding: 0 13px 0 16px;
+  height: 46px;
+  padding: 0 9px 0 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+  background: transparent;
 }
 
 .panel-head > span {
@@ -226,44 +224,50 @@ textarea:focus-visible {
 .chat-open {
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--dim);
   cursor: pointer;
 }
 
 .collapse-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 11px;
+  width: 27px;
+  height: 32px;
+  border-radius: 14px;
 }
 
-.collapse-button span,
-.chat-open span {
-  display: block;
-  width: 10px;
-  height: 1px;
-  background: currentColor;
-}
-
-.collapse-button span:last-child,
-.chat-open span:last-child {
-  margin-top: -1px;
+.chat-chevron {
+  width: 17px;
+  height: 17px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .chat-open {
   position: absolute;
   z-index: 18;
-  top: 94px;
-  left: 22px;
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
+  top: 50%;
+  left: 10px;
+  width: 30px;
+  height: 112px;
+  border-radius: 18px;
+  transform: translateY(-50%);
+  transition: width 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.chat-open:hover {
+  width: 34px;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .chat-scroll {
-  height: calc(100% - 49px);
-  padding: 14px;
+  height: calc(100% - 46px);
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -292,21 +296,18 @@ textarea:focus-visible {
   width: fit-content;
   max-width: 92%;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  border-radius: 15px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
-    rgba(255, 255, 255, 0.024);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
   font-size: 11.5px;
   line-height: 1.55;
 }
 
 .message.user {
   align-self: flex-end;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 42%),
-    rgba(var(--accent-rgb), 0.06);
+  border-color: rgba(var(--accent-rgb), 0.14);
+  background: rgba(var(--accent-rgb), 0.05);
 }
 
 .message.error {
@@ -359,7 +360,7 @@ textarea:focus-visible {
 
 .core-stack {
   position: absolute;
-  top: 48%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -621,7 +622,7 @@ textarea:focus-visible {
 .overdrive-mode .ambient-wash,
 .overdrive-boot .ambient-wash {
   background:
-    radial-gradient(circle at 50% 42%, rgba(145, 9, 19, 0.13), transparent 26%),
+    radial-gradient(circle at 50% 50%, rgba(145, 9, 19, 0.13), transparent 26%),
     linear-gradient(180deg, rgba(35, 0, 5, 0.04), rgba(0, 0, 0, 0.2));
 }
 
@@ -649,7 +650,7 @@ textarea:focus-visible {
 
 .overdrive-flash {
   inset: 0;
-  background: radial-gradient(circle at 50% 43%, rgba(196, 28, 40, 0.26), rgba(40, 0, 5, 0.08) 26%, transparent 64%);
+  background: radial-gradient(circle at 50% 50%, rgba(196, 28, 40, 0.26), rgba(40, 0, 5, 0.08) 26%, transparent 64%);
 }
 
 .overdrive-boot .overdrive-flash {
@@ -657,7 +658,7 @@ textarea:focus-visible {
 }
 
 .overdrive-shockwave {
-  top: 43%;
+  top: 50%;
   left: 50%;
   width: 160px;
   height: 160px;
@@ -719,24 +720,24 @@ textarea:focus-visible {
   z-index: 25;
   bottom: 22px;
   left: 50%;
-  width: min(620px, calc(100% - 64px));
-  height: 58px;
-  padding: 0 7px 0 18px;
+  width: min(660px, calc(100% - 64px));
+  height: 54px;
+  padding: 0 6px 0 17px;
   display: flex;
   align-items: center;
   transform: translateX(-50%);
-  border-radius: 21px;
+  border-radius: 27px;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .composer:focus-within {
   border-color: rgba(var(--accent-rgb), 0.38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 22px 70px rgba(0, 0, 0, 0.36), 0 0 36px rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 18px 46px rgba(0, 0, 0, 0.28);
 }
 
 .composer-state {
   padding-right: 13px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.065);
   color: var(--faint);
   font: 500 7px var(--mono);
   letter-spacing: 0.12em;
@@ -757,15 +758,15 @@ textarea:focus-visible {
 }
 
 .composer > button {
-  width: 43px;
-  height: 43px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   flex: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.018));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
   color: var(--dim);
   cursor: pointer;
 }
@@ -801,9 +802,6 @@ textarea:focus-visible {
   overflow: hidden;
   transform: translateX(-50%);
   border-radius: 22px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 35%),
-    var(--surface-strong);
   animation: panelEnter 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
@@ -825,7 +823,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+  background: transparent;
 }
 
 .workspace-panel header > div,
@@ -1035,14 +1033,14 @@ textarea:focus-visible {
 }
 
 .glass-opacity-control {
-  width: 156px;
+  width: 178px;
   display: grid;
   grid-template-columns: 1fr 30px;
   align-items: center;
   gap: 8px;
 }
 
-.glass-opacity-control input { width: 100%; accent-color: var(--accent); }
+.glass-opacity-control input { width: 100%; accent-color: var(--accent); cursor: pointer; }
 .glass-opacity-control code { color: var(--faint); font: 500 7px var(--mono); text-align: right; }
 
 .toggle {
@@ -1157,7 +1155,6 @@ textarea:focus-visible {
   width: min(420px, 100%);
   padding: 32px;
   border-radius: 26px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), transparent 38%), rgba(10, 12, 16, 0.9);
   text-align: center;
   animation: authEnter 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -1473,10 +1470,6 @@ textarea:focus-visible {
     font-size: 18px;
   }
 
-  .core-stack {
-    top: 39%;
-  }
-
   .core-shader-host {
     width: 144px;
     height: 144px;
@@ -1498,11 +1491,12 @@ textarea:focus-visible {
     width: min(340px, 88vw);
     height: 100%;
     border-radius: 0 20px 20px 0;
+    transform: none;
   }
 
   .chat-open {
-    top: 76px;
-    left: 14px;
+    top: 50%;
+    left: 8px;
   }
 
   .dock {
@@ -1540,9 +1534,7 @@ textarea:focus-visible {
     bottom: 141px;
   }
 
-  .overdrive-shockwave {
-    top: 39%;
-  }
+  .overdrive-shockwave { top: 50%; }
 }
 
 @media (max-width: 560px) {
@@ -1588,7 +1580,6 @@ textarea:focus-visible {
 
 @media (max-height: 710px) and (min-width: 901px) {
   .core-stack {
-    top: 39%;
     transform: translate(-50%, -50%) scale(0.86);
   }
 
