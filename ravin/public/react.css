@@ -451,6 +451,35 @@ textarea:focus-visible {
   height: 100%;
 }
 
+.particle-sphere-fallback {
+  inset: 5%;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--accent);
+}
+
+.particle-sphere-fallback::before,
+.particle-sphere-fallback::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background-image: radial-gradient(circle, currentColor 0 0.8px, transparent 1.2px);
+  background-size: 5px 5px;
+  -webkit-mask-image: radial-gradient(circle, #000 0 61%, transparent 73%);
+  mask-image: radial-gradient(circle, #000 0 61%, transparent 73%);
+  opacity: 0.72;
+  animation: fallbackSphereTurn 11s linear infinite;
+}
+
+.particle-sphere-fallback::after {
+  inset: 17%;
+  background-size: 4px 4px;
+  opacity: 0.38;
+  animation-direction: reverse;
+  animation-duration: 7s;
+}
+
 .core-lens i {
   position: absolute;
   display: block;
@@ -1354,6 +1383,12 @@ textarea:focus-visible {
 @keyframes coreFloat {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-4px) scale(1.012); }
+}
+
+@keyframes fallbackSphereTurn {
+  0% { transform: rotate(0deg) scale(0.98); }
+  50% { transform: rotate(180deg) scale(1.035); }
+  100% { transform: rotate(360deg) scale(0.98); }
 }
 
 @keyframes fallbackBorder {

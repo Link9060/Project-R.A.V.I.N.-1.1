@@ -280,6 +280,10 @@ function ParticleSphere({ accent, state, overdrive }) {
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return undefined;
+    if (!WEBGL_SUPPORTED) {
+      host.classList.add("particle-sphere-fallback");
+      return () => host.classList.remove("particle-sphere-fallback");
+    }
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 10);
     camera.position.z = 3.25;
