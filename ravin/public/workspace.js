@@ -1,13 +1,48 @@
-/* RAVIN workspace: lightweight local-first tools around the Core. */
+/* RAVIN workspace: bottom dock + local-first tools. */
 (()=>{
 const $=id=>document.getElementById(id), $$=sel=>Array.from(document.querySelectorAll(sel));
-const panel=$("workspacePanel"), openBtn=$("workspaceBtn"), closeBtn=$("workspaceClose"), tabs=$$(".workspace-tab"), panes=$$(".workspace-pane");
+const panel=$("workspacePanel"), closeBtn=$("workspaceClose"), settingsPanel=$("settingsPanel");
+const panes=$$(".workspace-pane"), legacyTabs=$$(".workspace-tab");
 const store={get:(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const renderEmpty=(el,text)=>{if(el&&!el.children.length)el.innerHTML=`<div class="workspace-empty">${text}</div>`};
-function open(){panel?.classList.add("open");openBtn?.setAttribute("aria-expanded","true")}
-function close(){panel?.classList.remove("open");openBtn?.setAttribute("aria-expanded","false")}
-openBtn?.addEventListener("click",e=>{e.preventDefault();panel?.classList.contains("open")?close():open()});closeBtn?.addEventListener("click",close);
-tabs.forEach(tab=>tab.addEventListener("click",()=>{const name=tab.dataset.tab;tabs.forEach(t=>t.classList.toggle("active",t===tab));panes.forEach(p=>p.classList.toggle("active",p.dataset.pane===name))}));
+
+/* Load dock-specific layout after the base stylesheet. */
+if(!document.querySelector('link[href*="dock.css"]')){const l=document.createElement("link");l.rel="stylesheet";l.href="dock.css?v=1";document.head.appendChild(l)}
+
+/* Build the persistent dock. */
+const dock=document.createElement("nav");dock.className="ravin-dock";dock.setAttribute("aria-label","RAVIN workspace dock");
+const dockItems=[
+  ["notes","NOTES"],["tasks","TASKS"],["memory","MEMORY"],["projects","PROJECTS"],["logs","LOGS"],["settings","SETTINGS"]
+];
+dockItems.forEach(([name,label])=>{const b=document.createElement("button");b.type="button";b.dataset.dock=name;b.textContent=label;dock.appendChild(b)});
+document.getElementById("app")?.appendChild(dock);
+const dockButtons=$$(".ravin-dock button");
+
+function mark(name){dockButtons.forEach(b=>b.classList.toggle("active",b.dataset.dock===name))}
+function closeWorkspace(){panel?.classList.remove("open");mark(null)}
+function showPane(name){
+  settingsPanel?.classList.remove("open");
+  const already=panel?.classList.contains("open")&&dock.querySelector(`[data-dock="${name}"]`)?.classList.contains("active");
+  if(already){closeWorkspace();return}
+  panes.forEach(p=>p.classList.toggle("active",p.dataset.pane===name));
+  legacyTabs.forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+  panel?.classList.add("open");mark(name);
+  if(name==="memory")renderMemory();
+}
+function showSettings(){
+  const wasOpen=settingsPanel?.classList.contains("open");
+  panel?.classList.remove("open");
+  settingsPanel?.classList.toggle("open",!wasOpen);
+  mark(wasOpen?null:"settings");
+}
+dockButtons.forEach(b=>b.addEventListener("click",()=>b.dataset.dock==="settings"?showSettings():showPane(b.dataset.dock)));
+closeBtn?.addEventListener("click",closeWorkspace);
+document.getElementById("settingsClose")?.addEventListener("click",()=>{settingsPanel?.classList.remove("open");mark(null)});
+
+/* Existing top buttons still work if another layout exposes them. */
+document.getElementById("workspaceBtn")?.addEventListener("click",e=>{e.preventDefault();showPane("notes")});
+document.getElementById("settingsBtn")?.addEventListener("click",e=>{e.preventDefault();showSettings()});
+legacyTabs.forEach(tab=>tab.addEventListener("click",()=>showPane(tab.dataset.tab)));
 
 const notesKey="ravin_workspace_notes",notes=$("notesArea");if(notes){notes.value=localStorage.getItem(notesKey)||"";notes.addEventListener("input",()=>localStorage.setItem(notesKey,notes.value))}
 
@@ -23,8 +58,9 @@ const logList=$("logList"),logs=[];function log(text){logs.unshift({text,time:ne
 window.addEventListener("ravin:state",e=>log(`Core → ${e.detail?.state||"unknown"}${e.detail?.overdrive?" · OVERDRIVE":""}`));window.addEventListener("ravin-auth-changed",()=>log("Authentication state changed"));log("Workspace initialized");
 
 const memoryHost=$("workspaceMemory");async function renderMemory(){if(!memoryHost)return;memoryHost.innerHTML="";if(!window.RavinAuth?.isSignedIn?.()){memoryHost.innerHTML='<div class="workspace-empty">Sign in to view permanent memory.</div>';return}if(!window.RavinMemory?.listPermanentMemories){memoryHost.innerHTML='<div class="workspace-empty">Memory service unavailable.</div>';return}try{const items=await window.RavinMemory.listPermanentMemories();(items||[]).forEach(m=>{const row=document.createElement("div");row.className="workspace-item";row.textContent=typeof m==="string"?m:(m?.content||"");memoryHost.appendChild(row)});renderEmpty(memoryHost,"Nothing saved yet.")}catch{memoryHost.innerHTML='<div class="workspace-empty">Could not load memory.</div>'}}
-tabs.find(t=>t.dataset.tab==="memory")?.addEventListener("click",renderMemory);window.addEventListener("ravin-auth-changed",renderMemory);
+window.addEventListener("ravin-auth-changed",renderMemory);
 
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&panel?.classList.contains("open"))close()});
-window.RavinWorkspace={open,close,log};
+document.addEventListener("click",e=>{if(settingsPanel?.classList.contains("open")&&!settingsPanel.contains(e.target)&&!e.target.closest?.('[data-dock="settings"]')){settingsPanel.classList.remove("open");mark(null)}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){panel?.classList.remove("open");settingsPanel?.classList.remove("open");mark(null)}});
+window.RavinWorkspace={open:()=>showPane("notes"),close:closeWorkspace,log,showPane};
 })();
