@@ -395,7 +395,6 @@ textarea:focus-visible {
   cursor: pointer;
   touch-action: none;
   isolation: isolate;
-  animation: coreFloat 6s ease-in-out infinite;
   transition: transform 250ms ease, border-color 250ms ease, box-shadow 250ms ease, background 600ms ease;
 }
 
@@ -1487,6 +1486,170 @@ textarea:focus-visible {
 @keyframes bootLine {
   from { transform: translateX(-120%); }
   to { transform: translateX(350%); }
+}
+
+/* Light mode is a complete material pass, not a background-color swap. */
+:root[data-theme="light"] .glass {
+  border-color: rgba(34, 45, 62, 0.16);
+  background: rgba(255, 255, 255, var(--glass-opacity));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(34, 45, 62, 0.035),
+    0 16px 42px rgba(63, 76, 96, 0.14);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(125%);
+}
+
+:root[data-theme="light"] .glass::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), transparent 25%, transparent 78%, rgba(92, 109, 134, 0.045));
+}
+
+:root[data-theme="light"] .neural-field {
+  opacity: 0.6;
+}
+
+:root[data-theme="light"] .panel-head,
+:root[data-theme="light"] .workspace-panel > header,
+:root[data-theme="light"] .settings-panel > header,
+:root[data-theme="light"] .workspace-item,
+:root[data-theme="light"] .log-row,
+:root[data-theme="light"] .account-row,
+:root[data-theme="light"] .setting-row,
+:root[data-theme="light"] .memory-heading,
+:root[data-theme="light"] .settings-divider {
+  border-color: rgba(34, 45, 62, 0.095);
+}
+
+:root[data-theme="light"] .collapse-button,
+:root[data-theme="light"] .chat-open,
+:root[data-theme="light"] .composer > button,
+:root[data-theme="light"] .workspace-input button,
+:root[data-theme="light"] .memory-add button,
+:root[data-theme="light"] .account-row button,
+:root[data-theme="light"] .clear-conversation {
+  border-color: rgba(34, 45, 62, 0.13);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+:root[data-theme="light"] .chat-open:hover,
+:root[data-theme="light"] .dock button:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme="light"] .message {
+  border-color: rgba(34, 45, 62, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme="light"] .message.user {
+  border-color: rgba(var(--accent-rgb), 0.23);
+  background: rgba(var(--accent-rgb), 0.09);
+}
+
+:root[data-theme="light"] .message pre {
+  border-color: rgba(34, 45, 62, 0.11);
+  background: rgba(226, 232, 241, 0.72);
+}
+
+:root[data-theme="light"] .ravin-core:not(.overdrive):not(.overdrive-starting) {
+  border-color: rgba(69, 82, 104, 0.2);
+  background:
+    radial-gradient(circle at 33% 23%, rgba(255, 255, 255, 0.95), transparent 24%),
+    radial-gradient(circle at 50% 56%, #f8faff, #e5eaf2 66%, #d7dee9 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -18px 32px rgba(92, 108, 132, 0.11),
+    0 20px 58px rgba(60, 73, 94, 0.2),
+    0 0 64px rgba(var(--accent-rgb), 0.1);
+}
+
+:root[data-theme="light"] .ravin-core:not(.overdrive):not(.overdrive-starting):hover {
+  border-color: rgba(69, 82, 104, 0.32);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -14px 26px rgba(92, 108, 132, 0.1),
+    0 24px 62px rgba(60, 73, 94, 0.22),
+    0 0 64px rgba(var(--accent-rgb), 0.13);
+}
+
+:root[data-theme="light"] .ravin-core:not(.overdrive):not(.overdrive-starting) .core-shell {
+  border-color: rgba(69, 82, 104, 0.09);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.54), transparent 44%);
+}
+
+:root[data-theme="light"] .ravin-core:not(.overdrive):not(.overdrive-starting) .core-lens {
+  border-color: rgba(69, 82, 104, 0.2);
+  background:
+    radial-gradient(circle at 30% 21%, rgba(255, 255, 255, 0.92), transparent 18%),
+    conic-gradient(from 30deg, #d9e0eb, #f8faff, #cdd6e4, #f4f7fb, #d9e0eb);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -13px 24px rgba(82, 98, 122, 0.14),
+    0 7px 22px rgba(64, 78, 100, 0.18),
+    0 0 34px rgba(var(--accent-rgb), 0.11);
+}
+
+:root[data-theme="light"] .ravin-core:not(.overdrive):not(.overdrive-starting) .particle-sphere {
+  mix-blend-mode: multiply;
+  opacity: 0.82;
+}
+
+:root[data-theme="light"] .core-status {
+  color: rgba(64, 76, 94, 0.72);
+}
+
+:root[data-theme="light"] .dock button {
+  color: rgba(56, 68, 86, 0.66);
+}
+
+:root[data-theme="light"] .dock button:hover,
+:root[data-theme="light"] .dock button.active {
+  color: #202938;
+}
+
+:root[data-theme="light"] .dock button.active {
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.17);
+}
+
+:root[data-theme="light"] .composer-state {
+  border-color: rgba(34, 45, 62, 0.1);
+}
+
+:root[data-theme="light"] .notes-area,
+:root[data-theme="light"] .workspace-input input,
+:root[data-theme="light"] .memory-add input,
+:root[data-theme="light"] .auth-card form input {
+  border-color: rgba(34, 45, 62, 0.13);
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+:root[data-theme="light"] .toggle {
+  border-color: rgba(34, 45, 62, 0.16);
+  background: rgba(88, 101, 121, 0.14);
+}
+
+:root[data-theme="light"] .settings-divider {
+  background: rgba(92, 106, 126, 0.05);
+}
+
+:root[data-theme="light"] .auth-backdrop {
+  background: rgba(225, 231, 240, 0.76);
+}
+
+:root[data-theme="light"] .auth-mark,
+:root[data-theme="light"] .boot-symbol {
+  border-color: rgba(34, 45, 62, 0.14);
+  background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.94), transparent 27%), #e7ecf4;
+}
+
+:root[data-theme="light"] .boot-screen {
+  background: var(--bg);
+}
+
+:root[data-theme="light"] .boot-screen > i {
+  background: rgba(34, 45, 62, 0.1);
 }
 
 @media (max-width: 900px) {

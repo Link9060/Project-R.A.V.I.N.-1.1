@@ -179,11 +179,15 @@ function PulsatingBorder({
     observer.observe(host);
     addEventListener("scroll", schedule, true);
     addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("scroll", schedule);
     return () => {
       if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
       removeEventListener("scroll", schedule, true);
       removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("scroll", schedule);
     };
   }, []);
 
