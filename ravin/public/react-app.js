@@ -245,34 +245,73 @@ function PulsatingBorder({
 }
 
 function HoverBorder({ accent, overdrive }) {
-  const [target, setTarget] = useState(null);
+  const targetRef = useRef(null);
+  const frameRef = useRef(0);
+  const [outline, setOutline] = useState({ visible: false, left: 0, top: 0, width: 0, height: 0, radius: "16px" });
   useEffect(() => {
-    const over = (event) => setTarget(event.target.closest?.("[data-pulse]") || null);
+    const measure = () => {
+      frameRef.current = 0;
+      const target = targetRef.current;
+      if (!target?.isConnected) {
+        setOutline((current) => ({ ...current, visible: false }));
+        return;
+      }
+      const rect = target.getBoundingClientRect();
+      setOutline({
+        visible: true,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        radius: getComputedStyle(target).borderRadius || "16px",
+      });
+    };
+    const schedule = () => {
+      if (!frameRef.current) frameRef.current = requestAnimationFrame(measure);
+    };
+    const over = (event) => {
+      const next = event.target.closest?.("[data-pulse]") || null;
+      if (!next || next === targetRef.current) return;
+      targetRef.current = next;
+      measure();
+    };
     const out = (event) => {
       const next = event.relatedTarget?.closest?.("[data-pulse]") || null;
-      setTarget(next);
+      if (next) {
+        targetRef.current = next;
+        measure();
+        return;
+      }
+      targetRef.current = null;
+      setOutline((current) => ({ ...current, visible: false }));
     };
     document.addEventListener("pointerover", over, true);
     document.addEventListener("pointerout", out, true);
+    addEventListener("scroll", schedule, true);
+    addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("scroll", schedule);
     return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
       document.removeEventListener("pointerover", over, true);
       document.removeEventListener("pointerout", out, true);
+      removeEventListener("scroll", schedule, true);
+      removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("scroll", schedule);
     };
   }, []);
-  if (!target) return null;
-  const rect = target.getBoundingClientRect();
   return h("div", {
-    className: "hover-shader-anchor is-active",
-    style: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-  }, h(PulsatingBorder, {
-    colors: overdrive ? ["#4d050b", "#d22b38", "#74101a"] : [accent, "#ffffff", accent],
-    radius: 28,
-    spread: 24,
-    thickness: 3,
-    intensity: 30,
-    bloom: 18,
-    zIndex: 160,
-  }));
+    className: `hover-shader-anchor ${outline.visible ? "is-active" : ""} ${overdrive ? "overdrive" : ""}`,
+    style: {
+      left: outline.left,
+      top: outline.top,
+      width: outline.width,
+      height: outline.height,
+      borderRadius: outline.radius,
+      "--hover-accent": overdrive ? "#d22b38" : accent,
+    },
+  });
 }
 
 // RAVIN's center piece, adapted from the supplied ParticleSphereRefactor.
@@ -370,7 +409,18 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       runtime.nodes = Array.from({ length: count }, () => ({
         x: 35 + Math.random() * (runtime.width - 70),
         y: 45 + Math.random() * (runtime.height - 90),
+        offsetX: 0,
+        offsetY: 0,
       }));
+    };
+
+    const updatePointer = (event) => {
+      runtime.pointer.x = event.clientX;
+      runtime.pointer.y = event.clientY;
+      runtime.pointer.active = true;
+    };
+    const clearPointer = () => {
+      runtime.pointer.active = false;
     };
 
     const coreOrigin = () => {
@@ -439,15 +489,36 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
       const nodeRadius = 1.45;
       const baseAlpha = runtime.overdrive ? 0.24 : 0.18;
 
+      runtime.nodes.forEach((node) => {
+        let targetX = 0;
+        let targetY = 0;
+        if (runtime.pointer.active) {
+          const dx = node.x + node.offsetX - runtime.pointer.x;
+          const dy = node.y + node.offsetY - runtime.pointer.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          if (distance < 175) {
+            const force = ((175 - distance) / 175) ** 1.45 * 28;
+            targetX = dx / distance * force;
+            targetY = dy / distance * force;
+          }
+        }
+        node.offsetX += (targetX - node.offsetX) * 0.13;
+        node.offsetY += (targetY - node.offsetY) * 0.13;
+      });
+
       for (let first = 0; first < runtime.nodes.length; first += 1) {
         for (let second = first + 1; second < runtime.nodes.length; second += 1) {
           const a = runtime.nodes[first];
           const b = runtime.nodes[second];
-          const distance = Math.hypot(a.x - b.x, a.y - b.y);
+          const ax = a.x + a.offsetX;
+          const ay = a.y + a.offsetY;
+          const bx = b.x + b.offsetX;
+          const by = b.y + b.offsetY;
+          const distance = Math.hypot(ax - bx, ay - by);
           if (distance > link) continue;
           context.beginPath();
-          context.moveTo(a.x, a.y);
-          context.lineTo(b.x, b.y);
+          context.moveTo(ax, ay);
+          context.lineTo(bx, by);
           context.strokeStyle = `rgba(${rgb.join(",")},${baseAlpha * (1 - distance / link)})`;
           context.lineWidth = 0.65;
           context.stroke();
@@ -456,7 +527,7 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
 
       runtime.nodes.forEach((node) => {
         context.beginPath();
-        context.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+        context.arc(node.x + node.offsetX, node.y + node.offsetY, nodeRadius, 0, Math.PI * 2);
         context.fillStyle = `rgba(${rgb.join(",")},0.42)`;
         context.fill();
       });
@@ -507,10 +578,16 @@ function NeuralField({ coreRef, state, overdrive, overdriveStarting, accent }) {
 
     resize();
     addEventListener("resize", resize);
+    addEventListener("pointermove", updatePointer, { passive: true });
+    addEventListener("pointerleave", clearPointer);
+    addEventListener("blur", clearPointer);
     runtime.frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(runtime.frame);
       removeEventListener("resize", resize);
+      removeEventListener("pointermove", updatePointer);
+      removeEventListener("pointerleave", clearPointer);
+      removeEventListener("blur", clearPointer);
     };
   }, [coreRef]);
 
@@ -569,19 +646,22 @@ function Chevron({ direction = "right" }) {
 function ChatPanel({ open, setOpen, messages }) {
   const endRef = useRef(null);
   useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [messages]);
-  return h("aside", { className: `chat-panel glass ${open ? "open" : "collapsed"}`, "aria-label": "RAVIN chat" },
+  return h(React.Fragment, null,
+    h("aside", { className: `chat-panel side-drawer drawer-left glass ${open ? "open" : "closed"}`, "aria-label": "RAVIN chat", "aria-hidden": !open },
     h("div", { className: "panel-head" },
       h("span", null, "CHAT"),
-      h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(!open), "aria-label": open ? "Collapse chat" : "Open chat" },
+      h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(false), "aria-label": "Collapse chat" },
         h(Chevron, { direction: "left" })),
     ),
-    open ? h("div", { className: "chat-scroll" },
+    h("div", { className: "chat-scroll" },
       messages.length === 0 ? h("div", { className: "chat-empty" }, h("strong", null, "RAVIN"), h("span", null, "Ask when you’re ready.")) : null,
       ...messages.map((message) => h("article", { className: `message ${message.role}`, key: message.id },
         h("small", null, message.role === "assistant" ? "RAVIN" : message.role === "user" ? "YOU" : "SYSTEM"),
         h("div", null, h(Markup, { text: message.text })))),
       h("div", { ref: endRef }),
-    ) : null,
+    ),
+    ),
+    !open ? h("button", { type: "button", className: "side-drawer-tab drawer-left glass", onClick: () => setOpen(true), "aria-label": "Open chat" }, h(Chevron, { direction: "right" })) : null,
   );
 }
 
@@ -692,7 +772,7 @@ function SettingsView({ accent, setAccent, glassOpacity, setGlassOpacity, sound,
 
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-function WeeklyTodo() {
+function WeeklyTodo({ open, setOpen }) {
   const todayIndex = (new Date().getDay() + 6) % 7;
   const [openDay, setOpenDay] = useState(WEEK_DAYS[todayIndex]);
   const [tasks, setTasks] = useStoredState("ravin_weekly_tasks", {});
@@ -708,10 +788,11 @@ function WeeklyTodo() {
     [day]: (current[day] || []).map((task) => task.id === id ? { ...task, ...changes } : task),
   }));
   const removeTask = (day, id) => setTasks((current) => ({ ...current, [day]: (current[day] || []).filter((task) => task.id !== id) }));
-  return h("aside", { className: "weekly-todo glass", "aria-label": "Weekly to-do list" },
+  return h(React.Fragment, null,
+    h("aside", { className: `weekly-todo side-drawer drawer-right glass ${open ? "open" : "closed"}`, "aria-label": "Weekly to-do list", "aria-hidden": !open },
     h("header", null,
       h("div", null, h("small", null, "THIS WEEK"), h("strong", null, "TO-DO")),
-      h("span", null, "7 DAYS")),
+      h("button", { type: "button", className: "collapse-button", onClick: () => setOpen(false), "aria-label": "Collapse weekly to-do list" }, h(Chevron, { direction: "right" }))),
     h("div", { className: "week-days" }, ...WEEK_DAYS.map((day, index) => {
       const expanded = openDay === day;
       return h("section", { className: `week-day ${expanded ? "expanded" : ""}`, key: day },
@@ -728,6 +809,8 @@ function WeeklyTodo() {
             h("input", { value: drafts[day] || "", onChange: (event) => setDrafts((current) => ({ ...current, [day]: event.target.value })), onKeyDown: (event) => { if (event.key === "Enter") addTask(day); }, placeholder: "Add a task…", "aria-label": `Add task for ${day}` }),
             h("button", { type: "button", onClick: () => addTask(day), "aria-label": `Save task for ${day}` }, "+")))));
     })),
+    ),
+    !open ? h("button", { type: "button", className: "side-drawer-tab drawer-right glass", onClick: () => setOpen(true), "aria-label": "Open weekly to-do list" }, h(Chevron, { direction: "left" })) : null,
   );
 }
 
@@ -856,8 +939,31 @@ function EmailView({ session, request, signIn }) {
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState("");
+  const [providerReady, setProviderReady] = useState({ google: null, microsoft: null });
+  useEffect(() => {
+    let active = true;
+    fetch(`${BACKEND_URL}/api/health`, { headers: { Accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Email service is unavailable.")))
+      .then((data) => {
+        if (!active) return;
+        const readiness = { google: Boolean(data.googleEmailConfigured), microsoft: Boolean(data.microsoftEmailConfigured) };
+        setProviderReady(readiness);
+        if (!readiness.google || !readiness.microsoft) {
+          setStatus("Live inbox connections are waiting for the missing Google or Microsoft OAuth credentials on the RAVIN server.");
+        }
+      })
+      .catch((error) => {
+        if (active) setStatus(error.message);
+      });
+    return () => { active = false; };
+  }, []);
   const loadAccounts = useCallback(async () => {
-    if (!session.user) return;
+    if (!session.user) {
+      setAccounts([]);
+      setSelected(null);
+      setMessages([]);
+      return;
+    }
     try {
       const data = await request("/api/email/accounts");
       setAccounts(data?.accounts || []);
@@ -879,6 +985,10 @@ function EmailView({ session, request, signIn }) {
     }
   }, [loadAccounts]);
   const connect = async (provider) => {
+    if (providerReady[provider] === false) {
+      setStatus(`${provider === "google" ? "Google" : "Microsoft"} OAuth still needs its client ID and secret configured on the RAVIN server.`);
+      return;
+    }
     if (!session.user) { signIn(); return; }
     setStatus(`Opening ${provider === "google" ? "Google" : "Microsoft"} authorization…`);
     try {
@@ -902,7 +1012,9 @@ function EmailView({ session, request, signIn }) {
       h("div", { className: "email-switch", role: "tablist", "aria-label": "Email type" }, h("button", { className: category === "personal" ? "active" : "", onClick: () => setCategory("personal"), role: "tab", "aria-selected": category === "personal" }, "PERSONAL"), h("button", { className: category === "school" ? "active" : "", onClick: () => setCategory("school"), role: "tab", "aria-selected": category === "school" }, "SCHOOL / WORK"))),
     h("div", { className: "email-layout" },
       h("aside", { className: "email-sidebar" },
-        h("div", { className: "provider-actions" }, h("button", { onClick: () => connect("google") }, h("b", null, "G"), "Connect Google"), h("button", { onClick: () => connect("microsoft") }, h("b", null, "M"), "Connect Outlook")),
+        h("div", { className: "provider-actions" },
+          h("button", { onClick: () => connect("google"), disabled: providerReady.google === false, title: providerReady.google === false ? "Google OAuth setup required" : "Connect Google" }, h("b", null, "G"), providerReady.google === false ? "Google setup required" : "Connect Google"),
+          h("button", { onClick: () => connect("microsoft"), disabled: providerReady.microsoft === false, title: providerReady.microsoft === false ? "Microsoft OAuth setup required" : "Connect Outlook" }, h("b", null, "M"), providerReady.microsoft === false ? "Outlook setup required" : "Connect Outlook")),
         h("small", null, "CONNECTED ACCOUNTS"),
         ...visible.map((account) => h("div", { className: `email-account ${selected === account.id ? "active" : ""}`, key: account.id }, h("button", { className: "email-account-main", onClick: () => openInbox(account) }, h("span", { className: "email-avatar" }, account.provider === "google" ? "G" : "M"), h("div", null, h("strong", null, account.email), h("small", null, account.provider.toUpperCase()))), h("button", { className: "email-disconnect", onClick: () => disconnect(account), "aria-label": `Disconnect ${account.email}` }, "×"))),
         !visible.length ? h("p", { className: "email-none" }, session.user ? "No accounts connected." : "Sign in to RAVIN first.") : null),
@@ -912,11 +1024,11 @@ function EmailView({ session, request, signIn }) {
 function WorkspaceDeck({ active, coreProps, events, setEvents, settingsProps, emailProps }) {
   const activeIndex = DOCK_ITEMS.indexOf(active);
   return h("div", { className: "workspace-deck" }, h("div", { className: "workspace-track", style: { transform: `translate3d(-${activeIndex * 20}%,0,0)` } },
-    h("div", { className: "workspace-slide" }, h(CalendarView, { events, setEvents })),
-    h("div", { className: "workspace-slide" }, h(WorkshopView)),
-    h("div", { className: "workspace-slide core-slide" }, h(Core, coreProps), h(WeeklyTodo)),
-    h("div", { className: "workspace-slide" }, h(EmailView, emailProps)),
-    h("div", { className: "workspace-slide" }, h(SettingsView, settingsProps))));
+    h("div", { className: `workspace-slide calendar-scene ${active === "calendar" ? "active" : ""}`, "aria-hidden": active !== "calendar" }, h(CalendarView, { events, setEvents })),
+    h("div", { className: `workspace-slide workshop-scene ${active === "workshop" ? "active" : ""}`, "aria-hidden": active !== "workshop" }, h(WorkshopView)),
+    h("div", { className: `workspace-slide core-slide core-scene ${active === "core" ? "active" : ""}`, "aria-hidden": active !== "core" }, h(Core, coreProps)),
+    h("div", { className: `workspace-slide email-scene ${active === "email" ? "active" : ""}`, "aria-hidden": active !== "email" }, h(EmailView, emailProps)),
+    h("div", { className: `workspace-slide settings-scene ${active === "settings" ? "active" : ""}`, "aria-hidden": active !== "settings" }, h(SettingsView, settingsProps))));
 }
 
 function AuthModal({ open, close, onSession }) {
@@ -980,6 +1092,7 @@ function App() {
   const [overdriveStarting, setOverdriveStarting] = useState(false);
   const [overdriveExiting, setOverdriveExiting] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [todoOpen, setTodoOpen] = useState(true);
   const [promptVisible, setPromptVisible] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState("core");
   const [input, setInput] = useState("");
@@ -993,6 +1106,8 @@ function App() {
   const [sound, setSoundState] = useState(() => localStorage.getItem("ravin_sound") === "on");
   const inputRef = useRef(null);
   const coreRef = useRef(null);
+  const sessionRef = useRef(session);
+  const refreshPromiseRef = useRef(null);
   const pressTimer = useRef(null);
   const press = useRef({ holding: false, holdTriggered: false, lastTap: 0, singleTimer: null });
 
@@ -1000,6 +1115,16 @@ function App() {
     const now = new Date();
     setLogs((items) => [{ id: crypto.randomUUID(), text, time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }, ...items].slice(0, 40));
   }, []);
+
+  const adoptSession = useCallback((next) => {
+    sessionRef.current = next;
+    setSession(next);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBooted(true), 800);
@@ -1020,10 +1145,10 @@ function App() {
         expires_in: params.get("expires_in"),
       }, data.user);
       history.replaceState({}, document.title, location.pathname + location.search);
-      setSession(next);
+      adoptSession(next);
       setAuthOpen(false);
     }).catch((error) => addLog(`Authentication error · ${error.message}`));
-  }, [addLog]);
+  }, [addLog, adoptSession]);
 
   useEffect(() => {
     const rgb = hexToRgb(accent);
@@ -1060,19 +1185,36 @@ function App() {
     } catch { /* sound is optional */ }
   }, [sound]);
 
-  const refreshSession = useCallback(async () => {
-    if (!session.refreshToken) throw new Error("Your RAVIN session has expired. Please sign in again.");
-    const data = await authRequest("refresh", "", "", { refresh_token: session.refreshToken });
-    const next = persistSession(data.session, data.user);
-    setSession(next);
-    addLog("Session refreshed");
-    return next.accessToken;
-  }, [session.refreshToken, addLog]);
+  const refreshSession = useCallback(() => {
+    if (refreshPromiseRef.current) return refreshPromiseRef.current;
+    const refreshToken = sessionRef.current.refreshToken;
+    if (!refreshToken) return Promise.reject(new Error("Your RAVIN session has expired. Please sign in again."));
+    const pending = authRequest("refresh", "", "", { refresh_token: refreshToken })
+      .then((data) => {
+        const next = adoptSession(persistSession(data.session, data.user));
+        addLog("Session refreshed");
+        return next.accessToken;
+      })
+      .catch((error) => {
+        if (sessionRef.current.refreshToken === refreshToken) {
+          adoptSession(clearSessionStorage());
+          setAuthOpen(true);
+          addLog(`Session ended · ${error.message}`);
+        }
+        throw new Error("Your RAVIN session expired. Please sign in again.");
+      })
+      .finally(() => {
+        if (refreshPromiseRef.current === pending) refreshPromiseRef.current = null;
+      });
+    refreshPromiseRef.current = pending;
+    return pending;
+  }, [adoptSession, addLog]);
 
   const request = useCallback(async (pathname, options = {}) => {
-    let token = session.accessToken;
+    const current = sessionRef.current;
+    let token = current.accessToken;
     if (!token) throw new Error("Please sign in to RAVIN first.");
-    if (session.expiresAt && session.expiresAt <= Date.now() + 60_000) {
+    if (current.expiresAt && current.expiresAt <= Date.now() + 60_000) {
       token = await refreshSession();
     }
     try {
@@ -1082,7 +1224,7 @@ function App() {
       token = await refreshSession();
       return apiRequest(pathname, token, options);
     }
-  }, [session.accessToken, session.expiresAt, refreshSession]);
+  }, [refreshSession]);
 
   const loadMemories = useCallback(async () => {
     if (!session.accessToken) return;
@@ -1092,11 +1234,11 @@ function App() {
     } catch (error) {
       addLog(`Memory error · ${error.message}`);
       if (error.status === 401) {
-        setSession(clearSessionStorage());
+        adoptSession(clearSessionStorage());
         setAuthOpen(true);
       }
     }
-  }, [session.accessToken, request, addLog]);
+  }, [session.accessToken, request, addLog, adoptSession]);
 
   const addMemory = useCallback(async (content) => {
     const data = await request("/api/memories", { method: "POST", body: JSON.stringify({ content, category: "fact" }) });
@@ -1224,7 +1366,7 @@ function App() {
       setState("error");
       setMessages((items) => [...items, { id: crypto.randomUUID(), role: "error", text: `RAVIN error: ${error.message}` }]);
       if (error.status === 401) {
-        setSession(clearSessionStorage());
+        adoptSession(clearSessionStorage());
         setAuthOpen(true);
       }
       setTimeout(() => setState(conversationMode ? "conversation" : "idle"), 900);
@@ -1263,7 +1405,7 @@ function App() {
     h("div", { className: "ambient-wash", "aria-hidden": "true" }),
     h("header", { className: "topbar" }, h(Clock), h("div", { className: "brand-lockup" }, h("span", null, "RAVIN"), h("small", null, "RESONANT ASSIST"))),
     h(ChatPanel, { open: chatOpen, setOpen: setChatOpen, messages }),
-    !chatOpen ? h("button", { className: "chat-open glass", onClick: () => setChatOpen(true), "aria-label": "Open chat" }, h(Chevron, { direction: "right" })) : null,
+    h(WeeklyTodo, { open: todoOpen, setOpen: setTodoOpen }),
     h(WorkspaceDeck, {
       active: workspaceTab,
       events: calendarEvents,
@@ -1271,7 +1413,7 @@ function App() {
       coreProps: { coreRef, state, conversationMode, overdrive, overdriveStarting, accent, onPointerDown: coreDown, onPointerUp: coreUp, onPointerCancel: coreCancel },
       settingsProps: {
         accent, setAccent: setAccentState, glassOpacity, setGlassOpacity: setGlassOpacityState, sound, setSound: setSoundState,
-        session, signOut: () => { setSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
+        session, signOut: () => { adoptSession(clearSessionStorage()); setAuthOpen(true); }, signIn: () => setAuthOpen(true), clearConversation, memories, addMemory,
       },
       emailProps: { session, request, signIn: () => setAuthOpen(true) },
     }),
@@ -1279,7 +1421,7 @@ function App() {
     h(Dock, { active: workspaceTab, onSelect: selectDock }),
     h(Composer, { inputRef, value: input, setValue: setInput, state, overdrive, disabled: state === "thinking" || state === "speaking", onSubmit: submit }),
     h(HoverBorder, { accent, overdrive: overdrive || overdriveStarting }),
-    h(AuthModal, { open: authOpen, close: () => setAuthOpen(false), onSession: (next) => { setSession(next); addLog("Signed in"); } }),
+    h(AuthModal, { open: authOpen, close: () => setAuthOpen(false), onSession: (next) => { adoptSession(next); addLog("Signed in"); } }),
     h(BootScreen, { done: booted }),
     h("div", { className: "overdrive-flash", "aria-hidden": "true" }),
     h("div", { className: "overdrive-shockwave", "aria-hidden": "true" }),

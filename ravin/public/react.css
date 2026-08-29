@@ -2696,3 +2696,264 @@ textarea:focus-visible {
   .event-form-grid { grid-template-columns: 1fr; }
   .event-wide { grid-column: auto; }
 }
+
+/* Workspace v3 — full-screen scenes with matching overlay drawers. */
+.workspace-deck {
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+}
+
+.workspace-track {
+  transition-duration: 720ms;
+  transition-timing-function: cubic-bezier(0.2, 0.82, 0.16, 1);
+}
+
+.workspace-slide {
+  padding: 88px 34px 142px;
+  overflow: hidden;
+  opacity: 0.34;
+  transform: scale(0.985);
+  transition: opacity 460ms ease, transform 620ms cubic-bezier(0.2, 0.82, 0.16, 1), background 720ms ease;
+  pointer-events: none;
+}
+
+.workspace-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.workspace-slide > * {
+  pointer-events: none;
+}
+
+.workspace-slide.active > * {
+  pointer-events: auto;
+}
+
+.calendar-scene {
+  background: radial-gradient(circle at 18% 18%, rgba(var(--accent-rgb), 0.055), transparent 34%), rgba(5, 6, 8, 0.82);
+}
+
+.workshop-scene {
+  background: radial-gradient(circle at 76% 30%, rgba(255, 255, 255, 0.035), transparent 32%), rgba(4, 5, 7, 0.82);
+}
+
+.core-scene {
+  padding: 0;
+  background: rgba(5, 6, 8, 0.18);
+}
+
+.email-scene {
+  background: radial-gradient(circle at 82% 76%, rgba(var(--accent-rgb), 0.045), transparent 38%), rgba(4, 5, 7, 0.82);
+}
+
+.settings-scene {
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.035), transparent 34%), rgba(5, 6, 8, 0.82);
+}
+
+.workspace-window.glass {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.workspace-window.glass::before {
+  display: none;
+}
+
+.workshop-view,
+.settings-view {
+  width: 100%;
+}
+
+.side-drawer {
+  position: fixed;
+  z-index: 28;
+  top: 72px;
+  bottom: 72px;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+  border-radius: 0 28px 28px 0;
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition: transform 480ms cubic-bezier(0.2, 0.82, 0.16, 1), opacity 300ms ease, visibility 480ms;
+}
+
+.chat-panel.side-drawer {
+  left: 0;
+  width: min(350px, calc(100vw - 64px));
+}
+
+.weekly-todo.side-drawer {
+  right: 0;
+  width: min(330px, calc(100vw - 64px));
+  border-radius: 28px 0 0 28px;
+}
+
+.side-drawer.drawer-left.closed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-102%);
+}
+
+.side-drawer.drawer-right.closed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(102%);
+}
+
+.side-drawer-tab {
+  position: fixed;
+  z-index: 29;
+  top: 50%;
+  width: 34px;
+  height: 124px;
+  display: grid;
+  place-items: center;
+  border-radius: 0 19px 19px 0;
+  color: var(--dim);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: width 200ms ease, background 200ms ease;
+}
+
+.side-drawer-tab:hover {
+  width: 40px;
+  background: rgba(var(--glass-rgb), 0.72);
+}
+
+.side-drawer-tab.drawer-left {
+  left: 0;
+  border-left: 0;
+}
+
+.side-drawer-tab.drawer-right {
+  right: 0;
+  border-right: 0;
+  border-radius: 19px 0 0 19px;
+}
+
+.weekly-todo > header .collapse-button {
+  flex: none;
+}
+
+.week-days {
+  height: calc(100% - 56px);
+  overflow: auto;
+}
+
+@keyframes drawerFromLeft {
+  from { opacity: 0; transform: translateX(-102%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes drawerFromRight {
+  from { opacity: 0; transform: translateX(102%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* One exact-fit hover outline; WebGL is reserved for the Core. */
+.hover-shader-anchor {
+  position: fixed;
+  z-index: 160;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.985);
+  transform-origin: center;
+  transition:
+    opacity 190ms ease,
+    transform 240ms cubic-bezier(0.2, 0.86, 0.2, 1);
+}
+
+.hover-shader-anchor.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.hover-shader-anchor::before,
+.hover-shader-anchor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--hover-angle), transparent 0 48%, var(--hover-accent) 66%, rgba(255, 255, 255, 0.95) 74%, var(--hover-accent) 82%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: hoverOutlineSpin 2.3s linear infinite;
+}
+
+.hover-shader-anchor::after {
+  opacity: 0.58;
+  filter: blur(5px);
+}
+
+.hover-shader-anchor.overdrive::before,
+.hover-shader-anchor.overdrive::after {
+  animation-duration: 1.25s;
+}
+
+@property --hover-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes hoverOutlineSpin {
+  to { --hover-angle: 360deg; }
+}
+
+.provider-actions button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+/* Keep the intentional state change visible even when ambient motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .overdrive-boot .overdrive-flash {
+    animation: screenFlash 1.48s ease-out both !important;
+  }
+
+  .overdrive-boot .overdrive-shockwave {
+    animation: shockwave 1.48s cubic-bezier(0.2, 0.7, 0.2, 1) both !important;
+  }
+
+  .ravin-core.overdrive-starting {
+    animation: overdriveCharge 1.48s cubic-bezier(0.18, 0.75, 0.16, 1) both !important;
+  }
+
+  .overdrive-exit .ravin-core,
+  .overdrive-exit .ambient-wash,
+  .overdrive-exit .neural-field {
+    animation-duration: 820ms !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace-deck { inset: 0; }
+  .workspace-slide { padding: 78px 12px 132px; }
+  .core-scene { padding: 0; }
+  .workspace-window { border-radius: 0; }
+  .side-drawer { top: 64px; bottom: 66px; }
+}
+
+@media (max-width: 620px) {
+  .workspace-deck { inset: 0; }
+  .workspace-slide { padding: 66px 7px 126px; }
+  .core-scene { padding: 0; }
+  .chat-panel.side-drawer,
+  .weekly-todo.side-drawer { width: min(88vw, 350px); }
+  .side-drawer { top: 58px; bottom: 62px; }
+}
