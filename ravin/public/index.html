@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="ravin-preboot">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="react.css?v=11" />
+    <link rel="stylesheet" href="boot.css?v=1" />
     <script type="importmap">
       {
         "imports": {
@@ -26,8 +27,14 @@
     </script>
   </head>
   <body>
+    <div class="ravin-boot" id="ravinBoot" aria-label="Start RAVIN">
+      <canvas class="ravin-boot-canvas" id="ravinBootCanvas" aria-hidden="true"></canvas>
+      <button class="ravin-boot-core" id="ravinBootCore" type="button" aria-label="Initialize RAVIN"></button>
+      <div class="ravin-boot-pulse" aria-hidden="true"></div>
+    </div>
     <div id="root"></div>
     <noscript>RAVIN requires JavaScript.</noscript>
+    <script src="boot.js?v=1"></script>
     <script type="module" src="react-app.js?v=12"></script>
   </body>
 </html>
