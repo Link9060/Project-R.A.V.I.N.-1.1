@@ -1,0 +1,190 @@
+/* RAVIN cold-start sequence -------------------------------------------------
+   Kept outside the React app so auth/chat/workspace logic stays untouched. */
+html.ravin-preboot,
+html.ravin-preboot body {
+  background: #050608;
+}
+
+html.ravin-preboot #root {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.ravin-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.018), transparent 22%),
+    #050608;
+  transition: opacity 620ms cubic-bezier(.2,.75,.2,1), visibility 620ms;
+}
+
+.ravin-boot.is-finished {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ravin-boot-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ravin-boot-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ravin-boot-core::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 7px rgba(255,255,255,.9),
+    0 0 19px rgba(255,255,255,.2);
+  animation: ravinBootBreathe 2.1s ease-in-out infinite;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.ravin-boot-core:hover::before,
+.ravin-boot-core:focus-visible::before {
+  transform: scale(1.35);
+  box-shadow:
+    0 0 9px rgba(255,255,255,1),
+    0 0 27px rgba(255,255,255,.32);
+}
+
+.ravin-boot.is-running .ravin-boot-core {
+  pointer-events: none;
+}
+
+.ravin-boot.is-running .ravin-boot-core::before {
+  animation: ravinBootIgnite 520ms cubic-bezier(.16,.8,.2,1) both;
+}
+
+.ravin-boot-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  margin: -24px;
+  border: 1px solid rgba(255,255,255,.78);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ravin-boot.is-pulsing .ravin-boot-pulse {
+  animation: ravinBootPulse 980ms cubic-bezier(.12,.62,.18,1) both;
+}
+
+/* Reveal the real interface in the same order as the startup concept. */
+html.ravin-ui-reveal #root {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 220ms ease;
+}
+
+html.ravin-ui-reveal .ravin-app .core-stage {
+  animation: ravinCoreReveal 380ms ease-out both;
+}
+
+html.ravin-ui-reveal .ravin-app .dock,
+html.ravin-ui-reveal .ravin-app .composer {
+  animation: ravinBottomReveal 520ms cubic-bezier(.18,.82,.22,1) 110ms both;
+}
+
+html.ravin-ui-reveal .ravin-app .chat-open,
+html.ravin-ui-reveal .ravin-app .chat-panel,
+html.ravin-ui-reveal .ravin-app .weekly-todo {
+  animation: ravinSideReveal 480ms cubic-bezier(.18,.82,.22,1) 235ms both;
+}
+
+html.ravin-ui-reveal .ravin-app .topbar {
+  animation: ravinTopReveal 520ms ease 390ms both;
+}
+
+html.ravin-ui-reveal .ravin-app .system-ready i {
+  animation: ravinStatusWake 650ms cubic-bezier(.16,.8,.2,1) 650ms both;
+}
+
+@keyframes ravinBootBreathe {
+  0%,100% { transform: scale(.9); opacity: .78; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+@keyframes ravinBootIgnite {
+  0% { transform: scale(1); opacity: 1; }
+  36% { transform: scale(2.8); opacity: 1; box-shadow: 0 0 26px rgba(255,255,255,.9), 0 0 75px rgba(255,255,255,.24); }
+  100% { transform: scale(.42); opacity: .72; box-shadow: 0 0 14px rgba(255,255,255,.62), 0 0 40px rgba(255,255,255,.12); }
+}
+
+@keyframes ravinBootPulse {
+  0% { transform: scale(.3); opacity: .95; border-width: 2px; }
+  75% { opacity: .26; }
+  100% { transform: scale(28); opacity: 0; border-width: .35px; }
+}
+
+@keyframes ravinCoreReveal {
+  from { opacity: 0; filter: blur(6px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes ravinBottomReveal {
+  from { opacity: 0; translate: 0 34px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes ravinSideReveal {
+  from { opacity: 0; scale: .96; filter: blur(3px); }
+  to { opacity: 1; scale: 1; filter: blur(0); }
+}
+
+@keyframes ravinTopReveal {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ravinStatusWake {
+  0% { opacity: 0; transform: scale(.15); box-shadow: none; }
+  50% { opacity: 1; transform: scale(2.1); box-shadow: 0 0 18px var(--accent); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-boot-core::before { animation: none; }
+  .ravin-boot.is-running .ravin-boot-core::before { animation-duration: 1ms; }
+  .ravin-boot.is-pulsing .ravin-boot-pulse { animation-duration: 220ms; }
+  html.ravin-ui-reveal .ravin-app .core-stage,
+  html.ravin-ui-reveal .ravin-app .dock,
+  html.ravin-ui-reveal .ravin-app .composer,
+  html.ravin-ui-reveal .ravin-app .chat-open,
+  html.ravin-ui-reveal .ravin-app .chat-panel,
+  html.ravin-ui-reveal .ravin-app .weekly-todo,
+  html.ravin-ui-reveal .ravin-app .topbar,
+  html.ravin-ui-reveal .ravin-app .system-ready i {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
