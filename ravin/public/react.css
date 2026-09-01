@@ -1634,7 +1634,6 @@ textarea:focus-visible {
   pointer-events: none;
   opacity: 0;
   transform: scale(0.94);
-  animation: hoverBorderEnter 260ms cubic-bezier(0.18, 0.88, 0.24, 1) both;
 }
 
 .hover-shader-anchor .pulse-host {
@@ -1938,13 +1937,8 @@ textarea:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 

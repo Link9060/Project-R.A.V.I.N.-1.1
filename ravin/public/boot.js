@@ -6,7 +6,6 @@
   if (!boot || !canvas || !trigger) return;
 
   const ctx = canvas.getContext("2d");
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let width = innerWidth;
   let height = innerHeight;
   let dpr = 1;
@@ -182,12 +181,6 @@
     running = true;
     boot.classList.add("is-running");
     playWakeTone();
-
-    if (reduced) {
-      boot.classList.add("is-pulsing");
-      setTimeout(reveal, 260);
-      return;
-    }
 
     makeParticles();
     start = performance.now();
