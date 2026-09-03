@@ -131,7 +131,7 @@ async function sendMessage(){
   try{
     if(!window.RavinAPI?.chat)throw new Error("RAVIN API is not available.");
     const result=await window.RavinAPI.chat(text);
-    const content=result?.content??result?.text??result?.message?.content;
+    const content=result?.reply??result?.content??result?.text??result?.message?.content;
     if(content){
       markMessageRead(userMessage);
       addMessage("assistant",content);
