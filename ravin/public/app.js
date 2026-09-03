@@ -4,6 +4,31 @@ const chat=$("chat");
 const input=$("messageInput");
 const send=$("sendBtn");
 const composer=$("composer");
+const readReceiptsToggle=$("readReceiptsToggle");
+const READ_RECEIPTS_KEY="ravin_read_receipts";
+
+const readReceiptsEnabled=()=>localStorage.getItem(READ_RECEIPTS_KEY)!=="false";
+
+const syncReadReceiptsToggle=()=>{
+  if(!readReceiptsToggle)return;
+  const enabled=readReceiptsEnabled();
+  readReceiptsToggle.classList.toggle("on",enabled);
+  readReceiptsToggle.setAttribute("aria-checked",String(enabled));
+};
+
+const updateReadReceiptVisibility=()=>{
+  chat?.querySelectorAll(".msg-receipt").forEach(receipt=>{
+    receipt.hidden=!readReceiptsEnabled();
+  });
+};
+
+readReceiptsToggle?.addEventListener("click",()=>{
+  localStorage.setItem(READ_RECEIPTS_KEY,String(!readReceiptsEnabled()));
+  syncReadReceiptsToggle();
+  updateReadReceiptVisibility();
+});
+
+syncReadReceiptsToggle();
 
 const formatMessageTime=(value)=>{
   const date=value instanceof Date?value:new Date(value);
@@ -25,7 +50,7 @@ const formatMessageDateTime=(value)=>{
 };
 
 const addMessage=(role,text,timestamp=new Date())=>{
-  if(!chat)return;
+  if(!chat)return null;
 
   const intro=chat.querySelector(".intro");
   if(intro)intro.remove();
@@ -58,8 +83,27 @@ const addMessage=(role,text,timestamp=new Date())=>{
 
   header.append(label,time);
   message.append(header,body);
+
+  if(normalizedRole==="user"){
+    const receipt=document.createElement("span");
+    receipt.className="msg-time msg-receipt";
+    receipt.textContent="Sent";
+    receipt.hidden=!readReceiptsEnabled();
+    receipt.setAttribute("aria-live","polite");
+    message.appendChild(receipt);
+  }
+
   chat.appendChild(message);
   chat.scrollTop=chat.scrollHeight;
+  return message;
+};
+
+const markMessageRead=(message,timestamp=new Date())=>{
+  const receipt=message?.querySelector(".msg-receipt");
+  if(!receipt)return;
+  receipt.textContent="Read";
+  receipt.title=`Read ${formatMessageDateTime(timestamp)}`;
+  receipt.setAttribute("aria-label",`Read ${formatMessageDateTime(timestamp)}`);
 };
 
 const setComposerBusy=(busy)=>{
@@ -71,14 +115,16 @@ async function sendMessage(){
   const text=input?.value?.trim();
   if(!text)return;
   if(input)input.value="";
-  addMessage("user",text);
+  const userMessage=addMessage("user",text);
   setComposerBusy(true);
   try{
     if(!window.RavinAPI?.chat)throw new Error("RAVIN API is not available.");
     const result=await window.RavinAPI.chat(text);
     const content=result?.content??result?.text??result?.message?.content;
-    if(content)addMessage("assistant",content);
-    else addMessage("error","RAVIN returned no visible content.");
+    if(content){
+      markMessageRead(userMessage);
+      addMessage("assistant",content);
+    }else addMessage("error","RAVIN returned no visible content.");
   }catch(error){
     console.error("[RAVIN chat]",error);
     addMessage("error",`RAVIN error: ${error?.message||error}`);
