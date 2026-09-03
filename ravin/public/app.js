@@ -5,9 +5,15 @@ const input=$("messageInput");
 const send=$("sendBtn");
 const composer=$("composer");
 const readReceiptsToggle=$("readReceiptsToggle");
-const READ_RECEIPTS_KEY="ravin_read_receipts";
+const READ_RECEIPTS_KEY_PREFIX="ravin_read_receipts";
 
-const readReceiptsEnabled=()=>localStorage.getItem(READ_RECEIPTS_KEY)!=="false";
+const readReceiptsStorageKey=()=>{
+  const user=window.RavinAuth?.getUser?.()||window.RavinAuthState?.user;
+  const identity=user?.id||user?.email||"guest";
+  return `${READ_RECEIPTS_KEY_PREFIX}:${identity}`;
+};
+
+const readReceiptsEnabled=()=>localStorage.getItem(readReceiptsStorageKey())!=="false";
 
 const syncReadReceiptsToggle=()=>{
   if(!readReceiptsToggle)return;
@@ -23,7 +29,12 @@ const updateReadReceiptVisibility=()=>{
 };
 
 readReceiptsToggle?.addEventListener("click",()=>{
-  localStorage.setItem(READ_RECEIPTS_KEY,String(!readReceiptsEnabled()));
+  localStorage.setItem(readReceiptsStorageKey(),String(!readReceiptsEnabled()));
+  syncReadReceiptsToggle();
+  updateReadReceiptVisibility();
+});
+
+window.addEventListener("ravin-auth-changed",()=>{
   syncReadReceiptsToggle();
   updateReadReceiptVisibility();
 });
