@@ -5,12 +5,60 @@ const input=$("messageInput");
 const send=$("sendBtn");
 const composer=$("composer");
 
-const addMessage=(role,text)=>{
+const formatMessageTime=(value)=>{
+  const date=value instanceof Date?value:new Date(value);
+  return date.toLocaleTimeString([],{
+    hour:"numeric",
+    minute:"2-digit"
+  });
+};
+
+const formatMessageDateTime=(value)=>{
+  const date=value instanceof Date?value:new Date(value);
+  return date.toLocaleString([],{
+    month:"short",
+    day:"numeric",
+    year:"numeric",
+    hour:"numeric",
+    minute:"2-digit"
+  });
+};
+
+const addMessage=(role,text,timestamp=new Date())=>{
   if(!chat)return;
-  const d=document.createElement("div");
-  d.className=`message ${role}`;
-  d.textContent=text;
-  chat.appendChild(d);
+
+  const intro=chat.querySelector(".intro");
+  if(intro)intro.remove();
+
+  const normalizedRole=role==="assistant"?"ravin":role;
+  const message=document.createElement("div");
+  message.className=`msg ${normalizedRole}`;
+
+  const header=document.createElement("div");
+  header.className="msg-header";
+
+  const label=document.createElement("span");
+  label.className="msg-label";
+  label.textContent=normalizedRole==="user"?"YOU":normalizedRole==="ravin"?"RAVIN":"SYSTEM";
+
+  const time=document.createElement("time");
+  time.className="msg-time";
+  time.dateTime=(timestamp instanceof Date?timestamp:new Date(timestamp)).toISOString();
+  time.textContent=formatMessageTime(timestamp);
+  time.title=formatMessageDateTime(timestamp);
+  time.setAttribute("aria-label",`Sent ${formatMessageDateTime(timestamp)}`);
+
+  const body=document.createElement("div");
+  body.className="msg-body";
+  if(normalizedRole==="ravin"&&typeof window.renderMarkdown==="function"){
+    body.innerHTML=window.renderMarkdown(String(text));
+  }else{
+    body.textContent=text;
+  }
+
+  header.append(label,time);
+  message.append(header,body);
+  chat.appendChild(message);
   chat.scrollTop=chat.scrollHeight;
 };
 
