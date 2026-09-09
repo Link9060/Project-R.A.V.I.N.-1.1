@@ -54,20 +54,14 @@ If the task is not complete, continue working rather than claiming success.
 `.trim();
 
 export async function buildFeature(request) {
-  if (
-    typeof request !== "string" ||
-    !request.trim()
-  ) {
-    throw new Error(
-      "A build request is required."
-    );
+  if (typeof request !== "string" || !request.trim()) {
+    throw new Error("A build request is required.");
   }
 
-  const systemPrompt = `${RAVIN_SYSTEM_PROMPT}
-
-${BUILDER_PROMPT}`;
+  const systemPrompt = `${RAVIN_SYSTEM_PROMPT}\n\n${BUILDER_PROMPT}`;
 
   return runAgent(request, {
+    mode: "work",
     systemPrompt,
     maxSteps: 24,
     temperature: 0.2,
