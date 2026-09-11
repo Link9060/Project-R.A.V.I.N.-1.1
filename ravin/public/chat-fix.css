@@ -1,0 +1,41 @@
+/* Temporary stability patch for the pre-redesign RAVIN chat drawer.
+   The legacy .chat-panel rule vertically translated the panel while the
+   newer .side-drawer layout also pinned it with top/bottom bounds. */
+.chat-panel.side-drawer {
+  top: 72px;
+  bottom: 72px;
+  height: auto;
+  transform: none !important;
+}
+
+.chat-panel.side-drawer.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none !important;
+}
+
+.chat-panel.side-drawer.closed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-102%) !important;
+}
+
+.chat-panel .chat-scroll {
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .chat-panel.side-drawer {
+    top: 64px;
+    bottom: 66px;
+  }
+}
+
+@media (max-width: 620px) {
+  .chat-panel.side-drawer {
+    top: 58px;
+    bottom: 62px;
+  }
+}
