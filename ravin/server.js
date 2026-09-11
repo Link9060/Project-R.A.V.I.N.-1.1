@@ -332,10 +332,15 @@ async function runAiSmokeTests() {
         mode,
         tools: [],
         temperature: 0,
-        maxTokens: 12,
+        maxTokens: mode === "work" ? 256 : 32,
       });
-      const reply = String(result?.content || "").trim().slice(0, 40);
-      console.log(`[RAVIN AI smoke] mode=${mode} model=${RAVIN_MODELS[mode]} ok=true latency=${Date.now() - startedAt}ms reply=${JSON.stringify(reply)}`);
+      const reply = String(result?.content || "").trim().slice(0, 80);
+      const reasoning = String(result?.reasoning || result?.reasoning_content || "").trim().slice(0, 120);
+      const visible = Boolean(reply);
+      console.log(`[RAVIN AI smoke] mode=${mode} model=${RAVIN_MODELS[mode]} ok=${visible} latency=${Date.now() - startedAt}ms reply=${JSON.stringify(reply)} reasoning=${JSON.stringify(reasoning)}`);
+      if (!visible) {
+        console.warn(`[RAVIN AI smoke] mode=${mode} reached Cloudflare but returned no visible content`);
+      }
     } catch (error) {
       console.error(`[RAVIN AI smoke] mode=${mode} model=${RAVIN_MODELS[mode]} ok=false`, error);
     }
