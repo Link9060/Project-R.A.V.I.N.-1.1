@@ -6,7 +6,11 @@ import { fileURLToPath } from "node:url";
 import { runAgent } from "./src/agent/agent.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
-import { RAVIN_MODELS, normalizeRavinMode } from "./src/cloudflareClient.js";
+import {
+  RAVIN_MODELS,
+  normalizeRavinMode,
+  chatWithCloudflare,
+} from "./src/cloudflareClient.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -15,8 +19,33 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || "";
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_API_KEY || "";
+const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "").replace(/\/$/, "");
+
+const allowedOrigins = new Set([
+  "https://link9060.github.io",
+  "https://ravin-hyeq.onrender.com",
+]);
+if (FRONTEND_ORIGIN) allowedOrigins.add(FRONTEND_ORIGIN);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 app.use(express.json({ limit: "1mb" }));
+app.use((req, _res, next) => {
+  if (req.path.startsWith("/api/")) {
+    console.log(`[RAVIN HTTP] ${req.method} ${req.path} origin=${req.headers.origin || "same-origin/none"}`);
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 function requireSupabase() {
@@ -92,6 +121,7 @@ app.post("/api/chat", async (req, res) => {
 
   const message = req.body?.message;
   const mode = normalizeRavinMode(req.body?.mode);
+  console.log(`[RAVIN chat] accepted mode=${mode} user=${auth.user.id}`);
   if (!message || typeof message !== "string" || !message.trim()) {
     return res.status(400).json({ error: "Message can't be empty." });
   }
@@ -186,8 +216,12 @@ app.post("/api/chat", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("[RAVIN chat error]", err);
-    res.status(err?.status || 500).json({ error: err instanceof Error ? err.message : String(err) });
+    console.error(`[RAVIN chat error] mode=${mode}`, err);
+    res.status(err?.status || 500).json({
+      error: err instanceof Error ? err.message : String(err),
+      mode,
+      model: RAVIN_MODELS[mode],
+    });
   }
 });
 
@@ -279,6 +313,36 @@ app.get("/api/health", (_req, res) => res.json({
   ai: Boolean(CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN),
   provider: "cloudflare-workers-ai",
   models: RAVIN_MODELS,
+  corsOrigins: [...allowedOrigins],
 }));
 
-app.listen(PORT, () => console.log(`RAVIN web is up: http://localhost:${PORT}`));
+async function runAiSmokeTests() {
+  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
+    console.warn("[RAVIN AI smoke] skipped: Cloudflare credentials are missing");
+    return;
+  }
+
+  for (const mode of ["conversation", "work"]) {
+    const startedAt = Date.now();
+    try {
+      const result = await chatWithCloudflare([
+        { role: "system", content: "This is a health check. Reply with exactly OK." },
+        { role: "user", content: "Reply OK." },
+      ], {
+        mode,
+        tools: [],
+        temperature: 0,
+        maxTokens: 12,
+      });
+      const reply = String(result?.content || "").trim().slice(0, 40);
+      console.log(`[RAVIN AI smoke] mode=${mode} model=${RAVIN_MODELS[mode]} ok=true latency=${Date.now() - startedAt}ms reply=${JSON.stringify(reply)}`);
+    } catch (error) {
+      console.error(`[RAVIN AI smoke] mode=${mode} model=${RAVIN_MODELS[mode]} ok=false`, error);
+    }
+  }
+}
+
+app.listen(PORT, () => {
+  console.log(`RAVIN web is up: http://localhost:${PORT}`);
+  runAiSmokeTests().catch((error) => console.error("[RAVIN AI smoke] unexpected failure", error));
+});
