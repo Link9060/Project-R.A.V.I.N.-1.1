@@ -1,0 +1,235 @@
+/* RAVIN — Resonant shell v1
+   Built from the same visual principles as Relay: neutral surfaces, gray hierarchy,
+   restrained accent, compact controls, and fast spring-like interactions. */
+:root {
+  --canvas: 10 10 11;
+  --surface: 18 18 20;
+  --surface-raised: 26 26 29;
+  --surface-soft: 22 22 24;
+  --ink: 245 245 246;
+  --ink-muted: 161 161 168;
+  --ink-faint: 96 96 102;
+  --border: 40 40 44;
+  --accent: 245 245 246;
+  --danger: 248 113 113;
+  --sidebar-width: 264px;
+  --sidebar-collapsed: 74px;
+  --header-height: 58px;
+  --motion: cubic-bezier(.22,1,.36,1);
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; }
+html { color-scheme: dark; background: rgb(var(--canvas)); }
+body {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 12%, rgba(255,255,255,.025), transparent 24rem),
+    rgb(var(--canvas));
+  color: rgb(var(--ink));
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a[href] {
+  transition: transform 170ms var(--motion), opacity 170ms var(--motion), color 170ms var(--motion), background-color 170ms var(--motion), border-color 170ms var(--motion), box-shadow 170ms var(--motion);
+}
+@media (hover:hover) {
+  button:not(:disabled):hover, a[href]:hover { transform: translateY(-1px); }
+}
+button:not(:disabled):active { transform: scale(.965); opacity: .84; transition-duration: 80ms; }
+:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
+
+#ravinApp { position: fixed; inset: 0; display: grid; grid-template-columns: var(--sidebar-width) 1fr; background: transparent; }
+#ravinApp.sidebar-collapsed { grid-template-columns: var(--sidebar-collapsed) 1fr; }
+
+/* Sidebar */
+.ravin-sidebar {
+  min-width: 0;
+  border-right: 1px solid rgb(var(--border));
+  background: rgba(10,10,11,.94);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  z-index: 20;
+}
+.ravin-brand {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+.ravin-brand-mark { width: 29px; height: 29px; position: relative; flex: none; display: grid; place-items: center; }
+.ravin-brand-mark::before { content:""; width: 8px; height: 8px; border-radius: 999px; background: rgb(var(--ink)); box-shadow: 0 0 18px rgba(255,255,255,.46); }
+.ravin-brand-mark::after { content:""; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.18); border-radius:999px; }
+.ravin-brand-copy { min-width:0; display:flex; flex-direction:column; gap:2px; white-space:nowrap; overflow:hidden; }
+.ravin-brand-copy strong { font-family:"Space Grotesk",system-ui,sans-serif; font-size:14px; letter-spacing:.17em; }
+.ravin-brand-copy small { color: rgb(var(--ink-faint)); font:500 8px/1.2 "IBM Plex Mono",monospace; letter-spacing:.11em; }
+
+.ravin-sidebar-action, .ravin-nav-item, .ravin-history-item, .ravin-account-row {
+  appearance:none; width:100%; border:0; background:transparent; color:rgb(var(--ink-muted)); text-align:left; cursor:pointer;
+}
+.ravin-sidebar-action, .ravin-nav-item {
+  min-height: 40px; border-radius: 9px; display:flex; align-items:center; gap:10px; padding:0 10px; font-size:12px;
+}
+.ravin-sidebar-action.primary { background: rgb(var(--ink)); color: rgb(var(--canvas)); font-weight:600; margin-bottom:5px; }
+.ravin-sidebar-action:not(.primary):hover, .ravin-nav-item:hover { background:rgb(var(--surface)); color:rgb(var(--ink)); }
+.ravin-sidebar svg { width:17px; height:17px; flex:none; }
+.ravin-nav-label, .ravin-action-label, .ravin-account-copy, .ravin-history-copy, .ravin-section-label { transition: opacity 160ms var(--motion), width 160ms var(--motion); }
+
+.ravin-search-wrap { position:relative; margin:7px 0 10px; }
+.ravin-search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:rgb(var(--ink-faint)); pointer-events:none; }
+.ravin-search {
+  width:100%; height:37px; border:1px solid rgb(var(--border)); border-radius:9px; background:rgb(var(--surface)); color:rgb(var(--ink)); padding:0 11px 0 35px; outline:none; font-size:11px;
+}
+.ravin-search::placeholder { color:rgb(var(--ink-faint)); }
+.ravin-search:focus { border-color:rgb(var(--ink-muted)); }
+
+.ravin-section-label { margin:10px 9px 6px; color:rgb(var(--ink-faint)); font:600 8px/1 "IBM Plex Mono",monospace; letter-spacing:.13em; text-transform:uppercase; white-space:nowrap; }
+.ravin-history { min-height:0; overflow-y:auto; padding-right:2px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
+.ravin-history-item { position:relative; min-height:42px; border-radius:9px; padding:7px 9px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:7px; }
+.ravin-history-item:hover { background:rgb(var(--surface)); color:rgb(var(--ink)); }
+.ravin-history-item.active { background:rgb(var(--surface-raised)); color:rgb(var(--ink)); }
+.ravin-history-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+.ravin-history-meta { margin-top:2px; color:rgb(var(--ink-faint)); font:500 7px/1.2 "IBM Plex Mono",monospace; letter-spacing:.06em; }
+.ravin-mode-dot { width:5px; height:5px; border-radius:999px; background:rgb(var(--ink-faint)); }
+.ravin-history-item[data-mode="work"] .ravin-mode-dot { box-shadow:0 0 8px rgba(255,255,255,.38); background:rgb(var(--ink)); }
+.ravin-empty-history { padding:12px 9px; color:rgb(var(--ink-faint)); font-size:10px; line-height:1.45; }
+
+.ravin-sidebar-bottom { margin-top:auto; border-top:1px solid rgb(var(--border)); padding-top:8px; }
+.ravin-account-row { min-height:44px; display:flex; align-items:center; gap:9px; padding:5px 7px; border-radius:9px; }
+.ravin-account-row:hover { background:rgb(var(--surface)); }
+.ravin-avatar { width:30px; height:30px; border-radius:999px; display:grid; place-items:center; background:rgb(var(--surface-raised)); color:rgb(var(--ink)); font-size:10px; font-weight:600; flex:none; }
+.ravin-account-copy { display:flex; min-width:0; flex-direction:column; gap:2px; overflow:hidden; }
+.ravin-account-copy strong { font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ravin-account-copy small { color:rgb(var(--ink-faint)); font-size:8px; }
+.ravin-collapse { margin-left:auto; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; flex:none; }
+.ravin-collapse:hover { background:rgb(var(--surface-raised)); color:rgb(var(--ink)); }
+
+#ravinApp.sidebar-collapsed .ravin-brand-copy,
+#ravinApp.sidebar-collapsed .ravin-action-label,
+#ravinApp.sidebar-collapsed .ravin-nav-label,
+#ravinApp.sidebar-collapsed .ravin-search-wrap,
+#ravinApp.sidebar-collapsed .ravin-section-label,
+#ravinApp.sidebar-collapsed .ravin-history,
+#ravinApp.sidebar-collapsed .ravin-account-copy { display:none; }
+#ravinApp.sidebar-collapsed .ravin-sidebar-action,
+#ravinApp.sidebar-collapsed .ravin-nav-item { justify-content:center; padding:0; }
+#ravinApp.sidebar-collapsed .ravin-account-row { justify-content:center; padding-inline:0; }
+#ravinApp.sidebar-collapsed .ravin-collapse { margin-left:0; }
+#ravinApp.sidebar-collapsed .ravin-collapse svg { transform:rotate(180deg); }
+
+/* Main */
+.ravin-main { min-width:0; min-height:0; display:grid; grid-template-rows:var(--header-height) 1fr; position:relative; }
+.ravin-header { border-bottom:1px solid rgb(var(--border)); display:flex; align-items:center; justify-content:space-between; padding:0 18px 0 22px; background:rgba(10,10,11,.76); backdrop-filter:blur(16px); z-index:15; }
+.ravin-header-left { display:flex; align-items:center; gap:12px; min-width:0; }
+.ravin-header-title { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.ravin-header-title strong { font:600 12px/1.2 "Space Grotesk",system-ui,sans-serif; }
+.ravin-header-title small { color:rgb(var(--ink-faint)); font:500 8px/1.2 "IBM Plex Mono",monospace; letter-spacing:.06em; }
+.ravin-mode-switch { display:flex; align-items:center; padding:3px; gap:2px; border:1px solid rgb(var(--border)); border-radius:9px; background:rgb(var(--surface)); }
+.ravin-mode-switch button { appearance:none; border:0; border-radius:7px; padding:6px 10px; background:transparent; color:rgb(var(--ink-muted)); font-size:9px; font-weight:600; cursor:pointer; }
+.ravin-mode-switch button.active { background:rgb(var(--surface-raised)); color:rgb(var(--ink)); box-shadow:0 1px 0 rgba(255,255,255,.04) inset; }
+.ravin-header-right { display:flex; align-items:center; gap:6px; }
+.ravin-status-pill { display:flex; align-items:center; gap:6px; color:rgb(var(--ink-faint)); font:500 8px/1 "IBM Plex Mono",monospace; letter-spacing:.08em; }
+.ravin-status-pill i { width:5px; height:5px; border-radius:999px; background:rgb(var(--ink)); box-shadow:0 0 8px rgba(255,255,255,.34); }
+.ravin-icon-button { width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; }
+.ravin-icon-button:hover { background:rgb(var(--surface)); color:rgb(var(--ink)); }
+.ravin-icon-button svg { width:17px; height:17px; }
+
+.ravin-workspace { min-height:0; display:grid; grid-template-columns:minmax(0,1fr); position:relative; }
+.ravin-workspace.work-mode { grid-template-columns:minmax(0,1fr) 300px; }
+.ravin-chat-column { min-width:0; min-height:0; display:grid; grid-template-rows:1fr auto; position:relative; }
+.ravin-context { border-left:1px solid rgb(var(--border)); background:rgba(15,15,16,.7); padding:16px; display:none; overflow-y:auto; }
+.ravin-workspace.work-mode .ravin-context { display:block; animation:ravinPanelIn 230ms var(--motion) both; }
+@keyframes ravinPanelIn { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:none} }
+.ravin-context h3 { margin:0 0 4px; font:600 11px/1.2 "Space Grotesk",system-ui,sans-serif; }
+.ravin-context > p { margin:0 0 18px; color:rgb(var(--ink-faint)); font-size:9px; line-height:1.5; }
+.ravin-context-card { border:1px solid rgb(var(--border)); border-radius:10px; background:rgb(var(--surface)); padding:11px; margin-bottom:9px; }
+.ravin-context-card small { display:block; color:rgb(var(--ink-faint)); font:600 7px/1 "IBM Plex Mono",monospace; letter-spacing:.11em; margin-bottom:8px; }
+.ravin-context-card strong { display:block; font-size:10px; }
+.ravin-context-card span { display:block; margin-top:4px; color:rgb(var(--ink-muted)); font-size:9px; line-height:1.45; }
+
+.ravin-messages { min-height:0; overflow-y:auto; padding:40px max(24px, calc((100% - 780px)/2)) 24px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.11) transparent; }
+.ravin-messages-inner { max-width:780px; margin:0 auto; min-height:100%; display:flex; flex-direction:column; }
+.ravin-empty { margin:auto; width:min(520px,100%); text-align:center; padding:40px 16px 80px; display:flex; flex-direction:column; align-items:center; }
+.ravin-core-wrap { width:146px; height:146px; position:relative; margin-bottom:22px; display:grid; place-items:center; }
+#ravinCoreCanvas { width:146px; height:146px; display:block; }
+.ravin-core-center { position:absolute; width:8px; height:8px; border-radius:999px; background:rgb(var(--ink)); box-shadow:0 0 16px rgba(255,255,255,.52); }
+.ravin-empty h1 { margin:0; font:500 clamp(22px,3vw,34px)/1.05 "Space Grotesk",system-ui,sans-serif; letter-spacing:-.035em; }
+.ravin-empty p { margin:10px 0 0; color:rgb(var(--ink-muted)); font-size:11px; line-height:1.55; }
+.ravin-empty .ravin-mode-copy { margin-top:16px; color:rgb(var(--ink-faint)); font:500 8px/1.4 "IBM Plex Mono",monospace; letter-spacing:.09em; text-transform:uppercase; }
+
+.ravin-message { width:100%; display:grid; grid-template-columns:74px minmax(0,1fr); gap:18px; padding:15px 0; border-bottom:1px solid rgba(255,255,255,.035); animation:ravinMessageIn 220ms var(--motion) both; }
+@keyframes ravinMessageIn { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:none} }
+.ravin-message-role { padding-top:2px; color:rgb(var(--ink-faint)); font:600 8px/1.4 "IBM Plex Mono",monospace; letter-spacing:.09em; text-transform:uppercase; }
+.ravin-message.user .ravin-message-role { color:rgb(var(--ink-muted)); }
+.ravin-message-body { color:rgb(var(--ink)); font-size:13px; line-height:1.68; white-space:pre-wrap; overflow-wrap:anywhere; }
+.ravin-message.user .ravin-message-body { display:inline-block; justify-self:start; background:rgb(var(--surface)); border:1px solid rgb(var(--border)); border-radius:10px; padding:9px 11px; line-height:1.5; }
+.ravin-message.error .ravin-message-body { color:rgb(var(--danger)); }
+.ravin-message-time { display:block; margin-top:6px; color:rgb(var(--ink-faint)); font:500 7px/1 "IBM Plex Mono",monospace; }
+.ravin-thinking { display:flex; align-items:center; gap:7px; color:rgb(var(--ink-muted)); font-size:10px; padding:16px 0; }
+.ravin-thinking-dots { display:inline-flex; gap:3px; }
+.ravin-thinking-dots i { width:4px; height:4px; border-radius:999px; background:rgb(var(--ink-faint)); animation:ravinDot 1s ease-in-out infinite; }
+.ravin-thinking-dots i:nth-child(2){animation-delay:120ms}.ravin-thinking-dots i:nth-child(3){animation-delay:240ms}
+@keyframes ravinDot { 0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-2px);opacity:1} }
+
+.ravin-composer-zone { padding:10px max(20px, calc((100% - 800px)/2)) 18px; background:linear-gradient(to top,rgb(var(--canvas)) 54%,rgba(10,10,11,0)); }
+.ravin-composer { max-width:800px; margin:0 auto; border:1px solid rgb(var(--border)); border-radius:14px; background:rgb(var(--surface)); box-shadow:0 12px 40px rgba(0,0,0,.2); overflow:hidden; }
+.ravin-composer-row { display:flex; align-items:center; gap:8px; min-height:52px; padding:7px 8px 7px 10px; }
+.ravin-add { width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; }
+.ravin-add:hover { background:rgb(var(--surface-raised)); color:rgb(var(--ink)); }
+.ravin-composer input { min-width:0; flex:1; border:0; background:transparent; outline:none; color:rgb(var(--ink)); font-size:12px; padding:9px 2px; }
+.ravin-composer input::placeholder { color:rgb(var(--ink-faint)); }
+.ravin-send { width:36px; height:36px; border:0; border-radius:9px; background:rgb(var(--ink)); color:rgb(var(--canvas)); display:grid; place-items:center; cursor:pointer; }
+.ravin-send:disabled { opacity:.28; cursor:default; }
+.ravin-send svg { width:17px; height:17px; }
+.ravin-composer-meta { border-top:1px solid rgba(255,255,255,.045); padding:6px 11px; display:flex; justify-content:space-between; color:rgb(var(--ink-faint)); font:500 7px/1.3 "IBM Plex Mono",monospace; letter-spacing:.06em; }
+
+/* popovers */
+.ravin-popover { position:fixed; z-index:1000; min-width:230px; border:1px solid rgb(var(--border)); border-radius:11px; background:rgba(18,18,20,.98); box-shadow:0 18px 55px rgba(0,0,0,.4); padding:7px; animation:ravinPopover 180ms var(--motion) both; }
+@keyframes ravinPopover { from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none} }
+.ravin-popover button { width:100%; border:0; border-radius:7px; background:transparent; color:rgb(var(--ink-muted)); text-align:left; padding:9px 10px; cursor:pointer; font-size:10px; }
+.ravin-popover button:hover { background:rgb(var(--surface-raised)); color:rgb(var(--ink)); }
+.ravin-popover hr { border:0; border-top:1px solid rgb(var(--border)); margin:5px 2px; }
+
+/* Auth */
+.ravin-auth-backdrop { position:fixed; inset:0; z-index:5000; display:grid; place-items:center; padding:20px; background:rgba(0,0,0,.74); backdrop-filter:blur(18px); }
+.ravin-auth-card { width:min(390px,100%); border:1px solid rgb(var(--border)); border-radius:16px; background:rgb(var(--surface)); padding:22px; box-shadow:0 30px 80px rgba(0,0,0,.52); }
+.ravin-auth-brand { display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+.ravin-auth-card h2 { margin:0; font:600 24px/1.1 "Space Grotesk",system-ui,sans-serif; letter-spacing:-.035em; }
+.ravin-auth-card p { margin:8px 0 18px; color:rgb(var(--ink-muted)); font-size:11px; line-height:1.5; }
+.ravin-auth-card form { display:grid; gap:9px; }
+.ravin-auth-card input { height:42px; border:1px solid rgb(var(--border)); border-radius:9px; background:rgb(var(--surface-raised)); padding:0 12px; outline:none; font-size:11px; }
+.ravin-auth-card input:focus { border-color:rgb(var(--ink-muted)); }
+.ravin-auth-submit { height:42px; border:0; border-radius:9px; background:rgb(var(--ink)); color:rgb(var(--canvas)); cursor:pointer; font-weight:600; font-size:11px; }
+.ravin-auth-switch { margin-top:10px; border:0; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; font-size:10px; padding:7px 0; }
+.ravin-auth-error { min-height:15px; margin-top:8px; color:rgb(var(--danger)); font-size:9px; line-height:1.4; }
+
+@media (max-width: 900px) {
+  :root { --sidebar-width: 230px; }
+  .ravin-workspace.work-mode { grid-template-columns:minmax(0,1fr); }
+  .ravin-context { display:none!important; }
+}
+@media (max-width: 700px) {
+  #ravinApp, #ravinApp.sidebar-collapsed { grid-template-columns:1fr; }
+  .ravin-sidebar { position:fixed; left:0; top:0; bottom:0; width:min(82vw,280px); transform:translateX(-102%); transition:transform 220ms var(--motion); box-shadow:24px 0 60px rgba(0,0,0,.36); }
+  #ravinApp.mobile-sidebar-open .ravin-sidebar { transform:none; }
+  .ravin-header { padding-inline:10px; }
+  .ravin-header-left { gap:8px; }
+  .ravin-header-title { display:none; }
+  .ravin-status-pill { display:none; }
+  .ravin-messages { padding:24px 16px 18px; }
+  .ravin-message { grid-template-columns:58px minmax(0,1fr); gap:10px; }
+  .ravin-composer-zone { padding:8px 10px 12px; }
+  .ravin-mode-switch button { padding:6px 8px; font-size:8px; }
+  .ravin-mobile-menu { display:grid!important; }
+}
+.ravin-mobile-menu { display:none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
+}
