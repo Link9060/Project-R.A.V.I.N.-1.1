@@ -19,6 +19,7 @@ const FILE_BUCKET = "ravin-files";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_ATTACHMENTS = 4;
 const MAX_TEXT_ATTACHMENT_CHARS = 36_000;
+const EMPTY_MEMORIES = Object.freeze({ permanent: [], project: [], session: [] });
 const MEMORY_STOP_WORDS = new Set([
   "the", "a", "an", "and", "or", "but", "if", "then", "than", "to", "of", "in", "on", "at", "for", "from",
   "with", "about", "this", "that", "these", "those", "is", "are", "was", "were", "be", "been", "being", "it", "its",
@@ -162,12 +163,11 @@ function rankMemory(row, queryTokens, kind) {
 
 async function loadRelevantMemories({ userId, token, query, projectId = null, conversationId = null }) {
   const encodedUser = encodeURIComponent(userId);
-  const requests = [
+  const [permanent = [], project = [], session = []] = await Promise.all([
     supabaseRequest(`/rest/v1/permanent_memories?user_id=eq.${encodedUser}&select=id,content,category,importance,metadata,created_at,updated_at&order=updated_at.desc&limit=100`, { token }),
     supabaseRequest(`/rest/v1/project_memory?user_id=eq.${encodedUser}&select=id,project_id,project_name,key,value,category,metadata,created_at,updated_at&order=updated_at.desc&limit=100`, { token }),
     supabaseRequest(`/rest/v1/session_summaries?user_id=eq.${encodedUser}&select=id,conversation_id,project_id,summary,created_at&order=created_at.desc&limit=30`, { token }),
-  ];
-  const [permanent = [], project = [], session = []] = await Promise.all(requests);
+  ]);
   const queryTokens = memoryTokens(query);
   const score = (row, kind) => rankMemory(row, queryTokens, kind);
 
@@ -193,7 +193,8 @@ async function loadRelevantMemories({ userId, token, query, projectId = null, co
   return { permanent: permanentTop, project: projectTop, session: sessionTop };
 }
 
-function memoryContext(memories) {
+function memoryContext(memories, enabled = true) {
+  if (!enabled) return "RAVIN durable memory is disabled for this request. Do not infer or claim stored personal memory.";
   const lines = [];
   for (const memory of memories.permanent || []) lines.push(`- Personal memory: ${memory.content}`);
   for (const memory of memories.project || []) lines.push(`- Project memory (${memory.project_name || "project"}): ${memory.key}: ${memory.value}`);
@@ -458,6 +459,7 @@ export function registerV02Routes(app) {
 
     const mode = normalizeRavinMode(req.body?.mode);
     const environment = resolveCapabilityEnvironment(req.body?.environment).id;
+    const memoryEnabled = req.body?.memory_enabled !== false;
     const attachmentIds = Array.isArray(req.body?.attachment_ids) ? req.body.attachment_ids.slice(0, MAX_ATTACHMENTS) : [];
 
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -480,15 +482,19 @@ export function registerV02Routes(app) {
       }
       if (!conversation?.id) throw new Error("RAVIN could not create a conversation.");
 
+      const memoryPromise = memoryEnabled
+        ? loadRelevantMemories({
+            userId: auth.user.id,
+            token: auth.token,
+            query: message,
+            projectId: conversation.project_id,
+            conversationId: conversation.id,
+          })
+        : Promise.resolve(EMPTY_MEMORIES);
+
       const [priorMessages, memories, attachments] = await Promise.all([
         loadRecentMessages(conversation.id, auth.user.id, auth.token),
-        loadRelevantMemories({
-          userId: auth.user.id,
-          token: auth.token,
-          query: message,
-          projectId: conversation.project_id,
-          conversationId: conversation.id,
-        }),
+        memoryPromise,
         buildAttachmentContext(attachmentIds, auth, mode),
       ]);
 
@@ -498,7 +504,7 @@ export function registerV02Routes(app) {
         role: "user",
         content: message,
         token: auth.token,
-        metadata: { mode, environment, attachment_ids: attachmentIds },
+        metadata: { mode, environment, memory_enabled: memoryEnabled, attachment_ids: attachmentIds },
       });
 
       sendEvent(res, "meta", {
@@ -506,6 +512,7 @@ export function registerV02Routes(app) {
         mode,
         model: RAVIN_MODELS[mode],
         environment,
+        memory_enabled: memoryEnabled,
         attachments: attachments.files.map((file) => ({ id: file.id, name: file.file_name, type: file.mime_type })),
         memory_hits: (memories.permanent?.length || 0) + (memories.project?.length || 0) + (memories.session?.length || 0),
       });
@@ -513,7 +520,7 @@ export function registerV02Routes(app) {
       const modelMessages = buildModelMessages({
         priorMessages,
         userText: message,
-        memoryText: memoryContext(memories),
+        memoryText: memoryContext(memories, memoryEnabled),
         attachmentText: attachments.text,
         images: attachments.images,
         environment,
@@ -539,6 +546,7 @@ export function registerV02Routes(app) {
         metadata: {
           mode,
           environment,
+          memory_enabled: memoryEnabled,
           model: result?._ravinMeta?.routedModel || RAVIN_MODELS[mode],
           memory_hits: (memories.permanent?.length || 0) + (memories.project?.length || 0) + (memories.session?.length || 0),
         },
@@ -552,8 +560,10 @@ export function registerV02Routes(app) {
       });
       res.end();
 
-      captureDurableMemories({ auth, userMessage: message }).catch((error) => console.warn("[RAVIN v0.2 memory capture]", error?.message || error));
-      maybeCreateSessionSummary({ auth, conversationId: conversation.id, projectId: conversation.project_id }).catch((error) => console.warn("[RAVIN v0.2 session summary]", error?.message || error));
+      if (memoryEnabled) {
+        captureDurableMemories({ auth, userMessage: message }).catch((error) => console.warn("[RAVIN v0.2 memory capture]", error?.message || error));
+        maybeCreateSessionSummary({ auth, conversationId: conversation.id, projectId: conversation.project_id }).catch((error) => console.warn("[RAVIN v0.2 session summary]", error?.message || error));
+      }
     } catch (error) {
       console.error(`[RAVIN v0.2 stream error] mode=${mode}`, error);
       sendEvent(res, "error", { message: error instanceof Error ? error.message : String(error) });
