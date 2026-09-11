@@ -12,8 +12,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        var theme = localStorage.getItem("ravin_theme") === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#0a0a0b");
+      })();
+    </script>
     <link rel="stylesheet" href="boot.css?v=2" />
     <link rel="stylesheet" href="resonant-shell.css?v=1" />
+    <link rel="stylesheet" href="resonant-polish.css?v=1" />
   </head>
   <body>
     <div class="ravin-boot" id="ravinBoot" aria-label="Start RAVIN">
@@ -24,5 +33,6 @@
     <noscript>RAVIN requires JavaScript.</noscript>
     <script src="boot.js?v=2"></script>
     <script src="resonant-shell.js?v=1"></script>
+    <script src="resonant-polish.js?v=1"></script>
   </body>
 </html>
