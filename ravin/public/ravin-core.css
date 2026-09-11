@@ -1,160 +1,217 @@
-/* RAVIN Neural Core -------------------------------------------------------
-   Same Resonant particle language as Relay, but shaped as a layered neural
-   nucleus rather than a perfect network sphere. */
+/* RAVIN Spatial Neural Core -------------------------------------------------
+   A persistent intelligence object embedded in the conversation. Text is
+   reflowed line-by-line around its invisible spherical exclusion field. */
 
-.ravin-header-core {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  position: relative;
+/* Retire the old empty-state/header placements. The shell keeps the empty
+   placeholder for vertical rhythm, but the visible Core now exists once. */
+.ravin-header-core { display: none !important; }
+.ravin-core-wrap {
+  visibility: hidden !important;
+  width: 150px !important;
+  height: 150px !important;
+  margin-bottom: 22px !important;
+  pointer-events: none !important;
+}
+
+.ravin-spatial-core {
+  --core-field-radius: 98px;
+  position: fixed;
+  z-index: 13;
+  left: 50%;
+  top: 44%;
+  width: 140px;
+  height: 140px;
+  margin: -70px 0 0 -70px;
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 999px;
   background: transparent;
   color: rgb(var(--ink));
-  cursor: pointer;
-  opacity: 0;
-  visibility: hidden;
-  transform: scale(.72);
-  filter: blur(2px);
-  transition:
-    opacity 280ms var(--motion),
-    transform 420ms var(--motion),
-    filter 360ms var(--motion),
-    background-color 170ms var(--motion);
-}
-.ravin-header-core.is-visible {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  filter: blur(0);
-}
-.ravin-header-core:hover {
-  background: rgb(var(--surface));
-}
-.ravin-header-core::before {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: 999px;
-  border: 1px solid rgb(var(--ink) / .07);
-  opacity: .65;
-  transform: scale(.72);
-  transition: transform 260ms var(--motion), opacity 260ms var(--motion);
-}
-.ravin-header-core:hover::before { transform: scale(.92); opacity: 1; }
-.ravin-header-core canvas { width: 38px; height: 38px; display: block; }
-.ravin-header-core.core-thinking::after,
-.ravin-header-core.core-responding::after {
-  content: "";
-  position: absolute;
-  inset: 12px;
-  border-radius: 999px;
-  border: 1px solid rgb(var(--ink) / .25);
-  animation: ravinCoreHeaderPulse 920ms var(--motion) infinite;
-}
-.ravin-header-core.core-responding::after {
-  animation-duration: 760ms;
-}
-.ravin-header-core.core-offline { opacity: .42; }
-.ravin-header-core.core-tap { animation: ravinCoreTap 420ms var(--motion); }
-
-.ravin-core-wrap.core-v2 {
-  width: 176px;
-  height: 176px;
-  margin-bottom: 24px;
+  cursor: default;
+  pointer-events: none;
   isolation: isolate;
+  transform: translateZ(0);
+  transition:
+    left 560ms cubic-bezier(.16,.84,.2,1),
+    top 560ms cubic-bezier(.16,.84,.2,1),
+    opacity 260ms ease,
+    transform 360ms var(--motion),
+    filter 360ms ease;
+  will-change: left, top, transform;
+  -webkit-tap-highlight-color: transparent;
 }
-.ravin-core-wrap.core-v2 > #ravinCoreCanvas,
-.ravin-core-wrap.core-v2 > .ravin-core-center { opacity: 0 !important; pointer-events: none; }
-.ravin-core-wrap.core-v2 .ravin-neural-core-large {
-  position: absolute;
-  inset: 0;
-  width: 176px;
-  height: 176px;
+.ravin-spatial-core canvas {
+  width: 140px;
+  height: 140px;
   display: block;
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
-  transition: opacity 220ms ease, transform 360ms var(--motion), filter 280ms ease;
+  pointer-events: none;
 }
-.ravin-core-wrap.core-v2.is-morphing .ravin-neural-core-large {
-  opacity: 0;
-  transform: scale(.86);
-  filter: blur(4px);
-}
-.ravin-core-wrap.core-v2::before,
-.ravin-core-wrap.core-v2::after {
+.ravin-spatial-core::before {
   content: "";
   position: absolute;
-  inset: 27%;
+  inset: 25%;
+  z-index: -1;
   border-radius: 999px;
-  pointer-events: none;
-  opacity: .22;
+  background: radial-gradient(circle, rgb(var(--ink) / .055), transparent 68%);
+  filter: blur(4px);
+  opacity: .7;
+  transform: scale(.92);
+  transition: transform 420ms var(--motion), opacity 280ms ease;
+}
+.ravin-spatial-core:hover::before {
+  transform: scale(1.16);
+  opacity: 1;
+}
+.ravin-spatial-core::after {
+  content: "";
+  position: absolute;
+  inset: 32%;
+  border-radius: 999px;
   border: 1px solid rgb(var(--ink) / .09);
-}
-.ravin-core-wrap.core-v2::before {
-  animation: ravinCoreBreath 3.8s ease-in-out infinite;
-}
-.ravin-core-wrap.core-v2::after {
-  inset: 38%;
-  opacity: .13;
-  animation: ravinCoreBreath 3.8s 1.2s ease-in-out infinite reverse;
-}
-
-.ravin-core-flight {
-  position: fixed;
-  z-index: 9990;
+  opacity: 0;
+  transform: scale(.65);
   pointer-events: none;
-  margin: 0;
-  padding: 0;
+}
+.ravin-spatial-core.core-thinking::after {
+  animation: ravinSpatialPulse 900ms cubic-bezier(.2,.72,.2,1) infinite;
+}
+.ravin-spatial-core.core-responding::after {
+  animation: ravinSpatialPulse 760ms cubic-bezier(.2,.72,.2,1) infinite;
+}
+.ravin-spatial-core.core-offline {
+  opacity: .42;
+  filter: saturate(.5);
+}
+.ravin-spatial-core.core-tap {
+  animation: ravinSpatialTap 500ms var(--motion);
+}
+
+/* The exclusion field is intentionally invisible. It is a semantic/layout
+   object so future debugging tools can visualize it without changing geometry. */
+.ravin-core-field {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--core-field-radius) * 2);
+  height: calc(var(--core-field-radius) * 2);
+  transform: translate(-50%, -50%);
   border-radius: 999px;
-  transform-origin: 50% 50%;
-  will-change: transform, opacity, filter;
-  filter: drop-shadow(0 0 14px rgb(var(--ink) / .15));
-}
-.ravin-core-flight canvas { width: 100%; height: 100%; display: block; }
-
-#ravinApp.core-thinking .ravin-composer {
-  box-shadow: 0 0 0 1px rgb(var(--ink) / .035), 0 14px 50px rgb(var(--ink) / .025);
+  pointer-events: none;
+  opacity: 0;
 }
 
-@keyframes ravinCoreBreath {
-  0%, 100% { transform: scale(.72); opacity: .08; }
-  50% { transform: scale(1.2); opacity: .24; }
+/* Live text-flow geometry -------------------------------------------------- */
+.ravin-message-body.core-flow-active {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  display: block !important;
+  justify-self: stretch !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
-@keyframes ravinCoreHeaderPulse {
-  from { transform: scale(.55); opacity: .72; }
-  to { transform: scale(1.65); opacity: 0; }
+.core-flow-line {
+  width: 100%;
+  min-width: 0;
+  line-height: inherit;
+  overflow: visible;
 }
-@keyframes ravinCoreTap {
-  0%,100% { transform: scale(1); }
-  42% { transform: scale(.82); }
-  70% { transform: scale(1.08); }
+.core-flow-line-full {
+  display: block;
+}
+.core-flow-line-full > span,
+.core-flow-fragment {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+.core-flow-line-split {
+  display: grid;
+  align-items: start;
+  width: 100%;
+}
+.core-flow-fragment-left { text-align: left; }
+.core-flow-fragment-right { text-align: left; }
+.core-flow-gap {
+  display: block;
+  height: 100%;
+  pointer-events: none;
+}
+.core-flow-line-clear {
+  display: block;
+  pointer-events: none;
+}
+.core-flow-paragraph-gap {
+  width: 100%;
+  pointer-events: none;
+}
+.core-flow-time {
+  margin-top: 6px !important;
 }
 
-html[data-theme="light"] .ravin-header-core::before,
-html[data-theme="light"] .ravin-core-wrap.core-v2::before,
-html[data-theme="light"] .ravin-core-wrap.core-v2::after {
-  border-color: rgb(var(--ink) / .08);
-}
-html[data-theme="light"] .ravin-core-flight {
-  filter: drop-shadow(0 8px 18px rgb(0 0 0 / .10));
+/* When a user bubble crosses the spatial field, the rectangular bubble shell
+   dissolves while only those lines flow around the Core. It reforms as soon as
+   the message leaves the field. */
+.ravin-message.user .ravin-message-body.core-flow-active {
+  color: rgb(var(--ink));
 }
 
-@media (max-width: 700px) {
-  .ravin-header-core { width: 36px; height: 36px; border-radius: 10px; }
-  .ravin-header-core canvas { width: 34px; height: 34px; }
-  .ravin-core-wrap.core-v2 { width: 154px; height: 154px; }
-  .ravin-core-wrap.core-v2 .ravin-neural-core-large { width: 154px; height: 154px; }
+/* Keep scroll anchoring from fighting the deliberate line-by-line reflow. */
+.ravin-messages { overflow-anchor: none; }
+
+@keyframes ravinSpatialPulse {
+  0% { transform: scale(.52); opacity: .66; }
+  72% { opacity: .12; }
+  100% { transform: scale(2.15); opacity: 0; }
+}
+@keyframes ravinSpatialTap {
+  0%, 100% { transform: scale(1); }
+  34% { transform: scale(.88); }
+  68% { transform: scale(1.07); }
+}
+
+html[data-theme="light"] .ravin-spatial-core::before {
+  background: radial-gradient(circle, rgb(0 0 0 / .045), transparent 70%);
+}
+html[data-theme="light"] .ravin-spatial-core::after {
+  border-color: rgb(0 0 0 / .10);
+}
+
+@media (max-width: 900px) {
+  .ravin-spatial-core {
+    width: 118px;
+    height: 118px;
+    margin: -59px 0 0 -59px;
+  }
+  .ravin-spatial-core canvas { width: 118px; height: 118px; }
+}
+
+@media (max-width: 620px) {
+  .ravin-spatial-core {
+    width: 96px;
+    height: 96px;
+    margin: -48px 0 0 -48px;
+  }
+  .ravin-spatial-core canvas { width: 96px; height: 96px; }
+  .ravin-core-wrap {
+    width: 112px !important;
+    height: 112px !important;
+    margin-bottom: 18px !important;
+  }
+  .core-flow-line-full > span,
+  .core-flow-fragment {
+    font-size: inherit;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ravin-header-core,
-  .ravin-core-wrap.core-v2 .ravin-neural-core-large { transition: none !important; }
-  .ravin-header-core::after,
-  .ravin-core-wrap.core-v2::before,
-  .ravin-core-wrap.core-v2::after { animation: none !important; }
+  .ravin-spatial-core { transition: none !important; }
+  .ravin-spatial-core::after { animation: none !important; }
 }
