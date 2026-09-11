@@ -1,71 +1,96 @@
 # RAVIN Roadmap
 
-**Last updated:** 2026-08-22
+**Last updated:** 2026-09-11
 
-## Current phase
+## North star
 
-### Phase 1 — Backend foundation
-- [x] Design production-oriented Supabase schema
-- [x] Add user/profile/settings tables
-- [x] Add four-layer memory storage
-- [x] Add projects, devices, files, and AI usage tables
-- [x] Enable Row Level Security
-- [x] Deploy authenticated `ravin-api` Edge Function
-- [x] Document architecture
+Build the RAVIN software platform first: a strong standalone AI product that can later be embedded into Resonant Assist products and eventually inhabit the physical RAVIN Core/dock ecosystem.
 
-### Phase 2 — Connect the existing app
-- [x] Add RAVIN account sign-up/sign-in
-- [x] Remove BYO Supabase credentials from the frontend
-- [x] Remove BYO AI API key requirement from the customer experience
-- [x] Connect existing `/api/chat` flow to the authenticated RAVIN backend
-- [x] Persist conversations and messages through the backend
-- [x] Connect existing memory endpoints to the new memory API
-- [x] Load persisted conversation context into the existing RAVIN agent
-- [x] Add access-token refresh/session-expiration handling
-- [ ] Test the complete auth/chat/memory flow in the live Codespace deployment
+## Current milestone — Software Foundation v0.2
 
-### Phase 3 — AI infrastructure
-- [x] Establish OmniRoute as the backend AI gateway
-- [x] Use OmniRoute automatic routing (`auto/best-chat`) as the default conversation model
-- [x] Add AI/agent latency instrumentation
-- [ ] Measure real RAVIN response breakdown in Codespace
-- [ ] Add model selection by task complexity (`best-fast`, `best-chat`, `best-reasoning`, `best-coding`)
-- [ ] Add server-side provider secrets
-- [ ] Record AI usage/cost data
-- [ ] Add rate limits and user quotas
-- [ ] Keep provider-specific model IDs out of RAVIN application logic
+### 1. Security and capability boundaries
+- [x] Remove customer Work access to source-code tools
+- [x] Move privileged development tools into a separate developer registry
+- [x] Route self-building through a dedicated developer agent
+- [x] Disable `/api/build` by default in production
+- [x] Remove remaining public memory RLS bypass policies
+- [x] Add private per-user Storage RLS for RAVIN attachments
 
-### Phase 4 — Performance
-- [ ] Reduce unnecessary AI calls for simple conversations
-- [ ] Optimize context assembly and memory retrieval
-- [ ] Parallelize independent backend operations
-- [ ] Stream model responses to the UI
-- [ ] Move non-critical memory work off the response path
-- [ ] Add safe caching for reusable/static context
-- [ ] Establish response-time targets and regression tests
+### 2. Standalone chat product
+- [x] Conversation / Work explicit modes
+- [x] Persistent authenticated conversations
+- [x] Stream responses over SSE in v0.2
+- [x] Markdown and code-block rendering
+- [x] Copy/edit/retry/stop message controls
+- [x] Dark/light themes
+- [x] Mac-first layout with mobile/iOS support
+- [x] Persistent spatial Core with live text reflow
+- [ ] Stabilize v0.2 UX from real browser testing
+- [ ] Add true conversation branching/regeneration rather than prompt reload
+- [ ] Add richer citations/source surfaces when tools arrive
 
-### Phase 5 — Product infrastructure
-- [ ] Configure Supabase Storage
-- [ ] Add file upload/download APIs
-- [ ] Add device registration
-- [ ] Add account/profile management
-- [ ] Add production error logging and monitoring
-- [ ] Add automated tests
+### 3. Functional RAVIN memory
+- [x] Conversation/session/project/permanent memory schema
+- [x] Relevant permanent/project/session retrieval in v0.2 chat
+- [x] Relevance ranking before model injection
+- [x] Automatic durable fact/preference extraction
+- [x] Periodic session summaries
+- [x] Memory inspection/add/delete UI
+- [x] User memory on/off control for v0.2 requests
+- [ ] Upgrade retrieval to vector-semantic embeddings
+- [ ] Add durable memory edit/merge/deduplication UX
+- [ ] Add project-aware memory management UI
 
-### Phase 6 — Developer platform
-- [ ] Separate developer/self-building tools from customer tools
-- [ ] Add safe tool permissions
-- [ ] Improve project inspection/build workflows
-- [ ] Add GitHub/deployment workflows
+### 4. Files and image input
+- [x] Private `ravin-files` Supabase Storage bucket
+- [x] Authenticated attachment metadata rows
+- [x] Text/code/data attachment context
+- [x] Work-mode image attachment pipeline
+- [x] Drag/drop and mobile file/photo picker
+- [ ] Add PDF/document extraction
+- [ ] Add image/file preview cards in conversation history
+- [ ] Add attachment deletion/lifecycle cleanup
 
-### Phase 7 — Beta/productization
-- [ ] Polish onboarding
-- [ ] Add subscription/billing system
-- [ ] Establish usage limits and pricing
-- [ ] Test with beta users
-- [ ] Monitor infrastructure cost per user
+### 5. Capability Environment layer
+- [x] Define common RAVIN environment contract
+- [x] Desktop and phone environments
+- [x] Simulated Portable Core environment
+- [x] Simulated Relay environment
+- [x] Simulated Vehicle environment
+- [x] Simulated Garage environment
+- [x] Environment selector/simulator in the web UI
+- [ ] Persist registered real devices/capabilities
+- [ ] Add capability permission grants/revocation
+- [ ] Add provider interface for real hardware/software integrations
 
-### Phase 8 — Personal second brain
-- [ ] Design Obsidian integration
-- [ ] Allow AI to propose/update durable notes
-- [ ] Keep Obsidian as personal/project knowledge rather than RAVIN's production user database
+## Deferred after v0.2 stabilization
+
+### 6. Realtime voice
+- [ ] Reconnect the existing voice prototype to the live server
+- [ ] Browser push-to-talk first
+- [ ] Core listening/thinking/speaking states
+- [ ] Earpiece/portable voice transport later
+
+### 7. RAVIN inside Relay / Resonant Assist
+- [ ] Define authenticated RAVIN SDK/API
+- [ ] Create scoped permissions for Relay data/actions
+- [ ] Allow RAVIN to read permitted Relay tasks/calendar/notes/messages
+- [ ] Add proposal/approval pattern for write actions
+
+### 8. Agents and GitHub-backed self-development
+- [ ] Build safe customer-agent orchestration
+- [ ] Add long-running task state and resumability
+- [ ] Move self-development from live-container edits to GitHub branches
+- [ ] Run automated tests/checks on proposed changes
+- [ ] Deploy previews
+- [ ] Require approval for sensitive/production changes
+- [ ] Allow low-risk autonomous fixes only after permission design is mature
+
+## Later hardware phase
+
+- [ ] Physical RAVIN Core prototype
+- [ ] Bluetooth earpiece/camera accessories
+- [ ] Desk dock
+- [ ] Vehicle dock + safe diagnostics/navigation/HUD interfaces
+- [ ] Garage dock + workshop perception
+- [ ] Hardware safety interlocks and explicit physical-action permissions
