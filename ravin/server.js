@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { runAgent } from "./src/agent/agent.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
+import { registerV02Routes } from "./src/v02Routes.js";
 import {
   RAVIN_MODELS,
   normalizeRavinMode,
@@ -39,13 +40,14 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "12mb" }));
 app.use((req, _res, next) => {
   if (req.path.startsWith("/api/")) {
     console.log(`[RAVIN HTTP] ${req.method} ${req.path} origin=${req.headers.origin || "same-origin/none"}`);
   }
   next();
 });
+registerV02Routes(app);
 app.use(express.static(path.join(__dirname, "public")));
 
 function requireSupabase() {
@@ -309,6 +311,7 @@ app.get("/api/health", (_req, res) => res.json({
   service: "RAVIN",
   agent: true,
   builder: true,
+  v02: true,
   auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY),
   ai: Boolean(CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN),
   provider: "cloudflare-workers-ai",
