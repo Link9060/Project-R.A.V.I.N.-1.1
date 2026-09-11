@@ -3,136 +3,97 @@
    makes narrow/touch browsers (including iOS Safari) behave like a real app. */
 
 /* Conversation ownership: RAVIN left, user right. */
-.ravin-message {
-  grid-template-columns: 74px minmax(0,1fr);
-}
-.ravin-message:not(.user) .ravin-message-role { grid-column: 1; text-align: left; }
-.ravin-message:not(.user) .ravin-message-body { grid-column: 2; justify-self: start; max-width: 100%; }
-.ravin-message.user {
-  grid-template-columns: minmax(0,1fr) 74px;
-}
-.ravin-message.user .ravin-message-role {
-  grid-column: 2;
-  grid-row: 1;
-  text-align: right;
-}
-.ravin-message.user .ravin-message-body {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
-  max-width: min(78%, 620px);
-  text-align: left;
-}
-.ravin-message.user .ravin-message-time { text-align: right; }
+.ravin-message { grid-template-columns:74px minmax(0,1fr); }
+.ravin-message:not(.user) .ravin-message-role { grid-column:1; text-align:left; }
+.ravin-message:not(.user) .ravin-message-body { grid-column:2; justify-self:start; max-width:100%; }
+.ravin-message.user { grid-template-columns:minmax(0,1fr) 74px; }
+.ravin-message.user .ravin-message-role { grid-column:2; grid-row:1; text-align:right; }
+.ravin-message.user .ravin-message-body { grid-column:1; grid-row:1; justify-self:end; max-width:min(78%,620px); text-align:left; }
+.ravin-message.user .ravin-message-time { text-align:right; }
 
 /* Dynamic viewport units avoid Safari's expanding/collapsing toolbar bug. */
-html, body { min-height: 100%; min-height: 100dvh; }
-#ravinApp { height: 100%; height: 100dvh; }
-.ravin-main, .ravin-workspace, .ravin-chat-column { min-height: 0; }
-.ravin-messages {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
-}
-.ravin-composer input { font-size: max(16px, 1em); }
+html,body { min-height:100%; min-height:100dvh; }
+#ravinApp { height:100%; height:100dvh; }
+.ravin-main,.ravin-workspace,.ravin-chat-column { min-height:0; }
+.ravin-messages { -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y; }
+.ravin-composer input { font-size:max(16px,1em); }
 
-@media (min-width: 701px) {
-  /* Keep Mac/desktop typography at the designed size. */
-  .ravin-composer input { font-size: 12px; }
-}
+@media (min-width:701px) { .ravin-composer input { font-size:12px; } }
 
-@media (max-width: 700px) {
-  :root { --header-height: 54px; }
-  #ravinApp, #ravinApp.sidebar-collapsed { height: 100dvh; }
-
+@media (max-width:700px) {
+  :root { --header-height:54px; }
+  #ravinApp,#ravinApp.sidebar-collapsed { height:100dvh; }
   .ravin-sidebar {
-    top: 0;
-    bottom: 0;
-    height: 100dvh;
-    padding-top: max(10px, env(safe-area-inset-top));
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-    z-index: 60;
+    top:0; bottom:0; height:100dvh;
+    padding-top:max(10px,env(safe-area-inset-top));
+    padding-bottom:max(10px,env(safe-area-inset-bottom));
+    z-index:60;
   }
   #ravinApp.mobile-sidebar-open::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background: rgb(0 0 0 / .42);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    content:""; position:fixed; inset:0; z-index:50;
+    background:rgb(0 0 0 / .42);
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
   }
-
   .ravin-header {
-    min-width: 0;
-    padding-left: max(8px, env(safe-area-inset-left));
-    padding-right: max(8px, env(safe-area-inset-right));
+    min-width:0;
+    padding-left:max(8px,env(safe-area-inset-left));
+    padding-right:max(8px,env(safe-area-inset-right));
   }
-  .ravin-header-left { flex: 1; min-width: 0; }
-  .ravin-mobile-menu { flex: none; }
-  .ravin-mode-switch { min-width: 0; flex: 0 1 auto; }
-  .ravin-mode-switch button { min-height: 34px; white-space: nowrap; }
-  .ravin-header-right { flex: none; }
-  .ravin-icon-button { min-width: 40px; min-height: 40px; }
+  .ravin-header-left { flex:1; min-width:0; }
+  .ravin-mobile-menu { flex:none; }
+  .ravin-mode-switch { min-width:0; flex:0 1 auto; }
+  .ravin-mode-switch button { min-height:34px; white-space:nowrap; }
+  .ravin-header-right { flex:none; }
+  .ravin-icon-button { min-width:40px; min-height:40px; }
 
-  .ravin-messages {
-    padding: 20px max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
-  }
-  .ravin-messages-inner { max-width: 100%; }
+  .ravin-messages { padding:20px max(12px,env(safe-area-inset-right)) 16px max(12px,env(safe-area-inset-left)); }
+  .ravin-messages-inner { max-width:100%; }
+  .ravin-message,.ravin-message.user { display:flex; flex-direction:column; gap:5px; width:100%; padding-block:13px; }
+  .ravin-message:not(.user) { align-items:flex-start; }
+  .ravin-message.user { align-items:flex-end; }
+  .ravin-message-role { width:auto; padding:0; }
+  .ravin-message.user .ravin-message-role { text-align:right; }
+  .ravin-message-body { width:auto; max-width:min(88%,34rem); font-size:13px; }
+  .ravin-message:not(.user) .ravin-message-body { max-width:92%; }
+  .ravin-message.user .ravin-message-body { justify-self:auto; max-width:88%; }
 
-  .ravin-message,
-  .ravin-message.user {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: 100%;
-    padding-block: 13px;
-  }
-  .ravin-message:not(.user) { align-items: flex-start; }
-  .ravin-message.user { align-items: flex-end; }
-  .ravin-message-role { width: auto; padding: 0; }
-  .ravin-message.user .ravin-message-role { text-align: right; }
-  .ravin-message-body { width: auto; max-width: min(88%, 34rem); font-size: 13px; }
-  .ravin-message:not(.user) .ravin-message-body { max-width: 92%; }
-  .ravin-message.user .ravin-message-body { justify-self: auto; max-width: 88%; }
+  /* Keep the spatial effect, but shrink its invisible field on phones so
+     both text lanes remain readable. */
+  .ravin-spatial-core { --core-field-radius:68px; top:42%; }
+  .ravin-message-body.core-flow-active { max-width:100% !important; }
 
   .ravin-composer-zone {
-    position: relative;
-    z-index: 12;
-    padding: 8px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    position:relative; z-index:12;
+    padding:8px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
   }
-  .ravin-composer { width: 100%; border-radius: 16px; }
-  .ravin-composer-row { min-height: 50px; }
-  .ravin-add, .ravin-send { flex: none; min-width: 40px; min-height: 40px; }
-  .ravin-composer input {
-    width: 100%;
-    min-width: 0;
-    font-size: 16px; /* prevents iOS Safari focus zoom */
-  }
-  .ravin-composer-meta { padding-bottom: 7px; }
+  .ravin-composer { width:100%; border-radius:16px; }
+  .ravin-composer-row { min-height:50px; }
+  .ravin-add,.ravin-send { flex:none; min-width:40px; min-height:40px; }
+  .ravin-composer input { width:100%; min-width:0; font-size:16px; }
+  .ravin-composer-meta { padding-bottom:7px; }
 
-  .ravin-popover {
-    max-width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
-  }
+  .ravin-popover { max-width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
   .ravin-auth-backdrop {
-    min-height: 100dvh;
-    padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    min-height:100dvh;
+    padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
   }
-  .ravin-auth-card { max-height: calc(100dvh - 32px); overflow-y: auto; }
-  .ravin-auth-card input { font-size: 16px; }
+  .ravin-auth-card { max-height:calc(100dvh - 32px); overflow-y:auto; }
+  .ravin-auth-card input { font-size:16px; }
 }
 
-@media (max-width: 390px) {
-  .ravin-mode-switch button { padding-inline: 7px; font-size: 7.5px; }
-  .ravin-header-right .ravin-icon-button { width: 38px; min-width: 38px; }
-  .ravin-message.user .ravin-message-body { max-width: 90%; }
-  .ravin-message:not(.user) .ravin-message-body { max-width: 94%; }
-  .ravin-composer-meta span:first-child { max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width:390px) {
+  .ravin-mode-switch button { padding-inline:7px; font-size:7.5px; }
+  .ravin-header-right .ravin-icon-button { width:38px; min-width:38px; }
+  .ravin-message.user .ravin-message-body { max-width:90%; }
+  .ravin-message:not(.user) .ravin-message-body { max-width:94%; }
+  .ravin-spatial-core { --core-field-radius:60px; }
+  .ravin-composer-meta span:first-child { max-width:65%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
 
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  :root { --header-height: 48px; }
-  .ravin-messages { padding-top: 12px; }
-  .ravin-composer-zone { padding-top: 5px; }
-  .ravin-composer-meta { display: none; }
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse) {
+  :root { --header-height:48px; }
+  .ravin-messages { padding-top:12px; }
+  .ravin-composer-zone { padding-top:5px; }
+  .ravin-composer-meta { display:none; }
+  .ravin-spatial-core { top:40%; }
 }
