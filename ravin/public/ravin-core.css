@@ -1,0 +1,160 @@
+/* RAVIN Neural Core -------------------------------------------------------
+   Same Resonant particle language as Relay, but shaped as a layered neural
+   nucleus rather than a perfect network sphere. */
+
+.ravin-header-core {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgb(var(--ink));
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(.72);
+  filter: blur(2px);
+  transition:
+    opacity 280ms var(--motion),
+    transform 420ms var(--motion),
+    filter 360ms var(--motion),
+    background-color 170ms var(--motion);
+}
+.ravin-header-core.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  filter: blur(0);
+}
+.ravin-header-core:hover {
+  background: rgb(var(--surface));
+}
+.ravin-header-core::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--ink) / .07);
+  opacity: .65;
+  transform: scale(.72);
+  transition: transform 260ms var(--motion), opacity 260ms var(--motion);
+}
+.ravin-header-core:hover::before { transform: scale(.92); opacity: 1; }
+.ravin-header-core canvas { width: 38px; height: 38px; display: block; }
+.ravin-header-core.core-thinking::after,
+.ravin-header-core.core-responding::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--ink) / .25);
+  animation: ravinCoreHeaderPulse 920ms var(--motion) infinite;
+}
+.ravin-header-core.core-responding::after {
+  animation-duration: 760ms;
+}
+.ravin-header-core.core-offline { opacity: .42; }
+.ravin-header-core.core-tap { animation: ravinCoreTap 420ms var(--motion); }
+
+.ravin-core-wrap.core-v2 {
+  width: 176px;
+  height: 176px;
+  margin-bottom: 24px;
+  isolation: isolate;
+}
+.ravin-core-wrap.core-v2 > #ravinCoreCanvas,
+.ravin-core-wrap.core-v2 > .ravin-core-center { opacity: 0 !important; pointer-events: none; }
+.ravin-core-wrap.core-v2 .ravin-neural-core-large {
+  position: absolute;
+  inset: 0;
+  width: 176px;
+  height: 176px;
+  display: block;
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+  transition: opacity 220ms ease, transform 360ms var(--motion), filter 280ms ease;
+}
+.ravin-core-wrap.core-v2.is-morphing .ravin-neural-core-large {
+  opacity: 0;
+  transform: scale(.86);
+  filter: blur(4px);
+}
+.ravin-core-wrap.core-v2::before,
+.ravin-core-wrap.core-v2::after {
+  content: "";
+  position: absolute;
+  inset: 27%;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: .22;
+  border: 1px solid rgb(var(--ink) / .09);
+}
+.ravin-core-wrap.core-v2::before {
+  animation: ravinCoreBreath 3.8s ease-in-out infinite;
+}
+.ravin-core-wrap.core-v2::after {
+  inset: 38%;
+  opacity: .13;
+  animation: ravinCoreBreath 3.8s 1.2s ease-in-out infinite reverse;
+}
+
+.ravin-core-flight {
+  position: fixed;
+  z-index: 9990;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity, filter;
+  filter: drop-shadow(0 0 14px rgb(var(--ink) / .15));
+}
+.ravin-core-flight canvas { width: 100%; height: 100%; display: block; }
+
+#ravinApp.core-thinking .ravin-composer {
+  box-shadow: 0 0 0 1px rgb(var(--ink) / .035), 0 14px 50px rgb(var(--ink) / .025);
+}
+
+@keyframes ravinCoreBreath {
+  0%, 100% { transform: scale(.72); opacity: .08; }
+  50% { transform: scale(1.2); opacity: .24; }
+}
+@keyframes ravinCoreHeaderPulse {
+  from { transform: scale(.55); opacity: .72; }
+  to { transform: scale(1.65); opacity: 0; }
+}
+@keyframes ravinCoreTap {
+  0%,100% { transform: scale(1); }
+  42% { transform: scale(.82); }
+  70% { transform: scale(1.08); }
+}
+
+html[data-theme="light"] .ravin-header-core::before,
+html[data-theme="light"] .ravin-core-wrap.core-v2::before,
+html[data-theme="light"] .ravin-core-wrap.core-v2::after {
+  border-color: rgb(var(--ink) / .08);
+}
+html[data-theme="light"] .ravin-core-flight {
+  filter: drop-shadow(0 8px 18px rgb(0 0 0 / .10));
+}
+
+@media (max-width: 700px) {
+  .ravin-header-core { width: 36px; height: 36px; border-radius: 10px; }
+  .ravin-header-core canvas { width: 34px; height: 34px; }
+  .ravin-core-wrap.core-v2 { width: 154px; height: 154px; }
+  .ravin-core-wrap.core-v2 .ravin-neural-core-large { width: 154px; height: 154px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-header-core,
+  .ravin-core-wrap.core-v2 .ravin-neural-core-large { transition: none !important; }
+  .ravin-header-core::after,
+  .ravin-core-wrap.core-v2::before,
+  .ravin-core-wrap.core-v2::after { animation: none !important; }
+}
