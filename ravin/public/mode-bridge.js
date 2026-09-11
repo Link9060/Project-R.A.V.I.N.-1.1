@@ -10,6 +10,40 @@
   localStorage.setItem(MODE_KEY, currentMode);
   document.documentElement.dataset.ravinMode = currentMode;
 
+  function showReplyFallback(reply, mode) {
+    const existing = document.getElementById("ravinReplyFallback");
+    existing?.remove();
+    const card = document.createElement("section");
+    card.id = "ravinReplyFallback";
+    card.className = "ravin-reply-fallback";
+    const label = document.createElement("small");
+    label.textContent = `RAVIN · ${mode === "work" ? "WORK" : "CONVERSATION"}`;
+    const body = document.createElement("div");
+    body.className = "ravin-reply-fallback-body";
+    body.textContent = reply;
+    const close = document.createElement("button");
+    close.type = "button";
+    close.setAttribute("aria-label", "Dismiss RAVIN reply");
+    close.textContent = "×";
+    close.addEventListener("click", () => card.remove());
+    card.append(label, body, close);
+    document.body.appendChild(card);
+  }
+
+  function makeReplyVisible(reply, mode) {
+    const panel = document.querySelector(".chat-panel");
+    const opener = document.querySelector(".side-drawer-tab.drawer-left");
+    if (panel?.classList.contains("closed") && opener) opener.click();
+
+    setTimeout(() => {
+      const assistantMessages = [...document.querySelectorAll(".chat-panel .message.assistant")];
+      const probe = String(reply || "").trim().slice(0, 28);
+      const rendered = probe && assistantMessages.some((node) => (node.textContent || "").includes(probe));
+      if (!rendered && reply) showReplyFallback(reply, mode);
+      document.querySelector(".chat-scroll")?.scrollTo({ top: 999999, behavior: "smooth" });
+    }, 650);
+  }
+
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = typeof input === "string" ? input : input?.url || "";
@@ -37,6 +71,9 @@
         if (response.ok && data?.conversation_id) {
           localStorage.setItem(modeIds[mode], data.conversation_id);
         }
+        if (response.ok && typeof data?.reply === "string" && data.reply.trim()) {
+          makeReplyVisible(data.reply.trim(), mode);
+        }
       } catch {
         // The React app will display request errors itself.
       }
@@ -57,7 +94,11 @@
       .ravin-mode-switch button.active{background:rgba(255,255,255,.13);color:#fff}
       .ravin-mode-switch button:active{transform:scale(.97)}
       .ravin-mode-switch .mode-dot{display:inline-block;width:5px;height:5px;margin-right:6px;border-radius:50%;background:currentColor;vertical-align:1px}
-      @media(max-width:700px){.ravin-mode-switch{top:max(54px,calc(env(safe-area-inset-top) + 44px))}.ravin-mode-switch button{padding:6px 9px;font-size:9px}}
+      .ravin-reply-fallback{position:fixed;right:22px;bottom:92px;z-index:12000;width:min(420px,calc(100vw - 44px));max-height:42vh;overflow:auto;padding:16px 42px 16px 16px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(7,9,13,.94);color:#f4f6fb;box-shadow:0 20px 60px rgba(0,0,0,.46);backdrop-filter:blur(20px);font:400 13px/1.55 Inter,system-ui,sans-serif}
+      .ravin-reply-fallback small{display:block;margin-bottom:8px;color:rgba(255,255,255,.48);font:600 8px/1 IBM Plex Mono,monospace;letter-spacing:.14em}
+      .ravin-reply-fallback button{position:absolute;top:8px;right:10px;border:0;background:transparent;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer}
+      .ravin-reply-fallback-body{white-space:pre-wrap;overflow-wrap:anywhere}
+      @media(max-width:700px){.ravin-mode-switch{top:max(54px,calc(env(safe-area-inset-top) + 44px))}.ravin-mode-switch button{padding:6px 9px;font-size:9px}.ravin-reply-fallback{right:12px;bottom:78px;width:calc(100vw - 24px)}}
     `;
     document.head.appendChild(style);
 
