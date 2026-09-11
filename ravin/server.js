@@ -47,6 +47,16 @@ app.use((req, _res, next) => {
   }
   next();
 });
+
+// Self-development is a privileged future capability, not a customer Work tool.
+// Keep the endpoint dark unless the server is explicitly placed in a developer environment.
+app.use("/api/build", (_req, res, next) => {
+  if (process.env.RAVIN_ENABLE_SELF_BUILD !== "true") {
+    return res.status(403).json({ error: "RAVIN self-development is disabled in this environment." });
+  }
+  next();
+});
+
 registerV02Routes(app);
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -310,7 +320,7 @@ app.get("/api/health", (_req, res) => res.json({
   ok: true,
   service: "RAVIN",
   agent: true,
-  builder: true,
+  builder: process.env.RAVIN_ENABLE_SELF_BUILD === "true",
   v02: true,
   auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY),
   ai: Boolean(CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN),
