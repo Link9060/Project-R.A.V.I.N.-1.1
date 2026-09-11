@@ -1,46 +1,81 @@
 (function () {
-  const DEFAULT_BACKEND_URL = "";
-  const BACKEND_URL_KEY = "ravin_backend_url";
+  const MODE_KEY = "ravin_mode";
+  const conversationIds = {
+    conversation: null,
+    work: null,
+  };
 
-  function getBackendUrl() {
-    const configured = (window.RAVIN_CONFIG?.backendUrl || localStorage.getItem(BACKEND_URL_KEY) || DEFAULT_BACKEND_URL).trim();
-    return configured.replace(/\/$/, "");
+  let currentMode = localStorage.getItem(MODE_KEY) === "work" ? "work" : "conversation";
+
+  function normalizeMode(mode) {
+    return String(mode || "").toLowerCase() === "work" ? "work" : "conversation";
   }
 
   async function request(path, options = {}) {
-    const token = window.RavinAuth?.getAccessToken?.() || "";
-    if (!token) throw new Error("Please sign in to RAVIN first.");
-
-    const headers = new Headers(options.headers || {});
-    headers.set("Accept", "application/json");
-    headers.set("Content-Type", "application/json");
-    headers.set("Authorization", `Bearer ${token}`);
-
-    const response = await fetch(`${getBackendUrl()}${path}`, { ...options, headers });
-    const text = await response.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = { error: text }; }
-
-    if (response.status === 401) {
-      window.RavinAuth?.signOut?.();
-      throw new Error(data?.error || "Your RAVIN session expired. Please sign in again.");
+    if (window.RavinAuth?.ensureSession) {
+      const validSession = await window.RavinAuth.ensureSession();
+      if (!validSession) {
+        window.RavinAuth.open?.();
+        throw new Error("Please sign in to RAVIN.");
+      }
     }
-    if (!response.ok) throw new Error(data?.error || `RAVIN backend error (${response.status}).`);
+
+    const token = window.RavinAuth?.getAccessToken?.() || window.RavinAuthState?.accessToken || "";
+    const headers = { ...(options.headers || {}), "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(path, { ...options, headers });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.RavinAuth?.open?.();
+      }
+      throw new Error(data?.error || `RAVIN request failed (HTTP ${response.status}).`);
+    }
+
     return data;
   }
 
-  async function chat(message, conversationId = null) {
+  async function chat(message, options = {}) {
+    if (!window.RavinAuth?.isSignedIn?.()) {
+      window.RavinAuth?.open?.();
+      throw new Error("Please sign in to RAVIN before sending a message.");
+    }
+
+    const mode = normalizeMode(options.mode || currentMode);
     const data = await request("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ message, conversation_id: conversationId })
+      body: JSON.stringify({
+        message,
+        mode,
+        conversation_id: conversationIds[mode],
+      }),
     });
-    return { ...data, content: data?.reply || "" };
+
+    if (data?.conversation_id) conversationIds[mode] = data.conversation_id;
+    return data;
   }
 
-  async function health() {
-    const response = await fetch(`${getBackendUrl()}/api/health`, { headers: { Accept: "application/json" } });
-    return response.json();
+  function setMode(mode) {
+    currentMode = normalizeMode(mode);
+    localStorage.setItem(MODE_KEY, currentMode);
+    window.dispatchEvent(new CustomEvent("ravin-mode-changed", {
+      detail: { mode: currentMode },
+    }));
+    return currentMode;
   }
 
-  window.RavinAPI = { request, chat, health, getBackendUrl };
+  function clearConversation(mode = currentMode) {
+    conversationIds[normalizeMode(mode)] = null;
+  }
+
+  window.RavinAPI = {
+    chat,
+    request,
+    setMode,
+    getMode: () => currentMode,
+    clearConversation,
+    getConversationId: (mode = currentMode) => conversationIds[normalizeMode(mode)],
+  };
 })();
