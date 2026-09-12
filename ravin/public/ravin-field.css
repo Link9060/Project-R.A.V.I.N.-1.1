@@ -1,0 +1,109 @@
+/* RAVIN Particle Field -------------------------------------------------------
+   RAVIN is the field. There is no permanent Core object. The distributed
+   particles collapse into a temporary thinking point, push nearby text away,
+   construct streamed output, then disperse back into the conversation. */
+
+.ravin-header-core,
+.ravin-spatial-core { display: none !important; }
+.ravin-core-wrap {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+}
+
+.ravin-field-canvas {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  background: transparent;
+  transform: translateZ(0);
+  will-change: left, top, width, height;
+}
+
+/* Keep real UI/text above the ambient field. */
+.ravin-chat-column,
+.ravin-messages,
+.ravin-messages-inner,
+.ravin-composer-zone { position: relative; }
+.ravin-messages,
+.ravin-messages-inner { z-index: 2; }
+.ravin-composer-zone { z-index: 14; }
+
+/* Temporary circular force field. This has no visible border; JavaScript uses
+   the same radius to reflow lines around the concentrated particle mass. */
+.ravin-field-force {
+  --ravin-force-radius: 0px;
+  position: fixed;
+  z-index: 3;
+  width: calc(var(--ravin-force-radius) * 2);
+  height: calc(var(--ravin-force-radius) * 2);
+  margin: calc(var(--ravin-force-radius) * -1) 0 0 calc(var(--ravin-force-radius) * -1);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Live text-flow geometry retained from the original spatial Core, but it is
+   now activated only while the field is concentrating. */
+.ravin-message-body.ravin-force-flow-active {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  display: block !important;
+  justify-self: stretch !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ravin-force-line {
+  width: 100%;
+  min-width: 0;
+  line-height: inherit;
+  overflow: visible;
+}
+.ravin-force-line-full { display: block; }
+.ravin-force-line-full > span,
+.ravin-force-fragment {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+.ravin-force-line-split {
+  display: grid;
+  align-items: start;
+  width: 100%;
+}
+.ravin-force-fragment-left,
+.ravin-force-fragment-right { text-align: left; }
+.ravin-force-gap,
+.ravin-force-line-clear,
+.ravin-force-paragraph-gap {
+  display: block;
+  pointer-events: none;
+}
+.ravin-force-time { margin-top: 6px !important; }
+.ravin-messages { overflow-anchor: none; }
+
+/* The real streamed text remains readable while the particle scribe supplies
+   the visual assembly effect. */
+.ravin-v02-streaming .ravin-message-body {
+  transition: text-shadow 180ms ease, opacity 180ms ease;
+}
+.ravin-v02-streaming.ravin-field-writing .ravin-message-body {
+  text-shadow: 0 0 10px rgb(var(--ink) / .10);
+}
+
+@media (max-width: 700px) {
+  .ravin-field-canvas { opacity: .82; }
+  .ravin-message-body.ravin-force-flow-active { max-width: 100% !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-canvas { opacity: .42; }
+  .ravin-v02-streaming .ravin-message-body { transition: none !important; }
+}
