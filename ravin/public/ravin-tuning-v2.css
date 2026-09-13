@@ -1,0 +1,22 @@
+/* Tuned particle rendering + readable chat controls. The legacy field engine
+   stays alive for its text-force geometry, but its old canvas is hidden. */
+#ravinParticleField { opacity: 0 !important; }
+.ravin-field-visual-v2 { opacity: 1 !important; }
+html[data-theme="light"] .ravin-field-visual-v2 { opacity: 1 !important; }
+
+:root { --ravin-chat-font-scale: 1.10; }
+.ravin-message-body { font-size: calc(13px * var(--ravin-chat-font-scale)) !important; }
+.ravin-message.user .ravin-message-body { line-height: 1.55; }
+.ravin-rich { font-size: inherit; }
+.ravin-rich p, .ravin-rich li { line-height: 1.7; }
+.ravin-code-block pre, .ravin-code-block code { font-size: calc(11px * var(--ravin-chat-font-scale)) !important; }
+#messageInput { font-size: max(16px, calc(12px * var(--ravin-chat-font-scale))) !important; }
+
+.ravin-font-setting { padding: 9px 10px 11px; cursor: default; user-select: none; }
+.ravin-font-setting-head, .ravin-font-setting-hints { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.ravin-font-setting-head { color:rgb(var(--ink)); font-size:10px; font-weight:600; margin-bottom:8px; }
+.ravin-font-setting-head output, .ravin-font-setting-hints { color:rgb(var(--ink-faint)); font:500 8px/1.2 "IBM Plex Mono",monospace; }
+.ravin-font-setting input[type="range"] { width:100%; margin:0 0 5px; accent-color:rgb(var(--ink)); cursor:pointer; }
+.ravin-font-setting-hints { font-size:7px; }
+
+@media (min-width:701px) { #messageInput { font-size:calc(12px * var(--ravin-chat-font-scale)) !important; } }
