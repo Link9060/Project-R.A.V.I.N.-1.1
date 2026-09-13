@@ -1,6 +1,6 @@
 /* RAVIN chat glass ----------------------------------------------------------
-   A restrained translucent reading surface that separates conversation text
-   from the ambient intelligence field without hiding the field completely. */
+   Conversation surfaces should feel like a thin pane sitting above the living
+   particle field, not like opaque cards. RAVIN stays left; the user stays right. */
 
 :root {
   --ravin-message-glass: 18 18 20;
@@ -8,115 +8,172 @@
   --ravin-message-glass-border: 245 245 246;
 }
 
-/* Let the particle field remain visible as depth rather than competing with
-   typography. The glass below locally softens it further behind each message. */
+/* Push the particle field one visual plane behind the conversation. */
 .ravin-field-visual-v3 {
-  opacity: .78 !important;
+  opacity: .58 !important;
 }
 
-.ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
-  position: relative;
+/* Remove the log-like separators and give messages conversational spacing. */
+.ravin-message {
+  border-bottom: 0 !important;
+  padding: 12px 0 18px !important;
+}
+
+/* RAVIN remains left: role in column 1, response in column 2. */
+.ravin-message:not(.user) .ravin-message-body:not(.ravin-force-flow-active) {
   justify-self: start;
   width: fit-content;
-  max-width: 100%;
-  padding: 10px 12px;
-  border: 1px solid rgb(var(--ravin-message-glass-border) / .055);
-  border-radius: 12px;
-  background:
-    linear-gradient(
-      145deg,
-      rgb(var(--ravin-message-glass-raised) / .42),
-      rgb(var(--ravin-message-glass) / .30)
-    );
-  -webkit-backdrop-filter: blur(9px) saturate(112%);
-  backdrop-filter: blur(9px) saturate(112%);
-  box-shadow:
-    inset 0 1px 0 rgb(var(--ink) / .025),
-    0 8px 24px rgb(0 0 0 / .055);
+  max-width: min(88%, 720px);
 }
 
-/* User messages retain a little more visual weight than assistant responses. */
+/* YOU is genuinely right-aligned, including its role label and actions. */
+.ravin-message.user {
+  grid-template-columns: minmax(0, 1fr) 74px !important;
+}
+
+.ravin-message.user .ravin-message-role {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  text-align: right;
+}
+
 .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end !important;
+  width: fit-content;
+  max-width: min(72%, 620px);
+}
+
+.ravin-message.user .ravin-message-actions {
+  grid-column: 1 !important;
+  justify-self: end;
+  justify-content: flex-end;
+}
+
+.ravin-message.user .ravin-message-time {
+  text-align: right;
+}
+
+/* Base glass: enough separation for reading, but deliberately translucent. */
+.ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
+  position: relative;
+  padding: 10px 13px;
+  border: 1px solid rgb(var(--ravin-message-glass-border) / .045);
+  border-radius: 13px;
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass-raised) / .58),
-      rgb(var(--ravin-message-glass) / .46)
+      rgb(var(--ravin-message-glass-raised) / .30),
+      rgb(var(--ravin-message-glass) / .20)
     );
-  border-color: rgb(var(--ravin-message-glass-border) / .075);
+  -webkit-backdrop-filter: blur(13px) saturate(106%);
+  backdrop-filter: blur(13px) saturate(106%);
+  box-shadow:
+    inset 0 1px 0 rgb(var(--ink) / .018),
+    0 10px 28px rgb(0 0 0 / .035);
 }
 
-/* Streaming should remain readable even when response particles are actively
-   feeding the current text endpoint. */
-.ravin-v02-streaming .ravin-message-body:not(.ravin-force-flow-active) {
+/* User gets a touch more surface weight so the two sides are easy to scan. */
+.ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
   background:
     linear-gradient(
       145deg,
       rgb(var(--ravin-message-glass-raised) / .48),
       rgb(var(--ravin-message-glass) / .34)
     );
+  border-color: rgb(var(--ravin-message-glass-border) / .065);
 }
 
+.ravin-v02-streaming .ravin-message-body:not(.ravin-force-flow-active) {
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass-raised) / .36),
+      rgb(var(--ravin-message-glass) / .24)
+    );
+}
+
+/* Light mode uses a cool neutral tint rather than white-on-white milkiness. */
 html[data-theme="light"] {
-  --ravin-message-glass: 255 255 255;
-  --ravin-message-glass-raised: 248 248 249;
+  --ravin-message-glass: 242 244 247;
+  --ravin-message-glass-raised: 234 237 241;
   --ravin-message-glass-border: 17 17 17;
 }
 
 html[data-theme="light"] .ravin-field-visual-v3 {
-  opacity: .68 !important;
+  opacity: .46 !important;
 }
 
 html[data-theme="light"] .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
-  border-color: rgb(var(--ravin-message-glass-border) / .065);
+  border-color: rgb(var(--ravin-message-glass-border) / .050);
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass) / .74),
-      rgb(var(--ravin-message-glass-raised) / .58)
+      rgb(var(--ravin-message-glass) / .58),
+      rgb(var(--ravin-message-glass-raised) / .42)
     );
-  -webkit-backdrop-filter: blur(10px) saturate(106%);
-  backdrop-filter: blur(10px) saturate(106%);
+  -webkit-backdrop-filter: blur(14px) saturate(102%);
+  backdrop-filter: blur(14px) saturate(102%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / .72),
-    0 8px 24px rgb(17 17 17 / .035);
+    inset 0 1px 0 rgb(255 255 255 / .42),
+    0 10px 28px rgb(17 17 17 / .024);
 }
 
 html[data-theme="light"] .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass) / .86),
-      rgb(var(--ravin-message-glass-raised) / .70)
+      rgb(238 241 245 / .78),
+      rgb(230 234 239 / .62)
     );
-  border-color: rgb(var(--ravin-message-glass-border) / .085);
+  border-color: rgb(var(--ravin-message-glass-border) / .070);
 }
 
-/* Code blocks already provide their own opaque reading surface; avoid adding
-   another strong layer inside the glass message. */
 .ravin-message-body .ravin-code-block {
-  box-shadow: 0 8px 24px rgb(0 0 0 / .08);
+  box-shadow: 0 8px 24px rgb(0 0 0 / .06);
+}
+
+/* While the force field is bending text, geometry owns the whole content lane;
+   don't turn that temporary layout into a large rectangular glass sheet. */
+.ravin-message-body.ravin-force-flow-active {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 @media (max-width: 700px) {
   .ravin-field-visual-v3 {
-    opacity: .72 !important;
+    opacity: .52 !important;
   }
 
   html[data-theme="light"] .ravin-field-visual-v3 {
-    opacity: .62 !important;
+    opacity: .40 !important;
+  }
+
+  .ravin-message.user {
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+  }
+
+  .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
+    max-width: 88%;
+  }
+
+  .ravin-message:not(.user) .ravin-message-body:not(.ravin-force-flow-active) {
+    max-width: 92%;
   }
 
   .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
     padding: 9px 11px;
-    border-radius: 11px;
-    -webkit-backdrop-filter: blur(8px) saturate(108%);
-    backdrop-filter: blur(8px) saturate(108%);
+    border-radius: 12px;
+    -webkit-backdrop-filter: blur(11px) saturate(104%);
+    backdrop-filter: blur(11px) saturate(104%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ravin-field-visual-v3 {
-    opacity: .48 !important;
+    opacity: .38 !important;
   }
 }
