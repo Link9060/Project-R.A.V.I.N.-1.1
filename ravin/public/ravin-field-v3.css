@@ -1,0 +1,130 @@
+/* RAVIN Particle Field v3 ----------------------------------------------------
+   The visible field is a layered intelligence surface rather than a snow layer.
+   Legacy field stays alive invisibly only for the text-force geometry. */
+
+#ravinParticleField,
+#ravinParticleFieldV2 {
+  opacity: 0 !important;
+}
+
+.ravin-field-visual-v3 {
+  opacity: 1 !important;
+  z-index: 1 !important;
+  mix-blend-mode: normal;
+}
+
+html[data-theme="light"] .ravin-field-visual-v3 {
+  opacity: 1 !important;
+}
+
+/* Response construction: keep the typography readable while the particle
+   filament visibly feeds the streaming endpoint. */
+.ravin-v02-streaming .ravin-message-body {
+  transition:
+    text-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.ravin-v02-streaming.ravin-field-writing .ravin-message-body {
+  text-shadow:
+    0 0 8px rgb(var(--ink) / .10),
+    0 0 18px rgb(var(--ink) / .035);
+}
+
+html[data-theme="light"] .ravin-v02-streaming.ravin-field-writing .ravin-message-body {
+  text-shadow:
+    0 0 7px rgb(var(--ink) / .08),
+    0 0 15px rgb(var(--ink) / .025);
+}
+
+/* Chat readability --------------------------------------------------------- */
+:root {
+  --ravin-chat-font-scale: 1.10;
+}
+
+.ravin-message-body {
+  font-size: calc(13px * var(--ravin-chat-font-scale)) !important;
+}
+
+.ravin-message.user .ravin-message-body {
+  line-height: 1.55;
+}
+
+.ravin-rich {
+  font-size: inherit;
+}
+
+.ravin-rich p,
+.ravin-rich li {
+  line-height: 1.7;
+}
+
+.ravin-code-block pre,
+.ravin-code-block code {
+  font-size: calc(11px * var(--ravin-chat-font-scale)) !important;
+}
+
+#messageInput {
+  font-size: max(16px, calc(12px * var(--ravin-chat-font-scale))) !important;
+}
+
+/* Font-size control -------------------------------------------------------- */
+.ravin-font-setting {
+  padding: 9px 10px 11px;
+  cursor: default;
+  user-select: none;
+}
+
+.ravin-font-setting-head,
+.ravin-font-setting-hints {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ravin-font-setting-head {
+  color: rgb(var(--ink));
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ravin-font-setting-head output,
+.ravin-font-setting-hints {
+  color: rgb(var(--ink-faint));
+  font: 500 8px/1.2 "IBM Plex Mono", monospace;
+}
+
+.ravin-font-setting input[type="range"] {
+  width: 100%;
+  margin: 0 0 5px;
+  accent-color: rgb(var(--ink));
+  cursor: pointer;
+}
+
+.ravin-font-setting-hints {
+  font-size: 7px;
+}
+
+@media (min-width: 701px) {
+  #messageInput {
+    font-size: calc(12px * var(--ravin-chat-font-scale)) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .ravin-field-visual-v3 {
+    opacity: .92 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-visual-v3 {
+    opacity: .58 !important;
+  }
+
+  .ravin-v02-streaming .ravin-message-body {
+    transition: none !important;
+  }
+}
