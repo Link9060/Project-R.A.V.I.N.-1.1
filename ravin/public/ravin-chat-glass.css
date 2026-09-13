@@ -1,0 +1,122 @@
+/* RAVIN chat glass ----------------------------------------------------------
+   A restrained translucent reading surface that separates conversation text
+   from the ambient intelligence field without hiding the field completely. */
+
+:root {
+  --ravin-message-glass: 18 18 20;
+  --ravin-message-glass-raised: 26 26 29;
+  --ravin-message-glass-border: 245 245 246;
+}
+
+/* Let the particle field remain visible as depth rather than competing with
+   typography. The glass below locally softens it further behind each message. */
+.ravin-field-visual-v3 {
+  opacity: .78 !important;
+}
+
+.ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
+  position: relative;
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgb(var(--ravin-message-glass-border) / .055);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass-raised) / .42),
+      rgb(var(--ravin-message-glass) / .30)
+    );
+  -webkit-backdrop-filter: blur(9px) saturate(112%);
+  backdrop-filter: blur(9px) saturate(112%);
+  box-shadow:
+    inset 0 1px 0 rgb(var(--ink) / .025),
+    0 8px 24px rgb(0 0 0 / .055);
+}
+
+/* User messages retain a little more visual weight than assistant responses. */
+.ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass-raised) / .58),
+      rgb(var(--ravin-message-glass) / .46)
+    );
+  border-color: rgb(var(--ravin-message-glass-border) / .075);
+}
+
+/* Streaming should remain readable even when response particles are actively
+   feeding the current text endpoint. */
+.ravin-v02-streaming .ravin-message-body:not(.ravin-force-flow-active) {
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass-raised) / .48),
+      rgb(var(--ravin-message-glass) / .34)
+    );
+}
+
+html[data-theme="light"] {
+  --ravin-message-glass: 255 255 255;
+  --ravin-message-glass-raised: 248 248 249;
+  --ravin-message-glass-border: 17 17 17;
+}
+
+html[data-theme="light"] .ravin-field-visual-v3 {
+  opacity: .68 !important;
+}
+
+html[data-theme="light"] .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
+  border-color: rgb(var(--ravin-message-glass-border) / .065);
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass) / .74),
+      rgb(var(--ravin-message-glass-raised) / .58)
+    );
+  -webkit-backdrop-filter: blur(10px) saturate(106%);
+  backdrop-filter: blur(10px) saturate(106%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / .72),
+    0 8px 24px rgb(17 17 17 / .035);
+}
+
+html[data-theme="light"] .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
+  background:
+    linear-gradient(
+      145deg,
+      rgb(var(--ravin-message-glass) / .86),
+      rgb(var(--ravin-message-glass-raised) / .70)
+    );
+  border-color: rgb(var(--ravin-message-glass-border) / .085);
+}
+
+/* Code blocks already provide their own opaque reading surface; avoid adding
+   another strong layer inside the glass message. */
+.ravin-message-body .ravin-code-block {
+  box-shadow: 0 8px 24px rgb(0 0 0 / .08);
+}
+
+@media (max-width: 700px) {
+  .ravin-field-visual-v3 {
+    opacity: .72 !important;
+  }
+
+  html[data-theme="light"] .ravin-field-visual-v3 {
+    opacity: .62 !important;
+  }
+
+  .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
+    padding: 9px 11px;
+    border-radius: 11px;
+    -webkit-backdrop-filter: blur(8px) saturate(108%);
+    backdrop-filter: blur(8px) saturate(108%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-visual-v3 {
+    opacity: .48 !important;
+  }
+}
