@@ -1,32 +1,31 @@
 /* RAVIN chat glass ----------------------------------------------------------
-   Conversation surfaces should feel like a thin pane sitting above the living
-   particle field, not like opaque cards. RAVIN stays left; the user stays right. */
+   Conversation surfaces should feel like lightly frosted glass suspended above
+   the living particle field: still transparent, but calm enough to read through. */
 
 :root {
   --ravin-message-glass: 18 18 20;
-  --ravin-message-glass-raised: 26 26 29;
+  --ravin-message-glass-raised: 28 28 31;
   --ravin-message-glass-border: 245 245 246;
 }
 
-/* Push the particle field one visual plane behind the conversation. */
+/* Keep particles alive as depth, not as foreground noise. */
 .ravin-field-visual-v3 {
-  opacity: .58 !important;
+  opacity: .56 !important;
 }
 
-/* Remove the log-like separators and give messages conversational spacing. */
 .ravin-message {
   border-bottom: 0 !important;
   padding: 12px 0 18px !important;
 }
 
-/* RAVIN remains left: role in column 1, response in column 2. */
+/* RAVIN remains left. */
 .ravin-message:not(.user) .ravin-message-body:not(.ravin-force-flow-active) {
   justify-self: start;
   width: fit-content;
   max-width: min(88%, 720px);
 }
 
-/* YOU is genuinely right-aligned, including its role label and actions. */
+/* YOU remains right. */
 .ravin-message.user {
   grid-template-columns: minmax(0, 1fr) 74px !important;
 }
@@ -56,100 +55,136 @@
   text-align: right;
 }
 
-/* Base glass: enough separation for reading, but deliberately translucent. */
+/* Base frosted pane. The stronger blur/desaturation is what gives this the
+   'frosted window' effect without turning it into a solid card. */
 .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
   position: relative;
+  overflow: hidden;
   padding: 10px 13px;
-  border: 1px solid rgb(var(--ravin-message-glass-border) / .045);
+  border: 1px solid rgb(var(--ravin-message-glass-border) / .065);
   border-radius: 13px;
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass-raised) / .30),
-      rgb(var(--ravin-message-glass) / .20)
+      rgb(var(--ravin-message-glass-raised) / .42),
+      rgb(var(--ravin-message-glass) / .30)
     );
-  -webkit-backdrop-filter: blur(13px) saturate(106%);
-  backdrop-filter: blur(13px) saturate(106%);
+  -webkit-backdrop-filter: blur(18px) saturate(88%);
+  backdrop-filter: blur(18px) saturate(88%);
   box-shadow:
-    inset 0 1px 0 rgb(var(--ink) / .018),
-    0 10px 28px rgb(0 0 0 / .035);
+    inset 0 1px 0 rgb(var(--ink) / .045),
+    inset 0 -1px 0 rgb(0 0 0 / .035),
+    0 10px 30px rgb(0 0 0 / .035);
 }
 
-/* User gets a touch more surface weight so the two sides are easy to scan. */
+/* Tiny glass highlight — visible enough to imply a surface, not a bevel. */
+.ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      120deg,
+      rgb(255 255 255 / .030),
+      transparent 34%,
+      transparent 72%,
+      rgb(255 255 255 / .012)
+    );
+}
+
+/* User gets a slightly denser tint so it remains easy to scan. */
 .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass-raised) / .48),
-      rgb(var(--ravin-message-glass) / .34)
+      rgb(var(--ravin-message-glass-raised) / .58),
+      rgb(var(--ravin-message-glass) / .44)
     );
-  border-color: rgb(var(--ravin-message-glass-border) / .065);
+  border-color: rgb(var(--ravin-message-glass-border) / .085);
 }
 
 .ravin-v02-streaming .ravin-message-body:not(.ravin-force-flow-active) {
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass-raised) / .36),
-      rgb(var(--ravin-message-glass) / .24)
+      rgb(var(--ravin-message-glass-raised) / .48),
+      rgb(var(--ravin-message-glass) / .34)
     );
 }
 
-/* Light mode uses a cool neutral tint rather than white-on-white milkiness. */
+/* Light mode: a cool frosted tint rather than milky white. */
 html[data-theme="light"] {
-  --ravin-message-glass: 242 244 247;
-  --ravin-message-glass-raised: 234 237 241;
+  --ravin-message-glass: 240 243 247;
+  --ravin-message-glass-raised: 232 236 241;
   --ravin-message-glass-border: 17 17 17;
 }
 
 html[data-theme="light"] .ravin-field-visual-v3 {
-  opacity: .46 !important;
+  opacity: .43 !important;
 }
 
 html[data-theme="light"] .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
-  border-color: rgb(var(--ravin-message-glass-border) / .050);
+  border-color: rgb(var(--ravin-message-glass-border) / .065);
   background:
     linear-gradient(
       145deg,
-      rgb(var(--ravin-message-glass) / .58),
-      rgb(var(--ravin-message-glass-raised) / .42)
+      rgb(247 249 251 / .74),
+      rgb(var(--ravin-message-glass) / .60)
     );
-  -webkit-backdrop-filter: blur(14px) saturate(102%);
-  backdrop-filter: blur(14px) saturate(102%);
+  -webkit-backdrop-filter: blur(19px) saturate(84%);
+  backdrop-filter: blur(19px) saturate(84%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / .42),
-    0 10px 28px rgb(17 17 17 / .024);
+    inset 0 1px 0 rgb(255 255 255 / .70),
+    inset 0 -1px 0 rgb(17 17 17 / .025),
+    0 10px 30px rgb(17 17 17 / .022);
+}
+
+html[data-theme="light"] .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active)::before {
+  background:
+    linear-gradient(
+      120deg,
+      rgb(255 255 255 / .38),
+      transparent 32%,
+      transparent 76%,
+      rgb(255 255 255 / .12)
+    );
 }
 
 html[data-theme="light"] .ravin-message.user .ravin-message-body:not(.ravin-force-flow-active) {
   background:
     linear-gradient(
       145deg,
-      rgb(238 241 245 / .78),
-      rgb(230 234 239 / .62)
+      rgb(242 245 249 / .86),
+      rgb(230 235 241 / .73)
     );
-  border-color: rgb(var(--ravin-message-glass-border) / .070);
+  border-color: rgb(var(--ravin-message-glass-border) / .080);
 }
 
 .ravin-message-body .ravin-code-block {
   box-shadow: 0 8px 24px rgb(0 0 0 / .06);
 }
 
-/* While the force field is bending text, geometry owns the whole content lane;
-   don't turn that temporary layout into a large rectangular glass sheet. */
+/* During force-field text bending, geometry needs an unobstructed content lane. */
 .ravin-message-body.ravin-force-flow-active {
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+  overflow: visible !important;
+}
+
+.ravin-message-body.ravin-force-flow-active::before {
+  display: none !important;
 }
 
 @media (max-width: 700px) {
   .ravin-field-visual-v3 {
-    opacity: .52 !important;
+    opacity: .50 !important;
   }
 
   html[data-theme="light"] .ravin-field-visual-v3 {
-    opacity: .40 !important;
+    opacity: .38 !important;
   }
 
   .ravin-message.user {
@@ -167,13 +202,13 @@ html[data-theme="light"] .ravin-message.user .ravin-message-body:not(.ravin-forc
   .ravin-message:not(.error) .ravin-message-body:not(.ravin-force-flow-active) {
     padding: 9px 11px;
     border-radius: 12px;
-    -webkit-backdrop-filter: blur(11px) saturate(104%);
-    backdrop-filter: blur(11px) saturate(104%);
+    -webkit-backdrop-filter: blur(15px) saturate(88%);
+    backdrop-filter: blur(15px) saturate(88%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ravin-field-visual-v3 {
-    opacity: .38 !important;
+    opacity: .36 !important;
   }
 }
