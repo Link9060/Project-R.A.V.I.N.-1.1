@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const FILE_BUCKET = "ravin-files";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_STORED_TEXT_CHARS = 180_000;
+const MAX_ATTACHMENTS = 4;
 
 function requireConfig() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -64,9 +65,9 @@ function cleanFileName(name) {
     .slice(0, 120) || "attachment";
 }
 
-function storagePathUrl(pathname) {
+function storagePathUrl(pathname, authenticated = false) {
   const encoded = String(pathname).split("/").map(encodeURIComponent).join("/");
-  return `${SUPABASE_URL}/storage/v1/object/${FILE_BUCKET}/${encoded}`;
+  return `${SUPABASE_URL}/storage/v1/object/${authenticated ? "authenticated/" : ""}${FILE_BUCKET}/${encoded}`;
 }
 
 async function uploadObject(pathname, buffer, mimeType, token) {
@@ -86,11 +87,120 @@ async function uploadObject(pathname, buffer, mimeType, token) {
   }
 }
 
+async function downloadObject(pathname, token) {
+  let response = await fetch(storagePathUrl(pathname, true), {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    response = await fetch(storagePathUrl(pathname, false), {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+  }
+  if (!response.ok) throw new Error(`RAVIN couldn't read attachment data (${response.status}).`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function deleteObject(pathname, token) {
+  const response = await fetch(storagePathUrl(pathname), {
+    method: "DELETE",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`RAVIN couldn't delete that stored file (${response.status}). ${text}`.trim());
+  }
+}
+
 function isImage(mimeType) {
   return String(mimeType || "").startsWith("image/");
 }
 
+async function getFileRow(id, auth) {
+  const rows = await supabaseRequest(
+    `/rest/v1/files?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(auth.user.id)}&select=id,file_name,mime_type,size_bytes,storage_path,metadata,project_id,created_at&limit=1`,
+    { token: auth.token },
+  );
+  return rows?.[0] || null;
+}
+
+async function ensureExtracted(row, auth) {
+  if (!row || row.metadata?.text_content || isImage(row.mime_type)) return row;
+  const kind = documentKind(row.file_name, row.mime_type);
+  if (kind === "unsupported") return row;
+
+  try {
+    const buffer = await downloadObject(row.storage_path, auth.token);
+    const extraction = await extractDocument({
+      buffer,
+      name: row.file_name,
+      mimeType: row.mime_type,
+      maxChars: MAX_STORED_TEXT_CHARS,
+    });
+    const metadata = {
+      ...(row.metadata || {}),
+      document_kind: extraction.kind,
+      extraction_status: extraction.status,
+      extraction_truncated: Boolean(extraction.truncated),
+      extraction: extraction.metadata || {},
+      text_content: extraction.text || null,
+      reextracted_at: new Date().toISOString(),
+    };
+    await supabaseRequest(
+      `/rest/v1/files?id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(auth.user.id)}`,
+      { method: "PATCH", token: auth.token, prefer: "return=minimal", body: { metadata } },
+    );
+    return { ...row, metadata };
+  } catch (error) {
+    console.warn(`[RAVIN file re-extract] ${row.file_name}:`, error?.message || error);
+    return row;
+  }
+}
+
+async function recentConversationAttachmentIds(conversationId, auth) {
+  if (!conversationId) return [];
+  const rows = await supabaseRequest(
+    `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(auth.user.id)}&select=metadata,created_at&order=created_at.desc&limit=12`,
+    { token: auth.token },
+  );
+  for (const row of rows || []) {
+    const ids = Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids.filter(Boolean) : [];
+    if (ids.length) return [...new Set(ids)].slice(0, MAX_ATTACHMENTS);
+  }
+  return [];
+}
+
 export function registerDocumentRoutes(app) {
+  // Keep the most recent attachment set available to follow-up turns. This runs
+  // before v0.2 chat, so the stable stream route receives ordinary attachment_ids.
+  app.use("/api/v2/chat/stream", async (req, _res, next) => {
+    if (req.method !== "POST") return next();
+    try {
+      const auth = await authenticate(req);
+      if (!auth) return next();
+      const explicit = Array.isArray(req.body?.attachment_ids)
+        ? req.body.attachment_ids.filter(Boolean).slice(0, MAX_ATTACHMENTS)
+        : [];
+      const ids = explicit.length
+        ? explicit
+        : await recentConversationAttachmentIds(req.body?.conversation_id, auth);
+
+      if (ids.length) {
+        // Old uploads created before document extraction was enabled are upgraded
+        // lazily the first time the conversation uses them again.
+        for (const id of ids) {
+          const row = await getFileRow(id, auth);
+          if (row) await ensureExtracted(row, auth);
+        }
+        req.body.attachment_ids = ids;
+      }
+    } catch (error) {
+      // Attachment carry-forward should never take chat down. The downstream
+      // route can still answer without inherited context if this helper fails.
+      console.warn("[RAVIN attachment context]", error?.message || error);
+    }
+    next();
+  });
+
   // Register this BEFORE the legacy v0.2 file route. Express stops at this
   // handler after a response, so the stable chat stream can keep using the
   // existing file rows while uploads gain real document extraction.
@@ -158,6 +268,40 @@ export function registerDocumentRoutes(app) {
       });
     } catch (error) {
       console.error("[RAVIN document upload]", error);
+      res.status(error?.status || 500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Private file library for the signed-in user.
+  app.get("/api/v2/files", async (req, res) => {
+    const auth = await authenticate(req);
+    if (!auth) return res.status(401).json({ error: "Please sign in to RAVIN." });
+    try {
+      const rows = await supabaseRequest(
+        `/rest/v1/files?user_id=eq.${encodeURIComponent(auth.user.id)}&select=id,file_name,mime_type,size_bytes,metadata,project_id,created_at&order=created_at.desc&limit=100`,
+        { token: auth.token },
+      );
+      res.json({ files: rows || [] });
+    } catch (error) {
+      console.error("[RAVIN file library]", error);
+      res.status(error?.status || 500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.delete("/api/v2/files/:id", async (req, res) => {
+    const auth = await authenticate(req);
+    if (!auth) return res.status(401).json({ error: "Please sign in to RAVIN." });
+    try {
+      const row = await getFileRow(req.params.id, auth);
+      if (!row) return res.status(404).json({ error: "File not found." });
+      await deleteObject(row.storage_path, auth.token);
+      await supabaseRequest(
+        `/rest/v1/files?id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(auth.user.id)}`,
+        { method: "DELETE", token: auth.token, prefer: "return=minimal" },
+      );
+      res.status(204).end();
+    } catch (error) {
+      console.error("[RAVIN file delete]", error);
       res.status(error?.status || 500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
