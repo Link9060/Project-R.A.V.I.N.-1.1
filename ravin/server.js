@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { runAgent } from "./src/agent/agent.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
+import { registerDocumentRoutes } from "./src/files/documentRoutes.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
 import { registerV02Routes } from "./src/v02Routes.js";
 import {
@@ -57,6 +58,9 @@ app.use("/api/build", (_req, res, next) => {
   next();
 });
 
+// Document-aware uploads must be registered before the legacy v0.2 upload
+// handler so PDF/DOCX/PPTX text is extracted before the file row is created.
+registerDocumentRoutes(app);
 registerV02Routes(app);
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -322,6 +326,11 @@ app.get("/api/health", (_req, res) => res.json({
   agent: true,
   builder: process.env.RAVIN_ENABLE_SELF_BUILD === "true",
   v02: true,
+  files: {
+    maxBytes: 8 * 1024 * 1024,
+    maxAttachments: 4,
+    readable: ["pdf", "docx", "pptx", "txt", "md", "csv", "json", "code"],
+  },
   auth: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY),
   ai: Boolean(CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN),
   provider: "cloudflare-workers-ai",
