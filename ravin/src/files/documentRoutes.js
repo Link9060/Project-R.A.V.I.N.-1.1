@@ -115,6 +115,12 @@ function isImage(mimeType) {
   return String(mimeType || "").startsWith("image/");
 }
 
+function publicFileRow(row) {
+  const metadata = { ...(row?.metadata || {}) };
+  delete metadata.text_content;
+  return { ...row, metadata };
+}
+
 async function getFileRow(id, auth) {
   const rows = await supabaseRequest(
     `/rest/v1/files?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(auth.user.id)}&select=id,file_name,mime_type,size_bytes,storage_path,metadata,project_id,created_at&limit=1`,
@@ -256,7 +262,7 @@ export function registerDocumentRoutes(app) {
 
       const stored = rows?.[0] || null;
       res.status(201).json({
-        file: stored,
+        file: stored ? publicFileRow(stored) : null,
         extraction: {
           kind: extraction.kind,
           status: extraction.status,
@@ -272,7 +278,8 @@ export function registerDocumentRoutes(app) {
     }
   });
 
-  // Private file library for the signed-in user.
+  // Private file library for the signed-in user. Extracted document text stays
+  // server-side; the browser only receives metadata needed to draw the library.
   app.get("/api/v2/files", async (req, res) => {
     const auth = await authenticate(req);
     if (!auth) return res.status(401).json({ error: "Please sign in to RAVIN." });
@@ -281,7 +288,7 @@ export function registerDocumentRoutes(app) {
         `/rest/v1/files?user_id=eq.${encodeURIComponent(auth.user.id)}&select=id,file_name,mime_type,size_bytes,metadata,project_id,created_at&order=created_at.desc&limit=100`,
         { token: auth.token },
       );
-      res.json({ files: rows || [] });
+      res.json({ files: (rows || []).map(publicFileRow) });
     } catch (error) {
       console.error("[RAVIN file library]", error);
       res.status(error?.status || 500).json({ error: error instanceof Error ? error.message : String(error) });
