@@ -1,6 +1,6 @@
 # RAVIN Roadmap
 
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-14
 
 ## North star
 
@@ -24,7 +24,7 @@ Build the RAVIN software platform first: a strong standalone AI product that can
 - [x] Copy/edit/retry/stop message controls
 - [x] Dark/light themes
 - [x] Mac-first layout with mobile/iOS support
-- [x] Persistent spatial Core with live text reflow
+- [x] Ambient particle intelligence field with temporary thinking-point text reflow
 - [ ] Stabilize v0.2 UX from real browser testing
 - [ ] Add true conversation branching/regeneration rather than prompt reload
 - [ ] Add richer citations/source surfaces when tools arrive
@@ -47,9 +47,11 @@ Build the RAVIN software platform first: a strong standalone AI product that can
 - [x] Text/code/data attachment context
 - [x] Work-mode image attachment pipeline
 - [x] Drag/drop and mobile file/photo picker
-- [ ] Add PDF/document extraction
+- [x] PDF/DOCX/PPTX document text extraction
+- [x] Document-aware file picker for PDF, Word, PowerPoint, text, code, and data files
 - [ ] Add image/file preview cards in conversation history
 - [ ] Add attachment deletion/lifecycle cleanup
+- [ ] Add scanned/image-only PDF fallback
 
 ### 5. Capability Environment layer
 - [x] Define common RAVIN environment contract
