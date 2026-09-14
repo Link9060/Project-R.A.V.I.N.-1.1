@@ -87,6 +87,16 @@ function pdfInfoFromText(raw = "") {
   };
 }
 
+function pageMarkedPdfText(raw = "") {
+  const pages = String(raw).replace(/\r\n?/g, "\n").split("\f");
+  const parts = [];
+  pages.forEach((page, index) => {
+    const text = normalizeExtractedText(page);
+    if (text) parts.push(`--- Page ${index + 1} ---\n${text}`);
+  });
+  return normalizeExtractedText(parts.join("\n\n"));
+}
+
 async function extractPdf(buffer) {
   return withTempFile(buffer, ".pdf", async ({ input }) => {
     const [textResult, infoResult] = await Promise.allSettled([
@@ -95,7 +105,7 @@ async function extractPdf(buffer) {
     ]);
 
     if (textResult.status === "rejected") throw textResult.reason;
-    const text = normalizeExtractedText(textResult.value.stdout || "");
+    const text = pageMarkedPdfText(textResult.value.stdout || "");
     const info = infoResult.status === "fulfilled" ? pdfInfoFromText(infoResult.value.stdout) : { pages: null };
     return { text, metadata: info };
   });
