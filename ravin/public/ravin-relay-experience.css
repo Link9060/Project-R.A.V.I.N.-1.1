@@ -1,0 +1,352 @@
+/* RAVIN × Relay shared experience system.
+   Names, palettes and interaction language mirror Relay beta while adapting to RAVIN's workspace. */
+:root {
+  --ravin-experience-intensity: .55;
+  --ravin-experience-intensity-percent: 55%;
+  --rv-accent-contrast: 10 10 11;
+}
+
+/* Relay palette set — dark values by default. */
+html[data-ravin-palette='monochrome'] { --rv-accent: 244 244 245; --rv-accent-2: 244 244 245; --rv-accent-soft: 244 244 245; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='cobalt'] { --rv-accent: 96 165 250; --rv-accent-2: 96 165 250; --rv-accent-soft: 96 165 250; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='violet'] { --rv-accent: 167 139 250; --rv-accent-2: 167 139 250; --rv-accent-soft: 167 139 250; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='rose'] { --rv-accent: 251 113 133; --rv-accent-2: 251 113 133; --rv-accent-soft: 251 113 133; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='cyan'] { --rv-accent: 34 211 238; --rv-accent-2: 34 211 238; --rv-accent-soft: 34 211 238; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='emerald'] { --rv-accent: 52 211 153; --rv-accent-2: 52 211 153; --rv-accent-soft: 52 211 153; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='amber'] { --rv-accent: 251 191 36; --rv-accent-2: 251 191 36; --rv-accent-soft: 251 191 36; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='fuchsia'] { --rv-accent: 232 121 249; --rv-accent-2: 232 121 249; --rv-accent-soft: 232 121 249; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='scarlet'] { --rv-accent: 248 113 113; --rv-accent-2: 248 113 113; --rv-accent-soft: 248 113 113; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='orange'] { --rv-accent: 251 146 60; --rv-accent-2: 251 146 60; --rv-accent-soft: 251 146 60; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='lime'] { --rv-accent: 163 230 53; --rv-accent-2: 163 230 53; --rv-accent-soft: 163 230 53; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='sky'] { --rv-accent: 56 189 248; --rv-accent-2: 56 189 248; --rv-accent-soft: 56 189 248; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='indigo'] { --rv-accent: 129 140 248; --rv-accent-2: 129 140 248; --rv-accent-soft: 129 140 248; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='aurora'] { --rv-accent: 167 139 250; --rv-accent-2: 34 211 238; --rv-accent-soft: 167 139 250; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='ember'] { --rv-accent: 251 113 133; --rv-accent-2: 251 191 36; --rv-accent-soft: 251 113 133; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='tide'] { --rv-accent: 96 165 250; --rv-accent-2: 52 211 153; --rv-accent-soft: 96 165 250; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='candy'] { --rv-accent: 244 114 182; --rv-accent-2: 167 139 250; --rv-accent-soft: 244 114 182; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='solar'] { --rv-accent: 251 146 60; --rv-accent-2: 253 224 71; --rv-accent-soft: 251 146 60; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='pulse'] { --rv-accent: 232 121 249; --rv-accent-2: 34 211 238; --rv-accent-soft: 232 121 249; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='citrus'] { --rv-accent: 163 230 53; --rv-accent-2: 251 146 60; --rv-accent-soft: 163 230 53; --rv-accent-contrast: 10 10 11; }
+html[data-ravin-palette='dusk'] { --rv-accent: 129 140 248; --rv-accent-2: 251 113 133; --rv-accent-soft: 129 140 248; --rv-accent-contrast: 10 10 11; }
+
+/* Relay palette set — light values. */
+html[data-theme='light'][data-ravin-palette='monochrome'] { --rv-accent: 17 17 17; --rv-accent-2: 17 17 17; --rv-accent-soft: 17 17 17; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='cobalt'] { --rv-accent: 37 99 235; --rv-accent-2: 37 99 235; --rv-accent-soft: 37 99 235; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='violet'] { --rv-accent: 124 58 237; --rv-accent-2: 124 58 237; --rv-accent-soft: 124 58 237; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='rose'] { --rv-accent: 225 29 72; --rv-accent-2: 225 29 72; --rv-accent-soft: 225 29 72; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='cyan'] { --rv-accent: 8 145 178; --rv-accent-2: 8 145 178; --rv-accent-soft: 8 145 178; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='emerald'] { --rv-accent: 5 150 105; --rv-accent-2: 5 150 105; --rv-accent-soft: 5 150 105; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='amber'] { --rv-accent: 217 119 6; --rv-accent-2: 217 119 6; --rv-accent-soft: 217 119 6; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='fuchsia'] { --rv-accent: 192 38 211; --rv-accent-2: 192 38 211; --rv-accent-soft: 192 38 211; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='scarlet'] { --rv-accent: 220 38 38; --rv-accent-2: 220 38 38; --rv-accent-soft: 220 38 38; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='orange'] { --rv-accent: 234 88 12; --rv-accent-2: 234 88 12; --rv-accent-soft: 234 88 12; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='lime'] { --rv-accent: 101 163 13; --rv-accent-2: 101 163 13; --rv-accent-soft: 101 163 13; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='sky'] { --rv-accent: 2 132 199; --rv-accent-2: 2 132 199; --rv-accent-soft: 2 132 199; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='indigo'] { --rv-accent: 79 70 229; --rv-accent-2: 79 70 229; --rv-accent-soft: 79 70 229; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='aurora'] { --rv-accent: 124 58 237; --rv-accent-2: 8 145 178; --rv-accent-soft: 124 58 237; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='ember'] { --rv-accent: 225 29 72; --rv-accent-2: 217 119 6; --rv-accent-soft: 225 29 72; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='tide'] { --rv-accent: 37 99 235; --rv-accent-2: 5 150 105; --rv-accent-soft: 37 99 235; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='candy'] { --rv-accent: 219 39 119; --rv-accent-2: 124 58 237; --rv-accent-soft: 219 39 119; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='solar'] { --rv-accent: 234 88 12; --rv-accent-2: 202 138 4; --rv-accent-soft: 234 88 12; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='pulse'] { --rv-accent: 192 38 211; --rv-accent-2: 8 145 178; --rv-accent-soft: 192 38 211; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='citrus'] { --rv-accent: 101 163 13; --rv-accent-2: 234 88 12; --rv-accent-soft: 101 163 13; --rv-accent-contrast: 255 255 255; }
+html[data-theme='light'][data-ravin-palette='dusk'] { --rv-accent: 79 70 229; --rv-accent-2: 225 29 72; --rv-accent-soft: 79 70 229; --rv-accent-contrast: 255 255 255; }
+
+.ravin-send { color: rgb(var(--rv-accent-contrast)) !important; }
+.ravin-status-pill i,
+.ravin-brand-mark::before,
+.ravin-thinking-dots i { background: rgb(var(--rv-accent)) !important; }
+.ravin-composer:focus-within,
+.ravin-search:focus { border-color: rgb(var(--rv-accent) / .46) !important; }
+
+/* Settings popover: Relay-sized, viewport-safe, and scrollable. */
+.ravin-settings-popover {
+  position: fixed !important;
+  left: auto !important;
+  right: 12px !important;
+  top: 64px !important;
+  width: min(34rem, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: calc(100vh - 76px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: 8px !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  z-index: 1200 !important;
+}
+.ravin-settings-popover > button,
+.ravin-settings-popover > hr { margin-inline: 4px; width: calc(100% - 8px) !important; }
+.ravin-settings-popover > button { min-height: 38px; padding-inline: 10px !important; }
+
+.ravin-experience-controls {
+  width: 100%;
+  margin: 6px 0 8px;
+  padding: 15px;
+  border: 1px solid rgb(var(--rv-line));
+  border-radius: 16px;
+  background: rgb(var(--rv-panel));
+  color: rgb(var(--rv-text));
+}
+.ravin-experience-head h3 { margin: 0; font: 600 14px/1.2 "Space Grotesk", Inter, sans-serif; }
+.ravin-experience-head p,
+.ravin-section-help { margin: 5px 0 0; color: rgb(var(--rv-faint)); font-size: 10.5px; line-height: 1.55; }
+
+.ravin-experience-options { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-top: 14px; }
+.ravin-settings-popover .ravin-experience-option {
+  width: 100% !important;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  padding: 11px !important;
+  border: 1px solid rgb(var(--rv-line)) !important;
+  border-radius: 12px !important;
+  background: rgb(var(--rv-bg)) !important;
+  color: rgb(var(--rv-text)) !important;
+  text-align: left !important;
+  position: relative;
+  box-shadow: none !important;
+}
+.ravin-settings-popover .ravin-experience-option:hover { transform: translateY(-1px); background: rgb(var(--rv-panel-2)) !important; }
+.ravin-settings-popover .ravin-experience-option.selected {
+  border-color: rgb(var(--rv-accent)) !important;
+  box-shadow: inset 0 0 0 1px rgb(var(--rv-accent) / .14) !important;
+}
+.ravin-settings-popover .ravin-experience-option.selected::after,
+.ravin-settings-popover .ravin-palette-option.selected::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgb(var(--rv-accent)), rgb(var(--rv-accent-2)));
+}
+.ravin-experience-option-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.ravin-experience-copy { min-width: 0; display: flex; flex-direction: column; }
+.ravin-experience-copy strong { font-size: 12px; line-height: 1.2; }
+.ravin-experience-copy small { margin-top: 3px; color: rgb(var(--rv-faint)); font: 600 8px/1.2 "IBM Plex Mono", monospace; letter-spacing: .11em; text-transform: uppercase; }
+.ravin-experience-description { display: block; flex: 1; margin-top: 9px; padding-right: 8px; color: rgb(var(--rv-faint)); font-size: 10px; line-height: 1.45; }
+
+.ravin-mode-preview {
+  width: 42px;
+  height: 27px;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid rgb(var(--rv-line));
+  border-radius: 8px;
+  background: rgb(var(--rv-panel));
+}
+.ravin-mode-preview i { display: block; width: 4px; border-radius: 999px; background: rgb(var(--rv-faint)); }
+.ravin-mode-preview i:nth-child(1) { height: 42%; }
+.ravin-mode-preview i:nth-child(2) { height: 88%; background: rgb(var(--rv-accent)); }
+.ravin-mode-preview i:nth-child(3) { height: 62%; }
+[data-experience-preview='still'] .ravin-mode-preview { border-radius: 2px; }
+[data-experience-preview='still'] .ravin-mode-preview i { height: 1px; width: 7px; border-radius: 0; }
+[data-experience-preview='nexus'] .ravin-mode-preview { border-radius: 2px; border-color: rgb(var(--rv-accent) / .48); }
+[data-experience-preview='nexus'] .ravin-mode-preview i { border-radius: 0; }
+[data-experience-preview='aura'] .ravin-mode-preview { border-radius: 999px; }
+[data-experience-preview='slate'] .ravin-mode-preview { align-items: stretch; border-radius: 0; }
+[data-experience-preview='slate'] .ravin-mode-preview i { width: 1px; height: 100%; border-radius: 0; }
+[data-experience-preview='spark'] .ravin-mode-preview i:nth-child(2) { transform: translateY(-2px) rotate(8deg); }
+[data-experience-preview='lucid'] .ravin-mode-preview { background: rgb(var(--rv-panel-3) / .48); box-shadow: 0 5px 13px rgb(var(--rv-text) / .08); backdrop-filter: blur(5px); }
+[data-experience-preview='vivid'] .ravin-mode-preview { align-items: center; justify-content: space-around; border-color: rgb(var(--rv-accent) / .24); background: linear-gradient(135deg, rgb(var(--rv-accent) / .15), rgb(var(--rv-accent) / .04)), rgb(var(--rv-panel)); }
+[data-experience-preview='vivid'] .ravin-mode-preview i { width: 5px; height: 72%; background: rgb(var(--rv-accent)); }
+[data-experience-preview='vivid'] .ravin-mode-preview i:nth-child(1) { opacity: .35; transform: translateY(2px); }
+[data-experience-preview='vivid'] .ravin-mode-preview i:nth-child(2) { opacity: 1; transform: translateY(-2px); }
+[data-experience-preview='vivid'] .ravin-mode-preview i:nth-child(3) { opacity: .62; transform: translateY(1px); }
+
+.ravin-experience-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgb(var(--rv-line)); }
+.ravin-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ravin-section-head strong,
+.ravin-intensity-head strong { color: rgb(var(--rv-muted)); font-size: 10.5px; font-weight: 600; }
+.ravin-section-head > span { color: rgb(var(--rv-faint)); font: 600 8px/1 "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; }
+.ravin-palette-group { margin-top: 11px; }
+.ravin-palette-group-label { margin: 0 0 6px; color: rgb(var(--rv-faint)); font: 600 8px/1 "IBM Plex Mono", monospace; letter-spacing: .13em; text-transform: uppercase; }
+.ravin-palette-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+.ravin-settings-popover .ravin-palette-option {
+  width: 100% !important;
+  min-width: 0;
+  min-height: 37px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  padding: 7px 9px !important;
+  border: 1px solid rgb(var(--rv-line)) !important;
+  border-radius: 9px !important;
+  background: rgb(var(--rv-bg)) !important;
+  color: rgb(var(--rv-text)) !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+.ravin-settings-popover .ravin-palette-option:hover { background: rgb(var(--rv-panel-2)) !important; transform: none; }
+.ravin-settings-popover .ravin-palette-option.selected { border-color: rgb(var(--rv-accent)) !important; box-shadow: inset 0 0 0 1px rgb(var(--rv-accent) / .14) !important; }
+.ravin-palette-swatch { width: 15px; height: 15px; flex: none; border-radius: 999px; background: linear-gradient(135deg, var(--swatch-dark-a), var(--swatch-dark-b)); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12); }
+html[data-theme='light'] .ravin-palette-swatch { background: linear-gradient(135deg, var(--swatch-light-a), var(--swatch-light-b)); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08); }
+.ravin-palette-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; }
+.ravin-duo-tag { flex: none; margin-right: 7px; color: rgb(var(--rv-faint)); font: 600 7px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+
+.ravin-intensity-setting { display: block; }
+.ravin-intensity-head { display: flex; align-items: center; justify-content: space-between; }
+.ravin-intensity-head output { color: rgb(var(--rv-muted)); font: 500 9px/1 "IBM Plex Mono", monospace; }
+.ravin-experience-intensity { width: 100%; height: 18px; margin-top: 9px; appearance: none; background: transparent; cursor: pointer; accent-color: rgb(var(--rv-accent)); }
+.ravin-experience-intensity::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, rgb(var(--rv-accent)), rgb(var(--rv-accent-2)) var(--particle-fill,55%), rgb(var(--rv-line)) var(--particle-fill,55%) 100%); }
+.ravin-experience-intensity::-webkit-slider-thumb { width: 17px; height: 17px; margin-top: -6.5px; appearance: none; border: 2px solid rgb(var(--rv-panel)); border-radius: 999px; background: rgb(var(--rv-accent)); box-shadow: 0 0 0 1px rgb(var(--rv-accent) / .22); }
+.ravin-experience-intensity::-moz-range-track { height: 4px; border-radius: 999px; background: rgb(var(--rv-line)); }
+.ravin-experience-intensity::-moz-range-progress { height: 4px; border-radius: 999px; background: linear-gradient(to right, rgb(var(--rv-accent)), rgb(var(--rv-accent-2))); }
+.ravin-experience-intensity::-moz-range-thumb { width: 15px; height: 15px; border: 2px solid rgb(var(--rv-panel)); border-radius: 999px; background: rgb(var(--rv-accent)); }
+.ravin-intensity-hints { display: flex; justify-content: space-between; margin-top: 2px; color: rgb(var(--rv-faint)); font: 600 7px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+
+.ravin-settings-popover .ravin-lock-in-toggle {
+  width: 100% !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px !important;
+  border: 1px solid rgb(var(--rv-line)) !important;
+  border-radius: 12px !important;
+  background: rgb(var(--rv-bg)) !important;
+  color: rgb(var(--rv-text)) !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+.ravin-settings-popover .ravin-lock-in-toggle:hover { background: rgb(var(--rv-panel-2)) !important; transform: none; }
+.ravin-settings-popover .ravin-lock-in-toggle.selected { border-color: rgb(var(--rv-accent)) !important; box-shadow: inset 0 0 0 1px rgb(var(--rv-accent) / .14) !important; }
+.ravin-lock-in-icon { width: 35px; height: 35px; flex: none; display: grid; place-items: center; border: 1px solid rgb(var(--rv-line)); border-radius: 9px; color: rgb(var(--rv-muted)); }
+.ravin-lock-in-icon svg { width: 17px; height: 17px; }
+.ravin-lock-in-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.ravin-lock-in-copy strong { font-size: 11px; }
+.ravin-lock-in-copy small { margin-top: 3px; color: rgb(var(--rv-faint)); font-size: 9px; line-height: 1.4; }
+.ravin-lock-in-switch { width: 36px; height: 20px; flex: none; padding: 3px; border-radius: 999px; background: rgb(var(--rv-line)); transition: background-color 180ms ease; }
+.ravin-lock-in-switch i { display: block; width: 14px; height: 14px; border-radius: 999px; background: rgb(var(--rv-panel)); box-shadow: 0 1px 3px rgb(var(--rv-text) / .2); transition: transform 180ms cubic-bezier(.22,1,.36,1); }
+.ravin-lock-in-toggle.selected .ravin-lock-in-switch { background: linear-gradient(120deg, rgb(var(--rv-accent)), rgb(var(--rv-accent-2))); }
+.ravin-lock-in-toggle.selected .ravin-lock-in-switch i { transform: translateX(16px); }
+.ravin-lock-in-toggle.selected .ravin-lock-in-icon { border-color: rgb(var(--rv-accent) / .45); color: rgb(var(--rv-accent)); background: rgb(var(--rv-accent) / .07); }
+
+.ravin-experience-footer { margin-top: 13px; }
+.ravin-settings-popover .ravin-reset-experience { width: 100% !important; min-height: 38px; border: 1px solid rgb(var(--rv-line)) !important; border-radius: 9px !important; background: rgb(var(--rv-bg)) !important; color: rgb(var(--rv-text)) !important; text-align: center !important; font-size: 10px !important; font-weight: 600; }
+.ravin-settings-popover .ravin-reset-experience:hover { background: rgb(var(--rv-panel-2)) !important; transform: none; }
+.ravin-experience-footer p { margin: 6px 0 0; color: rgb(var(--rv-faint)); font-size: 8.5px; text-align: center; }
+
+/* FLOW — balanced Resonant default. */
+html[data-ravin-experience='flow'] .ravin-workspace {
+  background: linear-gradient(120deg, rgb(var(--rv-panel) / .16), transparent 22% 78%, rgb(var(--rv-panel) / .12)), rgb(var(--rv-bg)) !important;
+}
+html[data-ravin-experience='flow'] .ravin-composer { box-shadow: 0 14px 42px rgb(0 0 0 / .18) !important; }
+html[data-ravin-experience='flow'] .ravin-header { backdrop-filter: blur(12px) !important; }
+html[data-ravin-experience='flow'] .ravin-main::before { content: ''; position: absolute; z-index: 16; top: var(--header-height); left: 12%; width: 16%; height: 1px; pointer-events: none; background: linear-gradient(90deg, transparent, rgb(var(--rv-accent) / .48), rgb(var(--rv-accent-2) / .4), transparent); opacity: var(--ravin-experience-intensity); }
+
+/* STILL — quiet, flat, immediate. */
+html[data-ravin-experience='still'] .ravin-workspace,
+html[data-ravin-experience='still'] body { background: rgb(var(--rv-bg)) !important; }
+html[data-ravin-experience='still'] .ravin-sidebar,
+html[data-ravin-experience='still'] .ravin-header,
+html[data-ravin-experience='still'] .ravin-context,
+html[data-ravin-experience='still'] .ravin-composer { backdrop-filter: none !important; box-shadow: none !important; }
+html[data-ravin-experience='still'] .ravin-composer-zone { background: rgb(var(--rv-bg)) !important; }
+html[data-ravin-experience='still'] :is(.ravin-sidebar-action,.ravin-history-item,.ravin-clean-nav-item,.ravin-icon-button,.ravin-composer,.ravin-context-card,.ravin-mode-switch) { border-radius: 6px !important; }
+html[data-ravin-experience='still'] :is(button:not(:disabled),a[href]) { transition-property: color,background-color,border-color,opacity !important; transition-duration: 110ms !important; }
+html[data-ravin-experience='still'] :is(button:not(:disabled),a[href]):hover { transform: none !important; }
+
+/* NEXUS — angular technical network. */
+html[data-ravin-experience='nexus'] .ravin-workspace {
+  background-color: rgb(var(--rv-bg)) !important;
+  background-image: linear-gradient(rgb(var(--rv-text) / .035) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--rv-text) / .035) 1px, transparent 1px) !important;
+  background-size: 34px 34px !important;
+}
+html[data-ravin-experience='nexus'] :is(.ravin-sidebar,.ravin-header,.ravin-context,.ravin-composer,.ravin-context-card,.ravin-mode-switch,.ravin-history-item,.ravin-sidebar-action,.ravin-clean-nav-item) { border-radius: 3px !important; }
+html[data-ravin-experience='nexus'] :is(.ravin-sidebar,.ravin-header,.ravin-context,.ravin-composer) { border-color: rgb(var(--rv-accent) / .28) !important; }
+html[data-ravin-experience='nexus'] :is(.ravin-header-title small,.ravin-section-label,.ravin-composer-meta) { color: rgb(var(--rv-accent) / .75) !important; }
+html[data-ravin-experience='nexus'] .ravin-composer { box-shadow: 0 0 calc(30px * var(--ravin-experience-intensity)) rgb(var(--rv-accent) / .075) !important; }
+html[data-ravin-experience='nexus'] .ravin-brand-copy strong,
+html[data-ravin-experience='nexus'] .ravin-header-title strong { font-family: "IBM Plex Mono", monospace !important; letter-spacing: .04em !important; }
+
+/* AURA — soft geometry and calm spacing. */
+html[data-ravin-experience='aura'] .ravin-workspace {
+  background: radial-gradient(circle at 18% 0%, rgb(var(--rv-text) / .025), transparent 34%), radial-gradient(circle at 88% 100%, rgb(var(--rv-text) / .018), transparent 38%), rgb(var(--rv-bg)) !important;
+}
+html[data-ravin-experience='aura'] :is(.ravin-sidebar-action,.ravin-history-item,.ravin-clean-nav-item,.ravin-context-card,.ravin-mode-switch) { border-radius: 15px !important; }
+html[data-ravin-experience='aura'] .ravin-composer { border-radius: 22px !important; box-shadow: 0 22px 56px rgb(0 0 0 / .12) !important; }
+html[data-ravin-experience='aura'] .ravin-sidebar,
+html[data-ravin-experience='aura'] .ravin-header { backdrop-filter: blur(18px) !important; }
+html[data-ravin-experience='aura'] .ravin-context-card { box-shadow: 0 9px 26px rgb(0 0 0 / .05) !important; }
+
+/* SLATE — editorial and orderly. */
+html[data-ravin-experience='slate'] .ravin-workspace {
+  background: linear-gradient(90deg, transparent calc(50% - .5px), rgb(var(--rv-line) / .36) 50%, transparent calc(50% + .5px)), rgb(var(--rv-bg)) !important;
+}
+html[data-ravin-experience='slate'] :is(.ravin-sidebar,.ravin-header,.ravin-context) { background: rgb(var(--rv-bg)) !important; backdrop-filter: none !important; }
+html[data-ravin-experience='slate'] :is(.ravin-sidebar-action,.ravin-history-item,.ravin-clean-nav-item,.ravin-context-card,.ravin-mode-switch,.ravin-composer) { border-radius: 2px !important; box-shadow: none !important; }
+html[data-ravin-experience='slate'] .ravin-empty h1,
+html[data-ravin-experience='slate'] .ravin-header-title strong { font-family: Georgia, "Times New Roman", serif !important; letter-spacing: -.025em !important; }
+html[data-ravin-experience='slate'] .ravin-history-item.active { border-left: 2px solid rgb(var(--rv-accent)) !important; background: transparent !important; }
+
+/* SPARK — round, springy, playful. */
+html[data-ravin-experience='spark'] .ravin-workspace {
+  background-color: rgb(var(--rv-bg)) !important;
+  background-image: radial-gradient(circle, rgb(var(--rv-text) / .045) 1px, transparent 1.2px) !important;
+  background-size: 28px 28px !important;
+}
+html[data-ravin-experience='spark'] :is(.ravin-sidebar-action,.ravin-history-item,.ravin-clean-nav-item,.ravin-context-card,.ravin-mode-switch) { border-radius: 16px !important; }
+html[data-ravin-experience='spark'] .ravin-composer { border-radius: 20px !important; box-shadow: 0 16px 45px rgb(0 0 0 / .14) !important; }
+html[data-ravin-experience='spark'] :is(button:not(:disabled),a[href]) { transition-timing-function: cubic-bezier(.2,1.35,.35,1) !important; }
+html[data-ravin-experience='spark'] .ravin-history-item.active { box-shadow: 0 0 0 3px rgb(var(--rv-accent) / .08) !important; }
+
+/* LUCID — neutral glass and layered depth. */
+html[data-ravin-experience='lucid'] .ravin-workspace {
+  background: radial-gradient(circle at 14% 8%, rgb(var(--rv-text) / .055), transparent 35%), radial-gradient(circle at 90% 90%, rgb(var(--rv-text) / .035), transparent 42%), rgb(var(--rv-bg)) !important;
+}
+html[data-ravin-experience='lucid'] :is(.ravin-sidebar,.ravin-header,.ravin-context,.ravin-composer) {
+  background: rgb(var(--rv-panel) / .62) !important;
+  backdrop-filter: blur(22px) saturate(1.1) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08) !important;
+}
+html[data-ravin-experience='lucid'] .ravin-composer { border-radius: 18px !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / .1), 0 24px 64px rgb(0 0 0 / .16) !important; }
+html[data-ravin-experience='lucid'] .ravin-context-card { background: rgb(var(--rv-panel-2) / .58) !important; backdrop-filter: blur(16px) saturate(1.08) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / .07), 0 10px 32px rgb(0 0 0 / .08) !important; }
+
+/* VIVID — palette-forward surfaces, matching Relay's color-rich intent. */
+html[data-ravin-experience='vivid'] .ravin-workspace {
+  background: radial-gradient(circle at 10% 8%, rgb(var(--rv-accent) / .09), transparent 32%), radial-gradient(circle at 90% 90%, rgb(var(--rv-accent) / .055), transparent 36%), rgb(var(--rv-bg)) !important;
+}
+html[data-ravin-experience='vivid'] :is(.ravin-sidebar,.ravin-header,.ravin-context) {
+  border-color: rgb(var(--rv-accent) / .16) !important;
+  background: linear-gradient(125deg, rgb(var(--rv-accent) / .035), transparent 42%), rgb(var(--rv-bg) / .95) !important;
+}
+html[data-ravin-experience='vivid'] .ravin-context-card,
+html[data-ravin-experience='vivid'] .ravin-composer,
+html[data-ravin-experience='vivid'] .ravin-history-item.active,
+html[data-ravin-experience='vivid'] .ravin-mode-switch button.active {
+  border-color: rgb(var(--rv-accent) / .22) !important;
+  background-image: linear-gradient(145deg, rgb(var(--rv-accent) / .075), transparent 56%) !important;
+  box-shadow: inset 0 1px rgb(var(--rv-accent) / .06), 0 8px 24px rgb(var(--rv-accent) / .045) !important;
+}
+html[data-ravin-experience='vivid'] .ravin-send { background: linear-gradient(120deg, rgb(var(--rv-accent)), rgb(var(--rv-accent-2))) !important; box-shadow: 0 7px 18px rgb(var(--rv-accent) / .13) !important; }
+html[data-ravin-experience='vivid'] .ravin-history-item.active { color: rgb(var(--rv-accent)) !important; box-shadow: inset 3px 0 rgb(var(--rv-accent)), 0 6px 18px rgb(var(--rv-accent) / .07) !important; }
+html[data-ravin-experience='vivid'] .ravin-popover { border-color: rgb(var(--rv-accent) / .18) !important; background: linear-gradient(145deg, rgb(var(--rv-accent) / .025), transparent 50%), rgb(var(--rv-panel-2) / .97) !important; }
+
+/* Lock-In — suppress nonessential attention signals regardless of mode. */
+html[data-ravin-lock-in='true'] .ravin-workspace { background: rgb(var(--rv-bg)) !important; background-image: none !important; }
+html[data-ravin-lock-in='true'] .ravin-main::before { display: none !important; }
+html[data-ravin-lock-in='true'] :is(.ravin-brand-mark::before,.ravin-status-pill i) { box-shadow: none !important; }
+html[data-ravin-lock-in='true'] #ravinApp :is(button:not(:disabled),a[href],.ravin-message,.ravin-context) { animation: none !important; transition-duration: 80ms !important; }
+html[data-ravin-lock-in='true'] #ravinApp :is(button:not(:disabled),a[href]):hover { transform: none !important; }
+html[data-ravin-lock-in='true'] .ravin-composer,
+html[data-ravin-lock-in='true'] .ravin-context-card { box-shadow: none !important; }
+
+@media (max-width: 700px) {
+  .ravin-settings-popover { left: 10px !important; right: 10px !important; top: 58px !important; width: auto !important; max-width: none !important; max-height: calc(100vh - 68px) !important; }
+  .ravin-experience-controls { padding: 12px; }
+  .ravin-experience-options { grid-template-columns: 1fr; }
+  .ravin-palette-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ravin-experience-controls *,
+  #ravinApp * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
