@@ -1,11 +1,18 @@
 {
   "name": "ravin",
   "version": "0.1.0",
-  "description": "RAVIN - a personal AI assistant with a Jarvis-style personality",
+  "private": true,
+  "description": "RAVIN — the Resonant Assist AI workspace and intelligence platform.",
   "type": "module",
   "main": "src/index.js",
   "engines": { "node": ">=22" },
-  "scripts": { "start": "node src/index.js", "web": "node server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "web": "node server.js",
+    "agent": "node src/index.js",
+    "check": "node scripts/check.mjs",
+    "test": "npm run check"
+  },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
