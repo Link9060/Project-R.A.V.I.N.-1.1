@@ -8,7 +8,23 @@
 .ravin-message:not(.user) .ravin-message-body { grid-column:2; justify-self:start; max-width:100%; }
 .ravin-message.user { grid-template-columns:minmax(0,1fr) 74px; }
 .ravin-message.user .ravin-message-role { grid-column:2; grid-row:1; text-align:right; }
-.ravin-message.user .ravin-message-body { grid-column:1; grid-row:1; justify-self:end; max-width:min(78%,620px); text-align:left; }
+.ravin-message.user .ravin-message-body {
+  grid-column:1;
+  grid-row:1;
+  justify-self:end;
+  width:max-content;
+  max-width:min(78%,620px);
+  text-align:left;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+.ravin-message.user .ravin-message-actions {
+  grid-column:1;
+  justify-self:end;
+  justify-content:flex-end;
+  width:max-content;
+  max-width:100%;
+}
 .ravin-message.user .ravin-message-time { text-align:right; }
 
 /* Dynamic viewport units avoid Safari's expanding/collapsing toolbar bug. */
@@ -16,9 +32,13 @@ html,body { min-height:100%; min-height:100dvh; }
 #ravinApp { height:100%; height:100dvh; }
 .ravin-main,.ravin-workspace,.ravin-chat-column { min-height:0; }
 .ravin-messages { -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y; }
-.ravin-composer input { font-size:max(16px,1em); }
+.ravin-composer input,
+.ravin-composer textarea { font-size:max(16px,1em); }
 
-@media (min-width:701px) { .ravin-composer input { font-size:12px; } }
+@media (min-width:701px) {
+  .ravin-composer input,
+  .ravin-composer textarea { font-size:12px; }
+}
 
 @media (max-width:700px) {
   :root { --header-height:54px; }
@@ -55,7 +75,14 @@ html,body { min-height:100%; min-height:100dvh; }
   .ravin-message.user .ravin-message-role { text-align:right; }
   .ravin-message-body { width:auto; max-width:min(88%,34rem); font-size:13px; }
   .ravin-message:not(.user) .ravin-message-body { max-width:92%; }
-  .ravin-message.user .ravin-message-body { justify-self:auto; max-width:88%; }
+  .ravin-message.user .ravin-message-body {
+    justify-self:auto;
+    width:auto;
+    max-width:88%;
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+  .ravin-message.user .ravin-message-actions { width:auto; max-width:88%; align-self:flex-end; }
 
   /* Keep the spatial effect, but shrink its invisible field on phones so
      both text lanes remain readable. */
@@ -69,7 +96,8 @@ html,body { min-height:100%; min-height:100dvh; }
   .ravin-composer { width:100%; border-radius:16px; }
   .ravin-composer-row { min-height:50px; }
   .ravin-add,.ravin-send { flex:none; min-width:40px; min-height:40px; }
-  .ravin-composer input { width:100%; min-width:0; font-size:16px; }
+  .ravin-composer input,
+  .ravin-composer textarea { width:100%; min-width:0; font-size:16px; }
   .ravin-composer-meta { padding-bottom:7px; }
 
   .ravin-popover { max-width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
