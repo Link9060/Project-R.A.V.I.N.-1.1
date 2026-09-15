@@ -231,7 +231,7 @@
 
     const history = document.getElementById("historyList");
     if (history) {
-      new MutationObserver(() => scheduleSync(false)).observe(history, { childList: true, subtree: false });
+      new MutationObserver(() => scheduleSync(true)).observe(history, { childList: true, subtree: false });
     }
   }
 
