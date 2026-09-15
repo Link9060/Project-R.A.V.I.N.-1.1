@@ -88,7 +88,8 @@
     migrateLegacyPreferences();
     const rawExperience = localStorage.getItem(EXPERIENCE_KEY);
     const rawPalette = localStorage.getItem(PALETTE_KEY);
-    const rawIntensity = Number(localStorage.getItem(INTENSITY_KEY));
+    const storedIntensity = localStorage.getItem(INTENSITY_KEY);
+    const rawIntensity = storedIntensity == null ? NaN : Number(storedIntensity);
     return {
       experience: EXPERIENCE_IDS.has(rawExperience) ? rawExperience : DEFAULT_EXPERIENCE,
       palette: PALETTE_IDS.has(rawPalette) ? rawPalette : DEFAULT_PALETTE,
