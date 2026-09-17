@@ -72,6 +72,38 @@ button { -webkit-tap-highlight-color: transparent; }
   background: rgb(var(--ravin-danger) / .08);
 }
 
+/* Authoritative chat geometry --------------------------------------------
+   This layer loads last. Keep user messages in the wide first grid column;
+   ravin-clean.css intentionally uses a role-first grid for assistant rows. */
+.ravin-message.user {
+  grid-template-columns: minmax(0, 1fr) 60px !important;
+}
+.ravin-message.user .ravin-message-role {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  text-align: right !important;
+}
+.ravin-message.user .ravin-message-body {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: min(78%, 620px) !important;
+  text-align: left !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+.ravin-message.user .ravin-message-actions {
+  grid-column: 1 !important;
+  justify-self: end !important;
+  justify-content: flex-end !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+.ravin-message.user .ravin-message-time { text-align: right !important; }
+
 /* Composer ---------------------------------------------------------------- */
 .ravin-composer-row { align-items: flex-end !important; }
 .ravin-composer textarea {
@@ -255,6 +287,7 @@ button { -webkit-tap-highlight-color: transparent; }
   .ravin-composer-hint { display: none; }
   .ravin-settings-popover { width: calc(100vw - 18px) !important; max-height: calc(100vh - 18px) !important; }
   .ravin-product-toast { bottom: 18px; }
+  .ravin-message.user .ravin-message-body { width: auto !important; max-width: 88% !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
