@@ -401,10 +401,22 @@
       return;
     }
     const filesById = await messageFileMap(visible);
+    const legacySeenFileIds = new Set();
     visible.forEach((row) => {
-      const files = (Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids : [])
-        .map((id) => filesById.get(id))
-        .filter(Boolean);
+      const ids = Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids : [];
+      const source = row?.metadata?.file_context?.source || "";
+      let visibleIds = [];
+
+      if (row.role === "user" && (source === "attached_now" || source === "recent_library")) {
+        visibleIds = ids;
+      } else if (row.role === "user" && !source) {
+        // Older messages predate attachment-source metadata. Show a legacy file
+        // only on its first appearance so carried context doesn't repeat forever.
+        visibleIds = ids.filter((id) => !legacySeenFileIds.has(id));
+      }
+
+      ids.forEach((id) => legacySeenFileIds.add(id));
+      const files = visibleIds.map((id) => filesById.get(id)).filter(Boolean);
       appendMessage(row.role, row.content, row.created_at, false, files);
     });
     updateContext(visible.length);
