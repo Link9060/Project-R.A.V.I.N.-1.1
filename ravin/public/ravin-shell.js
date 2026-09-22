@@ -330,7 +330,37 @@
     updateContext(0);
   }
 
-  function appendMessage(role, text, createdAt = new Date(), animate = false) {
+  function formatMessageFileBytes(value) {
+    const bytes = Number(value || 0);
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  }
+
+  function renderMessageFileCards(body, files = []) {
+    if (!body || !files.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'ravin-message-files';
+    for (const file of files) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'ravin-message-file';
+      const name = file.file_name || 'Attached file';
+      const ext = String(name).includes('.') ? String(name).split('.').pop().toUpperCase() : 'FILE';
+      chip.innerHTML = '<span class="ravin-message-file-icon"></span><span class="ravin-message-file-copy"><strong></strong><small></small></span>';
+      $('.ravin-message-file-icon', chip).textContent = ext.slice(0, 4);
+      $('.ravin-message-file-copy strong', chip).textContent = name;
+      $('.ravin-message-file-copy small', chip).textContent = [ext, formatMessageFileBytes(file.size_bytes)].filter(Boolean).join(' · ') || 'RAVIN FILE';
+      chip.title = `Open ${name} in RAVIN Files`;
+      chip.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('ravin:open-files', { detail: { fileId: file.id || '' } }));
+      });
+      wrap.appendChild(chip);
+    }
+    body.appendChild(wrap);
+  }
+
+  function appendMessage(role, text, createdAt = new Date(), animate = false, files = []) {
     const root = $('#messages');
     if (!root) return null;
     $('.ravin-empty', root)?.remove();
@@ -340,6 +370,7 @@
     article.innerHTML = `<div class="ravin-message-role">${role === 'assistant' ? 'RAVIN' : role === 'user' ? 'YOU' : 'SYSTEM'}</div><div class="ravin-message-body"></div>`;
     const body = $('.ravin-message-body', article);
     body.textContent = String(text ?? '');
+    renderMessageFileCards(body, files);
     const stamp = document.createElement('span');
     stamp.className = 'ravin-message-time';
     stamp.textContent = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -348,7 +379,20 @@
     return article;
   }
 
-  function renderMessages(rows = []) {
+  async function messageFileMap(rows = []) {
+    const ids = [...new Set(rows.flatMap((row) => Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids : []).filter(Boolean))];
+    if (!ids.length || !currentUser()?.id) return new Map();
+    try {
+      const files = await supabase(`/rest/v1/files?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,file_name,mime_type,size_bytes,created_at&order=created_at.desc&limit=200`);
+      const wanted = new Set(ids);
+      return new Map((Array.isArray(files) ? files : []).filter((file) => wanted.has(file.id)).map((file) => [file.id, file]));
+    } catch (error) {
+      console.warn('[RAVIN message files]', error);
+      return new Map();
+    }
+  }
+
+  async function renderMessages(rows = []) {
     const root = $('#messages');
     root.replaceChildren();
     const visible = rows.filter((row) => row.role === 'user' || row.role === 'assistant');
@@ -356,7 +400,13 @@
       emptyState();
       return;
     }
-    visible.forEach((row) => appendMessage(row.role, row.content, row.created_at, false));
+    const filesById = await messageFileMap(visible);
+    visible.forEach((row) => {
+      const files = (Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids : [])
+        .map((id) => filesById.get(id))
+        .filter(Boolean);
+      appendMessage(row.role, row.content, row.created_at, false, files);
+    });
     updateContext(visible.length);
     requestAnimationFrame(() => {
       const scroller = $('#messageScroller');
@@ -424,11 +474,11 @@
     $('#headerConversationTitle').textContent = row.title || 'Untitled conversation';
     $('#messages').innerHTML = '<div class="ravin-shell-loading"><i></i><span>Loading conversation</span></div>';
     try {
-      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,created_at&order=created_at.asc&limit=250`);
-      renderMessages(Array.isArray(messages) ? messages : []);
+      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,metadata,created_at&order=created_at.asc&limit=250`);
+      await renderMessages(Array.isArray(messages) ? messages : []);
     } catch (error) {
       console.error('[RAVIN messages]', error);
-      renderMessages([]);
+      await renderMessages([]);
       appendMessage('error', `Couldn't load this conversation: ${error.message || error}`);
     }
   }
