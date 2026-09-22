@@ -514,7 +514,13 @@ export function registerV02Routes(app) {
         role: "user",
         content: message,
         token: auth.token,
-        metadata: { mode, environment, memory_enabled: memoryEnabled, attachment_ids: attachmentIds },
+        metadata: {
+          mode,
+          environment,
+          memory_enabled: memoryEnabled,
+          attachment_ids: attachmentIds,
+          file_context: req.body?.ravin_file_context || null,
+        },
       });
 
       sendEvent(res, "meta", {
