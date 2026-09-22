@@ -294,3 +294,40 @@ button { -webkit-tap-highlight-color: transparent; }
   .ravin-shell-loading i,
   .ravin-product-toast { animation: none !important; }
 }
+
+
+/* Sidebar overflow / history geometry ------------------------------------- */
+.ravin-sidebar {
+  min-width: 0;
+  overflow: hidden;
+}
+.ravin-history {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-right: 0 !important;
+}
+.ravin-history-row {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block !important;
+  position: relative;
+}
+.ravin-history-row .ravin-history-item {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-right: 38px !important;
+}
+.ravin-history-copy,
+.ravin-history-title {
+  min-width: 0;
+  max-width: 100%;
+}
+.ravin-history-delete {
+  position: absolute;
+  top: 7px;
+  right: 4px;
+  z-index: 2;
+}
