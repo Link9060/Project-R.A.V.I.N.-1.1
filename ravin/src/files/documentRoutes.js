@@ -175,6 +175,66 @@ async function recentConversationAttachmentIds(conversationId, auth) {
   return [];
 }
 
+const FILE_QUERY_STOP_WORDS = new Set([
+  "a", "an", "and", "are", "can", "could", "do", "does", "file", "files", "for", "from", "have", "homework",
+  "i", "in", "is", "it", "me", "my", "of", "on", "or", "please", "pull", "read", "recent", "see", "show",
+  "that", "the", "this", "to", "up", "upload", "uploaded", "was", "what", "with", "you",
+]);
+
+function fileQueryTokens(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\.[a-z0-9]{2,8}\b/g, " ")
+    .match(/[a-z]+|\d+(?:\.\d+)?/g)?.filter((token) => token.length > 1 && !FILE_QUERY_STOP_WORDS.has(token)) || [];
+}
+
+function fileIntent(value) {
+  return /\b(file|files|pdf|document|doc|worksheet|work\s*sheet|ws|homework|assignment|notes?|slides?|presentation|upload(?:ed)?|attachment|image|photo|screenshot)\b/i.test(String(value || ""))
+    || /\.(pdf|docx?|pptx?|xlsx?|txt|md|csv|png|jpe?g|webp)\b/i.test(String(value || ""));
+}
+
+function fileRelevanceScore(row, query) {
+  const queryTokens = fileQueryTokens(query);
+  const name = String(row?.file_name || "").toLowerCase();
+  const stem = name.replace(/\.[^.]+$/, "");
+  const nameTokens = new Set(fileQueryTokens(stem));
+  let score = 0;
+
+  for (const token of queryTokens) {
+    if (nameTokens.has(token)) score += /^\d/.test(token) ? 7 : 5;
+    else if (token.length >= 3 && stem.includes(token)) score += 2.5;
+  }
+
+  const compactQuery = queryTokens.join(" ");
+  if (compactQuery && stem.includes(compactQuery)) score += 10;
+
+  const created = new Date(row?.created_at || 0).getTime();
+  const ageDays = created ? Math.max(0, (Date.now() - created) / 86_400_000) : 365;
+  score += Math.max(0, 4 - Math.log2(ageDays + 1));
+
+  if (row?.metadata?.text_content) score += 1.25;
+  if (/pdf|text|document/i.test(String(row?.metadata?.document_kind || row?.mime_type || ""))) score += .5;
+  return score;
+}
+
+async function recentRelevantFileRows(query, auth, limit = MAX_ATTACHMENTS) {
+  const rows = await supabaseRequest(
+    `/rest/v1/files?user_id=eq.${encodeURIComponent(auth.user.id)}&select=id,file_name,mime_type,size_bytes,storage_path,metadata,project_id,created_at&order=created_at.desc&limit=24`,
+    { token: auth.token },
+  );
+  if (!rows?.length) return [];
+
+  const ranked = rows
+    .map((row, index) => ({ row, index, score: fileRelevanceScore(row, query) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+
+  const meaningful = ranked.filter((item) => item.score >= 4.5).slice(0, limit);
+  // If the request is clearly about a file but naming is vague, inspect the
+  // newest few documents rather than making the user remember an exact filename.
+  const selected = meaningful.length ? meaningful : ranked.slice(0, Math.min(3, limit));
+  return selected.map((item) => item.row);
+}
+
 export function registerDocumentRoutes(app) {
   // Keep the most recent attachment set available to follow-up turns. This runs
   // before v0.2 chat, so the stable stream route receives ordinary attachment_ids.
@@ -186,19 +246,35 @@ export function registerDocumentRoutes(app) {
       const explicit = Array.isArray(req.body?.attachment_ids)
         ? req.body.attachment_ids.filter(Boolean).slice(0, MAX_ATTACHMENTS)
         : [];
+      const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+      const workMode = String(req.body?.mode || "").toLowerCase() === "work";
+      const inherited = explicit.length
+        ? []
+        : await recentConversationAttachmentIds(req.body?.conversation_id, auth);
+      const autoRows = (!explicit.length && workMode && fileIntent(message))
+        ? await recentRelevantFileRows(message, auth, MAX_ATTACHMENTS)
+        : [];
+      const autoIds = autoRows.map((row) => row.id).filter(Boolean);
       const ids = explicit.length
         ? explicit
-        : await recentConversationAttachmentIds(req.body?.conversation_id, auth);
+        : [...new Set([...autoIds, ...inherited])].slice(0, MAX_ATTACHMENTS);
 
       if (ids.length) {
         // Old uploads created before document extraction was enabled are upgraded
-        // lazily the first time the conversation uses them again.
+        // lazily the first time Work mode needs them.
         for (const id of ids) {
           const row = await getFileRow(id, auth);
           if (row) await ensureExtracted(row, auth);
         }
         req.body.attachment_ids = ids;
       }
+
+      req.body.ravin_file_context = {
+        searched_library: Boolean(workMode && fileIntent(message) && !explicit.length),
+        source: explicit.length ? "attached_now" : autoIds.length ? "recent_library" : inherited.length ? "conversation" : "none",
+        matched_ids: autoIds,
+        matched_names: autoRows.map((row) => row.file_name),
+      };
     } catch (error) {
       // Attachment carry-forward should never take chat down. The downstream
       // route can still answer without inherited context if this helper fails.
