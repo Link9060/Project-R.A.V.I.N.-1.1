@@ -293,8 +293,8 @@ async function buildAttachmentContext(ids, auth, mode) {
 
 function buildModelMessages({ priorMessages, userText, memoryText, attachmentText, images, environment, mode }) {
   const modeInstruction = mode === "work"
-    ? "WORK MODE: Handle complex reasoning, planning, coding, file/image analysis, and structured tasks carefully. Customer Work mode has no source-code self-modification privileges."
-    : "CONVERSATION MODE: Be quick, natural, conversational, and concise unless the user asks for depth.";
+    ? "WORK MODE: Handle complex reasoning, planning, coding, file/image analysis, and structured tasks carefully. Customer Work mode has no source-code self-modification privileges. Uploaded/recent file contents are supplied directly in ATTACHMENT CONTEXT when available. Use that context immediately; do not ask the user for an exact filename when relevant file context is already present. This streaming chat has NO model-emitted tool-call protocol: never output internal syntax such as <|tool_call|>, <|tool_call>, call:file_analysis, function calls, or tool JSON. Answer the user directly."
+    : "CONVERSATION MODE: Be quick, natural, conversational, and concise unless the user asks for depth. Never output internal tool-call syntax or fake function calls.";
 
   const system = [RAVIN_SYSTEM_PROMPT, modeInstruction, capabilityContext(environment), memoryText];
   if (attachmentText) system.push(`ATTACHMENT CONTEXT:\n${attachmentText}`);
@@ -325,6 +325,16 @@ function sendEvent(res, event, data) {
   if (res.writableEnded || res.destroyed) return;
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function containsInternalToolSyntax(value) {
+  return /<\|?tool_call\|?>|\bcall:[a-z0-9_.-]+\s*[{(]/i.test(String(value || ""));
+}
+
+function cleanVisibleReply(value) {
+  const text = String(value || "").trim();
+  if (!containsInternalToolSyntax(text)) return text;
+  return "";
 }
 
 function parseJsonArray(value) {
@@ -514,6 +524,7 @@ export function registerV02Routes(app) {
         environment,
         memory_enabled: memoryEnabled,
         attachments: attachments.files.map((file) => ({ id: file.id, name: file.file_name, type: file.mime_type })),
+        file_context: req.body?.ravin_file_context || null,
         memory_hits: (memories.permanent?.length || 0) + (memories.project?.length || 0) + (memories.session?.length || 0),
       });
 
@@ -527,15 +538,60 @@ export function registerV02Routes(app) {
         mode,
       });
 
+      let streamProbe = "";
+      let streamReleased = false;
+      let internalToolLeak = false;
       const result = await streamChatWithCloudflare(modelMessages, {
         mode,
         tools: [],
         temperature: mode === "work" ? 0.3 : 0.7,
         maxTokens: mode === "work" ? 1900 : 850,
-      }, (token) => sendEvent(res, "token", { text: token }));
+      }, (token) => {
+        if (internalToolLeak) return;
+        if (!streamReleased) {
+          streamProbe += token || "";
+          if (containsInternalToolSyntax(streamProbe)) {
+            internalToolLeak = true;
+            streamProbe = "";
+            return;
+          }
+          // Hold a short prefix so split tool markers can never flash in the UI.
+          if (streamProbe.length < 180) return;
+          streamReleased = true;
+          sendEvent(res, "token", { text: streamProbe });
+          streamProbe = "";
+          return;
+        }
+        if (containsInternalToolSyntax(token)) {
+          internalToolLeak = true;
+          return;
+        }
+        sendEvent(res, "token", { text: token });
+      });
 
-      const reply = result.content?.trim();
-      if (!reply) throw new Error("RAVIN returned no visible response.");
+      if (!streamReleased && !internalToolLeak && streamProbe) {
+        sendEvent(res, "token", { text: streamProbe });
+      }
+
+      let reply = cleanVisibleReply(result.content);
+      if (!reply) {
+        // Some instruction-tuned models occasionally emit a pseudo tool call even
+        // when tools are disabled. Recover server-side instead of exposing it.
+        const recovery = await chatWithCloudflare([
+          ...modelMessages,
+          {
+            role: "system",
+            content: "Your previous draft attempted to emit internal tool syntax. Do not call or describe a tool. Use the file/context already supplied above and answer the user's request directly. If no usable file context exists, say you checked the recent RAVIN file context but could not identify the requested file.",
+          },
+        ], {
+          mode,
+          tools: [],
+          temperature: 0.2,
+          maxTokens: mode === "work" ? 1900 : 850,
+        });
+        reply = cleanVisibleReply(recovery.content);
+      }
+      if (!reply) throw new Error("RAVIN could not produce a safe visible response.");
 
       await saveMessage({
         userId: auth.user.id,
@@ -547,6 +603,7 @@ export function registerV02Routes(app) {
           mode,
           environment,
           memory_enabled: memoryEnabled,
+          file_context: req.body?.ravin_file_context || null,
           model: result?._ravinMeta?.routedModel || RAVIN_MODELS[mode],
           memory_hits: (memories.permanent?.length || 0) + (memories.project?.length || 0) + (memories.session?.length || 0),
         },
