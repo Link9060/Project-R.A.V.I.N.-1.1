@@ -279,7 +279,40 @@
     }
   }
 
-  function appendMessage(role, raw, { streaming = false, error = false } = {}) {
+  function formatFileBytes(value) {
+    const bytes = Number(value || 0);
+    if (!bytes) return "";
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  }
+
+  function renderMessageFiles(body, files = []) {
+    if (!body || !Array.isArray(files) || !files.length) return;
+    body.querySelector(".ravin-message-files")?.remove();
+    const wrap = document.createElement("div");
+    wrap.className = "ravin-message-files";
+    for (const file of files) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "ravin-message-file";
+      const name = file.file_name || file.name || "Attached file";
+      const ext = String(name).includes(".") ? String(name).split(".").pop().toUpperCase() : "FILE";
+      const meta = [ext, formatFileBytes(file.size_bytes || file.size)].filter(Boolean).join(" · ");
+      chip.innerHTML = '<span class="ravin-message-file-icon"></span><span class="ravin-message-file-copy"><strong></strong><small></small></span>';
+      $(".ravin-message-file-icon", chip).textContent = ext.slice(0, 4);
+      $(".ravin-message-file-copy strong", chip).textContent = name;
+      $(".ravin-message-file-copy small", chip).textContent = meta || "RAVIN FILE";
+      chip.title = `Open ${name} in RAVIN Files`;
+      chip.addEventListener("click", () => {
+        document.dispatchEvent(new CustomEvent("ravin:open-files", { detail: { fileId: file.id || "" } }));
+      });
+      wrap.appendChild(chip);
+    }
+    const stamp = body.querySelector(".ravin-message-time");
+    body.insertBefore(wrap, stamp || null);
+  }
+
+  function appendMessage(role, raw, { streaming = false, error = false, attachments = [] } = {}) {
     const root = $("#messages");
     root?.querySelector(".ravin-empty")?.remove();
     const article = document.createElement("article");
@@ -289,6 +322,7 @@
     article.innerHTML = `<div class="ravin-message-role">${label}</div><div class="ravin-message-body"></div>`;
     const body = $(".ravin-message-body", article);
     setMessageBody(body, raw, role, { streaming, time });
+    renderMessageFiles(body, attachments);
     root.appendChild(article);
     if (!streaming) addMessageActions(article);
     scrollBottom();
@@ -458,7 +492,7 @@
       }
       input.value = "";
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      appendMessage("user", text);
+      appendMessage("user", text, { attachments: uploaded });
       assistant = appendMessage("assistant", "", { streaming: true });
       const body = $(".ravin-message-body", assistant);
       const payload = {
