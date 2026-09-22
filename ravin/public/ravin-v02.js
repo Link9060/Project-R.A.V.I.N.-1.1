@@ -482,6 +482,7 @@
     state.firstToken = false;
     setBusy(true);
     let assistant = null;
+    let userArticle = null;
     let accumulated = "";
     let aborted = false;
     try {
@@ -492,7 +493,7 @@
       }
       input.value = "";
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      appendMessage("user", text, { attachments: uploaded });
+      userArticle = appendMessage("user", text, { attachments: uploaded });
       assistant = appendMessage("assistant", "", { streaming: true });
       const body = $(".ravin-message-body", assistant);
       const payload = {
@@ -510,6 +511,14 @@
             const isNew = !currentConversationId();
             localStorage.setItem(conversationKey(mode), data.conversation_id);
             if (isNew && $("#headerConversationTitle")) $("#headerConversationTitle").textContent = text.slice(0, 80);
+          }
+          if (userArticle && Array.isArray(data.attachments) && data.attachments.length) {
+            const body = $(".ravin-message-body", userArticle);
+            renderMessageFiles(body, data.attachments.map((file) => ({
+              id: file.id,
+              file_name: file.name,
+              mime_type: file.type,
+            })));
           }
         },
         token: (data) => {
