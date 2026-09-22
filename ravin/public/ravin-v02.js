@@ -512,7 +512,9 @@
             localStorage.setItem(conversationKey(mode), data.conversation_id);
             if (isNew && $("#headerConversationTitle")) $("#headerConversationTitle").textContent = text.slice(0, 80);
           }
-          if (userArticle && Array.isArray(data.attachments) && data.attachments.length) {
+          const fileSource = data.file_context?.source || "";
+          const shouldDisplayFiles = fileSource === "attached_now" || fileSource === "recent_library";
+          if (userArticle && shouldDisplayFiles && Array.isArray(data.attachments) && data.attachments.length) {
             const body = $(".ravin-message-body", userArticle);
             renderMessageFiles(body, data.attachments.map((file) => ({
               id: file.id,
