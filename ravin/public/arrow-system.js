@@ -11,6 +11,44 @@
   let pinned = false;
   let launching = false;
 
+  const clearOrbitSource = () => {
+    const url = new URL(location.href);
+    url.searchParams.delete('from');
+    history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const receiveFromOrbit = () => {
+    const url = new URL(location.href);
+    if (url.searchParams.get('from') !== 'orbit') return;
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      clearOrbitSource();
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'arrow-system-arrival';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = [
+      '<span class="arrow-system-arrival-ring ring-a" aria-hidden="true"></span>',
+      '<span class="arrow-system-arrival-ring ring-b" aria-hidden="true"></span>',
+      '<span class="arrow-system-arrival-craft" aria-hidden="true"><span></span></span>',
+      '<p>Arriving in RAVIN</p>',
+    ].join('');
+
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+      overlay.remove();
+      document.body.style.overflow = previousOverflow;
+      clearOrbitSource();
+    }, 1080);
+  };
+
   const setOpen = (open) => {
     root.dataset.open = String(open);
     trigger.setAttribute("aria-expanded", String(open));
@@ -102,4 +140,5 @@
       window.location.assign(destination.toString());
     }, 980);
   });
+  receiveFromOrbit();
 })();
