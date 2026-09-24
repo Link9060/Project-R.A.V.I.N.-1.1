@@ -90,7 +90,11 @@
         signal: controller.signal,
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || `Authentication failed (${response.status}).`);
+      if (!response.ok) {
+        const error = new Error(data?.error || `Authentication failed (${response.status}).`);
+        error.status = response.status;
+        throw error;
+      }
       return data;
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Authentication timed out. Check your connection and try again.');
@@ -100,9 +104,16 @@
     }
   }
 
+  let refreshPromise = null;
   async function refreshAccessToken() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = performRefresh().finally(() => { refreshPromise = null; });
+    return refreshPromise;
+  }
+
+  async function performRefresh() {
     const refreshToken = localStorage.getItem(AUTH_KEYS.refresh) || '';
-    if (!refreshToken) throw new Error('Your RAVIN session expired. Sign in again.');
+    if (!refreshToken) throw Object.assign(new Error('Your RAVIN session expired. Sign in again.'), { status: 401 });
     const data = await authRequest('refresh', '', '', { refresh_token: refreshToken });
     persistSession(data.session, data.user);
     return data.session.access_token;
@@ -142,7 +153,7 @@
     const text = await response.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-    if (!response.ok) throw new Error(data?.message || data?.error || `RAVIN data request failed (${response.status}).`);
+    if (!response.ok) throw Object.assign(new Error(data?.message || data?.error || `RAVIN data request failed (${response.status}).`), { status: response.status });
     return data;
   }
 
@@ -478,7 +489,9 @@
     return found || null;
   }
 
+  let messageLoadVersion = 0;
   async function loadMessagesFor(row) {
+    const version = ++messageLoadVersion;
     if (!row?.id || !currentUser()?.id) {
       emptyState();
       return;
@@ -486,9 +499,11 @@
     $('#headerConversationTitle').textContent = row.title || 'Untitled conversation';
     $('#messages').innerHTML = '<div class="ravin-shell-loading"><i></i><span>Loading conversation</span></div>';
     try {
-      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,metadata,created_at&order=created_at.asc&limit=250`);
-      await renderMessages(Array.isArray(messages) ? messages : []);
+      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,metadata,created_at&order=created_at.desc&limit=250`);
+      if (version !== messageLoadVersion || currentConversationId() !== row.id) return;
+      await renderMessages(Array.isArray(messages) ? messages.reverse() : []);
     } catch (error) {
+      if (version !== messageLoadVersion || currentConversationId() !== row.id) return;
       console.error('[RAVIN messages]', error);
       await renderMessages([]);
       appendMessage('error', `Couldn't load this conversation: ${error.message || error}`);
@@ -584,7 +599,7 @@
     const place = () => positionPopover(pop, anchor);
     requestAnimationFrame(place);
     const observer = new MutationObserver(() => requestAnimationFrame(place));
-    observer.observe(pop, { childList: true, subtree: true, attributes: true });
+    observer.observe(pop, { childList: true, subtree: true, characterData: true });
     const close = (event) => {
       if (!pop.contains(event.target) && event.target !== anchor && !anchor.contains(event.target)) {
         pop._ravinCleanup?.();
@@ -921,6 +936,13 @@
       await loadCurrentMode();
     } catch (error) {
       console.warn('[RAVIN session]', error);
+      if (![400, 401, 403].includes(error.status)) {
+        renderUser();
+        renderHistory();
+        emptyState();
+        notify('Could not connect. Your session is saved; reload to try again.');
+        return;
+      }
       clearSession();
       renderUser();
       renderHistory();

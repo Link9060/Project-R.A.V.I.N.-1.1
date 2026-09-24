@@ -44,6 +44,7 @@ async function supabaseRequest(pathname, { token, method = "GET", body, prefer =
   const response = await fetch(`${SUPABASE_URL}${pathname}`, {
     method,
     headers,
+    signal: AbortSignal.timeout(20000),
     body: body === undefined
       ? undefined
       : headers["Content-Type"] === "application/json"
@@ -228,10 +229,11 @@ async function createConversation({ userId, token, title, mode, environment, pro
 }
 
 async function loadRecentMessages(conversationId, userId, token) {
-  return supabaseRequest(
-    `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=role,content,metadata,created_at&order=created_at.asc&limit=40`,
+  const rows = await supabaseRequest(
+    `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=role,content,metadata,created_at&order=created_at.desc&limit=40`,
     { token },
   );
+  return Array.isArray(rows) ? rows.reverse() : [];
 }
 
 async function saveMessage({ userId, conversationId, role, content, token, metadata = {} }) {

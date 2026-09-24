@@ -2,16 +2,18 @@
   "name": "ravin",
   "version": "0.1.0",
   "private": true,
-  "description": "RAVIN — the Resonant Assist AI workspace and intelligence platform.",
+  "description": "RAVIN \u2014 the Resonant Assist AI workspace and intelligence platform.",
   "type": "module",
   "main": "src/index.js",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.js",
     "web": "node server.js",
     "agent": "node src/index.js",
     "check": "node scripts/check.mjs",
-    "test": "npm run check"
+    "test": "npm run check && node --test tests/*.test.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

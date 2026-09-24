@@ -114,6 +114,7 @@ async function supabaseRequest(pathname, { token, method = "GET", body, prefer =
   const response = await fetch(`${SUPABASE_URL}${pathname}`, {
     method,
     headers,
+    signal: AbortSignal.timeout(20000),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
@@ -158,12 +159,12 @@ function publicError(error, fallback = "RAVIN could not complete that request.")
 
 async function loadConversationContext(conversationId, userId, token) {
   const rows = await supabaseRequest(
-    `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=role,content,metadata,created_at&order=created_at.asc&limit=50`,
+    `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=role,content,metadata,created_at&order=created_at.desc&limit=50`,
     { token },
   );
   return [
     { role: "system", content: RAVIN_SYSTEM_PROMPT },
-    ...(rows || [])
+    ...(rows || []).reverse()
       .filter((row) => ["user", "assistant"].includes(row.role) && typeof row.content === "string")
       .map((row) => ({ role: row.role, content: row.content })),
   ];

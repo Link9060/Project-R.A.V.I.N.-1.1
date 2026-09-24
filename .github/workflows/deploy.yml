@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Validate JavaScript
-        run: npm run check
+        run: npm test
 
       - name: Verify canonical ARROW shell
         run: |
