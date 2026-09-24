@@ -21,8 +21,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
   (function () {
+    var arrowTheme = localStorage.getItem("arrow_os_theme_v1");
     var saved = localStorage.getItem("ravin_theme");
-    var theme = saved === "light" ? "light" : "dark";
+    var theme = arrowTheme === "light" || arrowTheme === "dark"
+      ? arrowTheme
+      : arrowTheme === "system"
+        ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : saved === "light" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", theme);
   })();
 </script>
