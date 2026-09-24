@@ -18,7 +18,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <script>
       (function () {
-        var theme = localStorage.getItem("ravin_theme") === "light" ? "light" : "dark";
+        var arrowTheme = localStorage.getItem("arrow_os_theme_v1");
+        var legacyTheme = localStorage.getItem("ravin_theme");
+        var systemTheme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        var theme = arrowTheme === "light" || arrowTheme === "dark"
+          ? arrowTheme
+          : arrowTheme === "system"
+            ? systemTheme
+            : legacyTheme === "light" ? "light" : "dark";
         document.documentElement.dataset.theme = theme;
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute("content", theme === "light" ? "#f7f7f9" : "#0c0c0e");
@@ -33,6 +40,7 @@
     <link rel="stylesheet" href="ravin-clean.css?v=3" />
     <link rel="stylesheet" href="ravin-relay-experience.css?v=2" />
     <link rel="stylesheet" href="ravin-product.css?v=3" />
+    <link rel="stylesheet" href="https://link9060.github.io/Resonant-Orbit/arrow-shell.css?v=20260924-60" />
   </head>
   <body>
     <div class="ravin-boot" id="ravinBoot" aria-label="Start RAVIN">
@@ -47,5 +55,6 @@
     <script src="ravin-v02.js?v=6"></script>
     <script src="ravin-files-ui.js?v=4"></script>
     <script src="ravin-clean.js?v=3"></script>
+    <script defer src="https://link9060.github.io/Resonant-Orbit/arrow-shell.js?v=20260924-60"></script>
   </body>
 </html>
