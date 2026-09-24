@@ -864,6 +864,9 @@
 
     addEventListener('online', syncOnlineState);
     addEventListener('offline', syncOnlineState);
+    addEventListener('arrow:themechange', (event) => {
+      setTheme(event.detail?.resolved === 'light' ? 'light' : 'dark');
+    });
     addEventListener('keydown', (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
