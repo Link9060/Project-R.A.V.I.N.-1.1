@@ -7,6 +7,97 @@ const composer=$("composer");
 const readReceiptsToggle=$("readReceiptsToggle");
 const READ_RECEIPTS_KEY_PREFIX="ravin_read_receipts";
 
+const boot=$("boot");
+const bootLine=$("bootLine");
+const app=$("app");
+const settingsBtn=$("settingsBtn");
+const settingsPanel=$("settingsPanel");
+const themeToggle=$("themeToggle");
+const soundToggle=$("soundToggle");
+const clearBtn=$("clearBtn");
+
+const finishBoot=()=>{
+  if(!app||!boot)return;
+  app.classList.add("app-visible");
+  if(bootLine)bootLine.textContent="RAVIN READY";
+  const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  window.setTimeout(()=>{
+    boot.classList.add("boot-done");
+    window.setTimeout(()=>{boot.hidden=true;},reduced?0:620);
+  },reduced?0:420);
+};
+
+const syncThemeToggle=()=>{
+  if(!themeToggle)return;
+  const light=document.documentElement.getAttribute("data-theme")==="light";
+  themeToggle.classList.toggle("on",light);
+  themeToggle.setAttribute("aria-checked",String(light));
+};
+
+const applyLocalTheme=(theme)=>{
+  document.documentElement.setAttribute("data-theme",theme);
+  document.documentElement.classList.toggle("dark",theme==="dark");
+  try{localStorage.setItem("ravin_theme",theme);}catch{}
+  syncThemeToggle();
+};
+
+finishBoot();
+syncThemeToggle();
+
+settingsBtn?.addEventListener("click",event=>{
+  event.stopPropagation();
+  const next=!settingsPanel?.classList.contains("open");
+  settingsPanel?.classList.toggle("open",next);
+  settingsBtn.setAttribute("aria-expanded",String(next));
+});
+
+settingsPanel?.addEventListener("click",event=>event.stopPropagation());
+
+document.addEventListener("pointerdown",event=>{
+  if(!settingsPanel?.classList.contains("open"))return;
+  if(settingsPanel.contains(event.target)||settingsBtn?.contains(event.target))return;
+  settingsPanel.classList.remove("open");
+  settingsBtn?.setAttribute("aria-expanded","false");
+});
+
+themeToggle?.addEventListener("click",()=>{
+  const next=document.documentElement.getAttribute("data-theme")==="light"?"dark":"light";
+  if(window.ArrowOS?.applyTheme){
+    window.ArrowOS.applyTheme(next,true);
+  }else{
+    applyLocalTheme(next);
+    try{localStorage.setItem("arrow_os_theme_v1",next);}catch{}
+  }
+});
+
+window.addEventListener("arrow:themechange",event=>{
+  applyLocalTheme(event.detail?.resolved==="light"?"light":"dark");
+});
+
+const soundEnabled=()=>localStorage.getItem("ravin_sound")!=="false";
+const syncSoundToggle=()=>{
+  if(!soundToggle)return;
+  const enabled=soundEnabled();
+  soundToggle.classList.toggle("on",enabled);
+  soundToggle.setAttribute("aria-checked",String(enabled));
+};
+syncSoundToggle();
+soundToggle?.addEventListener("click",()=>{
+  localStorage.setItem("ravin_sound",String(!soundEnabled()));
+  syncSoundToggle();
+});
+
+clearBtn?.addEventListener("click",()=>{
+  chat?.replaceChildren();
+  const intro=document.createElement("div");
+  intro.className="intro";
+  intro.innerHTML='<p class="intro-line">RAVIN is listening.</p><p class="intro-sub">Conversation cleared.</p>';
+  chat?.appendChild(intro);
+  window.RavinAPI?.clearConversation?.();
+  input?.focus();
+});
+
+
 const readReceiptsStorageKey=()=>{
   const user=window.RavinAuth?.getUser?.()||window.RavinAuthState?.user;
   const identity=user?.id||user?.email||"guest";
@@ -153,7 +244,15 @@ input?.addEventListener("keydown",event=>{
 
 document.addEventListener("keydown",event=>{
   if(event.key==="/"&&document.activeElement!==input&&!event.ctrlKey&&!event.metaKey){event.preventDefault();input?.focus();}
-  if(event.key==="Escape"&&input)input.value="";
+  if(event.key==="Escape"){
+    if(settingsPanel?.classList.contains("open")){
+      settingsPanel.classList.remove("open");
+      settingsBtn?.setAttribute("aria-expanded","false");
+      settingsBtn?.focus();
+      return;
+    }
+    if(input)input.value="";
+  }
 });
 
 const memoryList=$("memoryList");
