@@ -37,6 +37,13 @@ jobs:
       - name: Validate JavaScript
         run: npm run check
 
+      - name: Verify canonical ARROW shell
+        run: |
+          grep -q 'data-arrow-os-shell data-module="ravin"' public/ravin-shell.js
+          grep -q 'Resonant-Orbit/arrow-shell.css' public/index.html
+          grep -q 'Resonant-Orbit/arrow-shell.js' public/index.html
+          ! grep -q 'arrow-system.js' public/index.html
+
   deploy:
     needs: quality
     environment:
