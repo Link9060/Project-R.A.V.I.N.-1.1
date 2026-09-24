@@ -1,4 +1,4 @@
-name: Deploy RAVIN to GitHub Pages
+name: Validate RAVIN fallback
 
 on:
   push:
@@ -7,18 +7,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,20 +22,8 @@ jobs:
             node --check "$file"
           done
 
-      - name: Verify ARROW shell mount
+      - name: Verify fallback shell contract
         run: |
           grep -q 'data-arrow-os-shell' ravin/public/index.html
+          grep -q 'arrow-shell.css' ravin/public/index.html
           grep -q 'arrow-shell.js' ravin/public/index.html
-          grep -q 'app-visible' ravin/public/app.js
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: "./ravin/public"
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
