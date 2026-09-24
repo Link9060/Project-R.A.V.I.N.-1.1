@@ -179,8 +179,8 @@
             </div>
             <div class="ravin-header-right">
               <span class="ravin-status-pill" aria-live="polite"><i></i><span id="systemStatus">READY</span></span>
-              <button class="ravin-icon-button ravin-theme-button" id="themeBtn" type="button" aria-label="Toggle appearance">${icon('moon')}</button>
               <button class="ravin-icon-button" id="settingsBtn" type="button" aria-label="RAVIN settings" aria-haspopup="menu">${icon('settings')}</button>
+              <div data-arrow-os-shell data-module="ravin"></div>
             </div>
           </header>
 
@@ -611,26 +611,16 @@
       <button data-action="new" type="button">New chat</button>
       <button data-action="collapse" type="button">${state.sidebarCollapsed ? 'Expand' : 'Collapse'} sidebar</button>
       <hr />
-      <button data-action="theme" type="button"><span>Appearance</span><span class="theme-value"></span></button>
-      <hr />
       <button data-action="logout" type="button">Sign out</button>
     `, { className: 'ravin-settings-base' });
-    syncSettingsThemeRow(pop);
     pop.addEventListener('click', (event) => {
       const action = event.target.closest('button')?.dataset.action;
       if (!action) return;
       if (action === 'new') newChat();
       if (action === 'collapse') toggleSidebar();
-      if (action === 'theme') {
-        setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
-        syncSettingsThemeRow(pop);
-        return;
-      }
       if (action === 'logout') signOut();
-      if (action !== 'theme') {
-        pop._ravinCleanup?.();
-        pop.remove();
-      }
+      pop._ravinCleanup?.();
+      pop.remove();
     });
   }
 
@@ -860,7 +850,7 @@
     });
     $('#accountBtn').addEventListener('click', accountPopover);
     $('#settingsBtn').addEventListener('click', settingsPopover);
-    $('#themeBtn').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+    $('#themeBtn')?.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
     $('#mobileMenuBtn').addEventListener('click', () => $('#ravinApp').classList.toggle('mobile-sidebar-open'));
 
     const messageInput = $('#messageInput');
@@ -881,7 +871,9 @@
       }
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
         event.preventDefault();
-        setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+        const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        if (window.ArrowOS?.applyTheme) window.ArrowOS.applyTheme(nextTheme, true);
+        else setTheme(nextTheme);
       }
       if (event.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) {
         event.preventDefault();
@@ -912,7 +904,6 @@
   async function initializeSession() {
     renderUser();
     syncModeUI();
-    syncThemeButton();
     syncOnlineState();
     resizeComposer();
     if (!currentToken() || !currentUser()?.id) {
