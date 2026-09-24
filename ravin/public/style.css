@@ -1264,3 +1264,105 @@ body {
     animation: none !important;
   }
 }
+
+
+.arrow-system-arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  isolation: isolate;
+  animation: arrow-system-arrival-fade 1080ms ease both;
+}
+
+.arrow-system-arrival-craft,
+.arrow-system-arrival-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.arrow-system-arrival-craft {
+  width: 32px;
+  height: 32px;
+  margin: -16px;
+  filter:
+    drop-shadow(0 0 9px rgba(255,255,255,.92))
+    drop-shadow(0 0 30px rgba(255,255,255,.4));
+  animation: arrow-system-arrival-craft 920ms cubic-bezier(.16,1,.3,1) both;
+}
+
+.arrow-system-arrival-craft span {
+  position: absolute;
+  inset: 8px 1px;
+  background: #fff;
+  clip-path: polygon(0 0,100% 50%,0 100%,30% 50%);
+}
+
+.arrow-system-arrival-ring {
+  width: 64px;
+  height: 64px;
+  margin: -32px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  opacity: 0;
+}
+
+.arrow-system-arrival .ring-a {
+  animation: arrow-system-arrival-ring 760ms 360ms ease-out both;
+}
+
+.arrow-system-arrival .ring-b {
+  animation: arrow-system-arrival-ring 900ms 470ms ease-out both;
+}
+
+.arrow-system-arrival p {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px,calc(env(safe-area-inset-bottom) + 16px));
+  margin: 0;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,.52);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@keyframes arrow-system-arrival-fade {
+  0%,80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes arrow-system-arrival-craft {
+  0% {
+    transform: translate(-44vw,30vh) rotate(24deg) scale(.16);
+    opacity: 0;
+  }
+  14% { opacity: 1; }
+  58% {
+    transform: translate(-5vw,4vh) rotate(6deg) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0,0) rotate(0deg) scale(.72);
+    opacity: 0;
+  }
+}
+
+@keyframes arrow-system-arrival-ring {
+  0% { transform: scale(.1); opacity: 0; }
+  24% { opacity: .62; }
+  100% { transform: scale(7.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow-system-arrival,
+  .arrow-system-arrival-craft,
+  .arrow-system-arrival-ring {
+    animation-duration: .01ms !important;
+  }
+}
