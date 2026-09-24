@@ -53,8 +53,18 @@
   });
 
   themeButton?.addEventListener("click", () => {
+    const rootElement = document.documentElement;
+    const current = rootElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    const next = current === "light" ? "dark" : "light";
+    rootElement.setAttribute("data-theme", next);
+    localStorage.setItem("ravin_theme", next);
+
     const nativeThemeToggle = document.getElementById("themeToggle");
-    nativeThemeToggle?.click();
+    if (nativeThemeToggle) {
+      const light = next === "light";
+      nativeThemeToggle.classList.toggle("on", light);
+      nativeThemeToggle.setAttribute("aria-checked", String(light));
+    }
   });
 
   orbitLink?.addEventListener("click", (event) => {
