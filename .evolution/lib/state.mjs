@@ -26,7 +26,13 @@ export function defaultState() {
     metrics: {
       lastBaseline: null,
       lastCandidate: null,
-      bestQualityScore: null
+      bestQualityScore: null,
+      aiUsage: {
+        calls: 0,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+      }
     }
   };
 }
@@ -36,6 +42,10 @@ function migrate(input) {
   const state = { ...base, ...(input && typeof input === "object" ? input : {}) };
   state.schemaVersion = SCHEMA_VERSION;
   state.metrics = { ...base.metrics, ...(state.metrics || {}) };
+  state.metrics.aiUsage = {
+    ...base.metrics.aiUsage,
+    ...(state.metrics.aiUsage || {})
+  };
   state.recentFailures = Array.isArray(state.recentFailures) ? state.recentFailures : [];
   state.recentAccepted = Array.isArray(state.recentAccepted) ? state.recentAccepted : [];
   return state;
