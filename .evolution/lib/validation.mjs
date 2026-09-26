@@ -58,12 +58,18 @@ async function checkJson(projectRoot) {
   return { files: files.length, failures };
 }
 
+function stableObject(value) {
+  return Object.fromEntries(
+    Object.entries(value || {}).sort(([a], [b]) => a.localeCompare(b))
+  );
+}
+
 async function checkPackageLock(projectRoot) {
   try {
     const pkg = JSON.parse(await fs.readFile(path.join(projectRoot, "package.json"), "utf8"));
     const lock = JSON.parse(await fs.readFile(path.join(projectRoot, "package-lock.json"), "utf8"));
-    const a = JSON.stringify(pkg.dependencies || {});
-    const b = JSON.stringify(lock?.packages?.[""]?.dependencies || {});
+    const a = JSON.stringify(stableObject(pkg.dependencies));
+    const b = JSON.stringify(stableObject(lock?.packages?.[""]?.dependencies));
     return {
       success: a === b,
       reason: a === b ? null : "package.json dependencies do not match package-lock.json root dependencies.",
