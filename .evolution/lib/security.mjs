@@ -54,8 +54,16 @@ export async function createPathResolver(projectRoot) {
       throw new Error("A project-relative path is required.");
     }
 
+    if (/[\u0000-\u001f\u007f]/.test(relativePath)) {
+      throw new Error("Control characters are not allowed in autonomous file paths.");
+    }
+
     const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\/+/, "");
     const segments = normalized.split("/").filter(Boolean);
+
+    if (segments.some((segment) => segment === "." || segment === "..")) {
+      throw new Error("Dot-segment traversal is not allowed in autonomous file paths.");
+    }
 
     if (segments.some((segment) =>
       segment === ".git" ||
