@@ -75,10 +75,11 @@ async function main() {
         const start = text.indexOf(marker);
         assert.ok(start >= 0);
         const tail = text.slice(start);
-        const auth = "  const auth = await requireUser(req, res);\\n  if (!auth) return;";
-        assert.ok(tail.includes(auth));
+        const authPattern =
+          /  const auth = await requireUser\(req, res\);\s*if \(!auth\) return;/;
+        assert.ok(authPattern.test(tail));
         return text.slice(0, start) + tail.replace(
-          auth,
+          authPattern,
           '  const auth = { user: { id: "mutation-test" }, token: "" };'
         );
       });
