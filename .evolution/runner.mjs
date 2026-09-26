@@ -472,10 +472,11 @@ async function toolAgent({
   temperature = 0.15,
   maxTokens = 1900,
 }) {
-  const messages = [
+  const seedMessages = [
     { role: "system", content: systemPrompt },
     { role: "user", content: userPrompt },
   ];
+  const messages = [...seedMessages];
 
   for (let step = 1; step <= maxSteps; step += 1) {
     ensureSessionTime();
@@ -519,6 +520,28 @@ async function toolAgent({
         name,
         content: serializeToolResult(toolResult),
       });
+    }
+
+    const contextChars = messages.reduce(
+      (sum, item) =>
+        sum +
+        (typeof item.content === "string"
+          ? item.content.length
+          : JSON.stringify(item.content || "").length),
+      0
+    );
+
+    if (contextChars > 72_000) {
+      messages.length = 0;
+      messages.push(
+        ...seedMessages,
+        {
+          role: "system",
+          content:
+            "Older tool-call context was compacted to stay within model limits. " +
+            "The filesystem already contains every successful edit. Re-read any files you need before continuing; do not assume unseen content."
+        }
+      );
     }
   }
 
@@ -945,6 +968,19 @@ async function beginFreshExperiment(constitution) {
 
   const plan = await runExplorer(constitution, baseline);
   state.currentExperiment.plan = plan;
+
+  if (plan.risk === "high") {
+    await recordRejected(
+      "high-risk-plan",
+      "Explorer classified this experiment as high risk; autonomous implementation was skipped: " + plan.title,
+      {
+        baseSha,
+        event: { plan }
+      }
+    );
+    return null;
+  }
+
   state.currentExperiment.phase = "engineering";
 
   await checkpoint("planned", plan.title + ": " + plan.problem, {
@@ -1201,6 +1237,19 @@ async function main() {
       if (experiment.phase === "exploring") {
         const plan = await runExplorer(constitution, experiment.baseline);
         experiment.plan = plan;
+
+        if (plan.risk === "high") {
+          await recordRejected(
+            "high-risk-plan",
+            "Explorer classified this resumed experiment as high risk; autonomous implementation was skipped: " + plan.title,
+            {
+              baseSha: experiment.baseSha,
+              event: { plan, resumed: true }
+            }
+          );
+          continue;
+        }
+
         experiment.phase = "engineering";
         state.currentExperiment = experiment;
         await checkpoint("planned", plan.title + ": " + plan.problem, { event: { plan, resumed: true } });
