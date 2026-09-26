@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   evolve:
-    if: ${{ vars.RAVIN_EVOLUTION_ENABLED != 'false' }}
+    # Intentionally OFF unless Levi explicitly enables the repository variable.
+    if: ${{ vars.RAVIN_EVOLUTION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 58
 
@@ -30,14 +31,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ravin/package-lock.json
 
       - name: Configure evolution commit identity
         run: |
           git config user.name "RAVIN Evolution"
           git config user.email "ravin-evolution@users.noreply.github.com"
 
-      - name: Validate controller
-        run: node --check .evolution/runner.mjs
+      - name: Validate evolution control plane
+        run: |
+          find .evolution -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          node -e "JSON.parse(require('fs').readFileSync('.evolution/state.json','utf8'))"
+
+      - name: Install locked RAVIN dependencies
+        working-directory: ravin
+        run: npm ci --ignore-scripts --no-audit --fund=false
 
       - name: Verify Workers AI credentials are available
         env:
@@ -58,7 +67,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           RAVIN_EVOLUTION_MODEL: ${{ vars.RAVIN_EVOLUTION_MODEL }}
+          RAVIN_EVOLUTION_EXPLORER_MODEL: ${{ vars.RAVIN_EVOLUTION_EXPLORER_MODEL }}
+          RAVIN_EVOLUTION_CRITIC_MODEL: ${{ vars.RAVIN_EVOLUTION_CRITIC_MODEL }}
           EVOLUTION_MAX_ITERATIONS: "8"
-          EVOLUTION_MAX_RUN_MINUTES: "52"
-          EVOLUTION_MAX_AGENT_STEPS: "16"
+          EVOLUTION_MAX_RUN_MINUTES: "50"
+          EVOLUTION_MAX_AGENT_STEPS: "18"
+          EVOLUTION_AI_TIMEOUT_MS: "45000"
+          EVOLUTION_AI_RETRIES: "3"
         run: node .evolution/runner.mjs
