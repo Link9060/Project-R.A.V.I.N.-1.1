@@ -13,5 +13,7 @@ No autonomous experiments have run yet.
 | Time-budget checkpoints | 0 |
 | API retries | 0 |
 | Syncs from main | 0 |
+| AI calls | 0 |
+| AI tokens reported | 0 |
 
 Once EVO is explicitly enabled, this report will be rewritten after every checkpoint with current experiment and benchmark data.
