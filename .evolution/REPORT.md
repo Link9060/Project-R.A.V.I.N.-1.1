@@ -10,6 +10,7 @@ No autonomous experiments have run yet.
 | Accepted | 0 |
 | Rejected | 0 |
 | Quota pauses | 0 |
+| Time-budget checkpoints | 0 |
 | API retries | 0 |
 | Syncs from main | 0 |
 
