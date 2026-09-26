@@ -300,6 +300,26 @@ const ai = createCloudflareClient({
   },
 });
 
+function recordAiUsage(usage) {
+  const target = state.metrics.aiUsage || {
+    calls: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+  };
+
+  target.calls += 1;
+  target.promptTokens += Number(usage?.prompt_tokens || usage?.input_tokens || 0);
+  target.completionTokens += Number(usage?.completion_tokens || usage?.output_tokens || 0);
+  target.totalTokens += Number(
+    usage?.total_tokens ||
+    (Number(usage?.prompt_tokens || usage?.input_tokens || 0) +
+      Number(usage?.completion_tokens || usage?.output_tokens || 0))
+  );
+
+  state.metrics.aiUsage = target;
+}
+
 async function searchEvolutionHistory(args = {}) {
   return readHistory(HISTORY_FILE, {
     limit: args.limit || 30,
@@ -466,6 +486,7 @@ async function toolAgent({
       maxTokens,
     });
 
+    recordAiUsage(result.usage);
     const message = result.message;
     const calls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
 
@@ -652,6 +673,7 @@ async function runCritic({
     }
   );
 
+  recordAiUsage(result.usage);
   const verdict = parseJsonObject(result.message.content);
   return {
     accept: verdict.accept === true,
@@ -718,6 +740,8 @@ async function writeStatus() {
     "| Baseline quality score | " + baselineScore + " |",
     "| Candidate quality score | " + candidateScore + " |",
     "| Best quality score | " + (publicStatus.metrics?.bestQualityScore ?? "—") + " |",
+    "| AI calls | " + (publicStatus.metrics?.aiUsage?.calls ?? 0) + " |",
+    "| AI tokens reported | " + (publicStatus.metrics?.aiUsage?.totalTokens ?? 0) + " |",
     "",
     "## Current experiment",
     "",
