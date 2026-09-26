@@ -714,7 +714,7 @@ async function checkpoint(kind, summary, { includeCode = false, event = {} } = {
 }
 
 async function recordRejected(kind, message, { baseSha, event = {} } = {}) {
-  if (baseSha) restoreRavin(baseSha);
+  if (baseSha) restoreRavin("HEAD");
   await removeInflightPatch();
 
   state.rejected += 1;
@@ -731,7 +731,7 @@ async function recordRejected(kind, message, { baseSha, event = {} } = {}) {
 }
 
 async function recordNoop(summary, baseSha) {
-  if (baseSha) restoreRavin(baseSha);
+  if (baseSha) restoreRavin("HEAD");
   await removeInflightPatch();
 
   state.noops += 1;
@@ -752,7 +752,7 @@ async function saveQuotaCheckpoint(phase, message, { baseSha, extra = {} } = {})
 
   if (diff.trim()) {
     await fs.writeFile(INFLIGHT_PATCH_FILE, diff, "utf8");
-    restoreRavin(baseSha);
+    restoreRavin("HEAD");
   } else {
     await removeInflightPatch();
   }
