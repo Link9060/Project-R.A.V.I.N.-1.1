@@ -44,6 +44,9 @@ jobs:
           find .evolution -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
           node -e "JSON.parse(require('fs').readFileSync('.evolution/state.json','utf8'))"
 
+      - name: Sync evolution with current main before dependency install
+        run: node .evolution/runner.mjs --sync-only
+
       - name: Install locked RAVIN dependencies
         working-directory: ravin
         run: npm ci --ignore-scripts --no-audit --fund=false
