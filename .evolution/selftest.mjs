@@ -16,6 +16,17 @@ import {
 import {
   runBenchmarks,
 } from "./lib/validation.mjs";
+import {
+  chooseDiversityFocus,
+  diversityGate,
+  inferSubsystem,
+  recordSubsystemAcceptance,
+} from "./lib/diversity.mjs";
+import {
+  buildQualityAnchor,
+  compareToQualityAnchor,
+  updateQualityAnchor,
+} from "./lib/regression.mjs";
 
 const ROOT = process.cwd();
 const PROJECT_ROOT = path.join(ROOT, "ravin");
@@ -90,6 +101,56 @@ async function testStateRecovery() {
   await fs.rm(temp, { recursive: true, force: true });
 }
 
+function testDiversityRotation() {
+  let diversity = null;
+  const first = chooseDiversityFocus(diversity, 1);
+  assert.ok(first.focus);
+
+  diversity = recordSubsystemAcceptance(diversity, first.focus, 1);
+  diversity = recordSubsystemAcceptance(diversity, first.focus, 2);
+  diversity = recordSubsystemAcceptance(diversity, first.focus, 3);
+
+  const gate = diversityGate(diversity, first.focus);
+  assert.equal(gate.success, false, "Three consecutive accepted experiments must trigger subsystem cooldown.");
+
+  const next = chooseDiversityFocus(diversity, 4);
+  assert.notEqual(next.focus, first.focus, "Diversity selector should move away from a saturated subsystem.");
+
+  assert.equal(
+    inferSubsystem({ title: "Improve permanent memory retrieval", likelyFiles: ["public/memory.js"] }),
+    "memory"
+  );
+}
+
+function testLongTermAnchor() {
+  const baseline = {
+    qualityScore: 100,
+    ui: { passed: 8 },
+    api: { passed: 8 },
+    product: {
+      score: 100,
+      groups: {
+        memory: { passed: 5 },
+        routing: { passed: 4 },
+        builder: { passed: 4 },
+        identity: { passed: 3 },
+        ux: { passed: 4 },
+      },
+    },
+  };
+
+  const anchor = buildQualityAnchor(baseline);
+  const improved = updateQualityAnchor(anchor, baseline);
+  assert.equal(compareToQualityAnchor(improved, baseline).success, true);
+
+  const regressed = structuredClone(baseline);
+  regressed.product.score = 95;
+  regressed.product.groups.memory.passed = 4;
+  const comparison = compareToQualityAnchor(anchor, regressed);
+  assert.equal(comparison.success, false);
+  assert.ok(comparison.reasons.some((x) => x.includes("memory contracts")));
+}
+
 async function testCurrentRavinBenchmarks() {
   const report = await runBenchmarks(PROJECT_ROOT);
   assert.equal(report.syntax.success, true, "Current RAVIN JavaScript must parse.");
@@ -98,6 +159,8 @@ async function testCurrentRavinBenchmarks() {
   assert.equal(report.ui.success, true, "Required UI/ARROW contracts must remain present.");
   assert.equal(report.api.success, true, "Required API/auth contracts must remain present.");
   assert.equal(report.server.success, true, "RAVIN /api/health smoke test must pass.");
+  assert.equal(report.product.success, true, "RAVIN-specific product contracts must pass.");
+  assert.equal(report.product.score, 100, "Current RAVIN product-contract score should be 100.");
   assert.ok(report.qualityScore >= 90, "Current RAVIN quality score should be at least 90.");
   return report;
 }
@@ -107,6 +170,8 @@ async function main() {
   testDiffGuards();
   testSecretScanner();
   await testStateRecovery();
+  testDiversityRotation();
+  testLongTermAnchor();
   const benchmark = await testCurrentRavinBenchmarks();
 
   console.log(JSON.stringify({
@@ -118,9 +183,12 @@ async function main() {
       "new external destination gate",
       "secret scanner",
       "atomic state recovery",
-      "current RAVIN benchmark suite"
+      "automatic subsystem diversity rotation",
+      "long-term best-known-good regression anchor",
+      "current RAVIN benchmark suite + product contracts"
     ],
     qualityScore: benchmark.qualityScore,
+    productScore: benchmark.product?.score ?? null,
     serverLatencyMs: benchmark.server.latencyMs ?? null
   }, null, 2));
 }
