@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { runRavinProductBenchmarks, compareRavinProductBenchmarks } from "./productBenchmarks.mjs";
 
 function walkSync(root, matcher, output = []) {
   const stack = [root];
@@ -374,6 +375,7 @@ function scoreReport(report) {
   if (!report.ui.success) score -= Math.max(8, (report.ui.total - report.ui.passed) * 4);
   if (!report.api.success) score -= Math.max(10, (report.api.total - report.api.passed) * 5);
   if (!report.server.success) score -= 30;
+  if (!report.product?.success) score -= Math.max(15, 100 - Number(report.product?.score || 0));
   return Math.max(0, score);
 }
 
@@ -384,12 +386,13 @@ export async function runBenchmarks(projectRoot) {
   const json = await checkJson(projectRoot);
   json.success = json.failures.length === 0;
 
-  const [packageLock, ui, api, size, server] = await Promise.all([
+  const [packageLock, ui, api, size, server, product] = await Promise.all([
     checkPackageLock(projectRoot),
     checkUiContracts(projectRoot),
     checkApiSecurityContracts(projectRoot),
     directorySize(projectRoot),
     serverSmoke(projectRoot),
+    runRavinProductBenchmarks(projectRoot),
   ]);
 
   const report = {
@@ -401,6 +404,7 @@ export async function runBenchmarks(projectRoot) {
     api,
     server,
     size,
+    product,
   };
   report.qualityScore = scoreReport(report);
   report.success =
@@ -409,7 +413,8 @@ export async function runBenchmarks(projectRoot) {
     packageLock.success &&
     ui.success &&
     api.success &&
-    server.success;
+    server.success &&
+    product.success;
   return report;
 }
 
@@ -426,6 +431,9 @@ export function compareBenchmarks(baseline, candidate) {
   if (baseline?.qualityScore != null && candidate?.qualityScore < baseline.qualityScore) {
     reasons.push("Quality score regressed from " + baseline.qualityScore + " to " + candidate.qualityScore + ".");
   }
+
+  const productComparison = compareRavinProductBenchmarks(baseline?.product, candidate?.product);
+  reasons.push(...productComparison.reasons);
 
   const baseLatency = baseline?.server?.latencyMs;
   const candidateLatency = candidate?.server?.latencyMs;
@@ -455,6 +463,7 @@ export function compareBenchmarks(baseline, candidate) {
       qualityScore: (candidate?.qualityScore ?? 0) - (baseline?.qualityScore ?? 0),
       serverLatencyMs: (candidateLatency ?? 0) - (baseLatency ?? 0),
       bytes: (candidateBytes ?? 0) - (baseBytes ?? 0),
+      productScore: (candidate?.product?.score ?? 0) - (baseline?.product?.score ?? 0),
     },
   };
 }
