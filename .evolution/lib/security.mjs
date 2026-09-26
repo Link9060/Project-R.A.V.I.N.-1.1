@@ -25,7 +25,21 @@ const SECURITY_MARKERS = [
   "Authorization",
   "SUPABASE_ANON_KEY",
   "CLOUDFLARE_API_TOKEN",
+  "validateCommand(",
+  "dangerousShellSyntax",
+  "resolveProjectPath(",
 ];
+
+const HUMAN_REVIEW_ONLY_FILES = new Set([
+  "ravin/server.js",
+  "ravin/src/agent/toolExecutor.js",
+  "ravin/src/cloudflareClient.js",
+  "ravin/public/auth.js",
+  "ravin/public/api.js",
+  "ravin/package.json",
+  "ravin/package-lock.json",
+  "ravin/env.example",
+]);
 
 function within(root, target) {
   const rel = path.relative(root, target);
@@ -135,6 +149,9 @@ export function deterministicDiffGuard(files, diff, {
     if (!file.startsWith("ravin/")) reasons.push("Change escaped the RAVIN project: " + file);
     if (/(^|\/)\.env($|\.)/.test(file)) reasons.push("Environment secret file is protected: " + file);
     if (file.includes("node_modules/")) reasons.push("node_modules changes are not allowed.");
+    if (HUMAN_REVIEW_ONLY_FILES.has(file)) {
+      reasons.push("High-leverage file requires human review and cannot be autonomously accepted: " + file);
+    }
   }
 
   const added = extractDiffLines(diff, "+");
