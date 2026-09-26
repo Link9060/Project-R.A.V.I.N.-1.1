@@ -645,6 +645,48 @@ async function writeStatus() {
     },
   };
   await fs.writeFile(STATUS_FILE, JSON.stringify(publicStatus, null, 2) + "\n", "utf8");
+
+  const current = publicStatus.currentExperiment
+    ? publicStatus.currentExperiment.title + " (" + publicStatus.currentExperiment.phase + ")"
+    : "None";
+  const baselineScore = publicStatus.metrics?.lastBaseline?.qualityScore ?? "—";
+  const candidateScore = publicStatus.metrics?.lastCandidate?.qualityScore ?? "—";
+  const report = [
+    "# RAVIN Evolution Report",
+    "",
+    "**Updated:** " + publicStatus.updatedAt,
+    "",
+    "| Metric | Value |",
+    "| --- | ---: |",
+    "| Status | " + publicStatus.status + " |",
+    "| Iterations attempted | " + publicStatus.attempted + " |",
+    "| Accepted | " + publicStatus.accepted + " |",
+    "| Rejected | " + publicStatus.rejected + " |",
+    "| No-op experiments | " + publicStatus.noops + " |",
+    "| Quota pauses | " + publicStatus.quotaPauses + " |",
+    "| API retries | " + publicStatus.apiRetries + " |",
+    "| Syncs from main | " + publicStatus.syncsFromMain + " |",
+    "| Baseline quality score | " + baselineScore + " |",
+    "| Candidate quality score | " + candidateScore + " |",
+    "| Best quality score | " + (publicStatus.metrics?.bestQualityScore ?? "—") + " |",
+    "",
+    "## Current experiment",
+    "",
+    current,
+    "",
+    "## Last accepted improvement",
+    "",
+    publicStatus.lastAcceptedSummary || "None yet.",
+    "",
+    "## Models",
+    "",
+    "- Explorer: \`" + publicStatus.models.explorer + "\`",
+    "- Engineer: \`" + publicStatus.models.engineer + "\`",
+    "- Critic: \`" + publicStatus.models.critic + "\`",
+    ""
+  ].join("\n");
+
+  await fs.writeFile(path.join(EVO_ROOT, "REPORT.md"), report, "utf8");
 }
 
 async function checkpoint(kind, summary, { includeCode = false, event = {} } = {}) {
