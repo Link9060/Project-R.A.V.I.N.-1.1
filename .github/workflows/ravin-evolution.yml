@@ -52,6 +52,9 @@ jobs:
         working-directory: ravin
         run: npm ci --ignore-scripts --no-audit --fund=false
 
+      - name: Run full evolution self-test
+        run: node .evolution/selftest.mjs
+
       - name: Verify Workers AI credentials are available
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
