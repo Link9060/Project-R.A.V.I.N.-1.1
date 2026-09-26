@@ -69,6 +69,13 @@ function nowIso() {
 }
 
 function gitRaw(args, allowedCodes = [0]) {
+  if (
+    args?.[0] === "push" &&
+    !(args.length === 3 && args[1] === "origin" && args[2] === "HEAD:evolution")
+  ) {
+    throw new Error("Evolution controller refuses to push anywhere except origin HEAD:evolution.");
+  }
+
   const result = spawnSync("git", args, {
     cwd: ROOT,
     encoding: "utf8",
@@ -829,6 +836,22 @@ async function syncFromMain() {
     await checkpoint(
       "sync-blocked",
       "Could not merge current main into evolution automatically; human conflict resolution is required."
+    );
+    return { synced: false, blocked: true };
+  }
+
+  const controlPlaneChanges = gitRaw(
+    ["diff", "--name-only", "ORIG_HEAD..HEAD", "--", ".evolution"],
+    [0]
+  ).stdout.trim();
+
+  if (controlPlaneChanges) {
+    gitRaw(["reset", "--hard", "ORIG_HEAD"], [0]);
+    state.status = "blocked_control_plane_sync";
+    await checkpoint(
+      "sync-blocked",
+      "Main attempted to change the protected .evolution control plane; automatic sync was rolled back.",
+      { event: { protectedChanges: controlPlaneChanges.split(/\\r?\\n/).filter(Boolean) } }
     );
     return { synced: false, blocked: true };
   }
