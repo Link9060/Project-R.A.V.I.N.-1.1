@@ -24,6 +24,17 @@ import {
   createCloudflareClient,
   QuotaPauseError,
 } from "./lib/cloudflare.mjs";
+import {
+  chooseDiversityFocus,
+  diversityGate,
+  inferSubsystem,
+  recordSubsystemAcceptance,
+  recordSubsystemAttempt,
+} from "./lib/diversity.mjs";
+import {
+  compareToQualityAnchor,
+  updateQualityAnchor,
+} from "./lib/regression.mjs";
 
 const ROOT = process.cwd();
 const PROJECT_ROOT = path.join(ROOT, "ravin");
@@ -566,7 +577,7 @@ function parseJsonObject(text) {
   throw new Error("Model did not return a valid JSON object.");
 }
 
-async function runExplorer(constitution, baseline) {
+async function runExplorer(constitution, baseline, diversityFocus) {
   const recent = await readHistory(HISTORY_FILE, { limit: 40 });
 
   const result = await toolAgent({
@@ -579,11 +590,16 @@ async function runExplorer(constitution, baseline) {
       "You are RAVIN Evolution's Explorer. You may inspect but never modify code. " +
       "Find ONE bounded, high-value improvement that is not merely cosmetic. " +
       "Prefer reliability, memory/context quality, performance, accessibility, testability, maintainability, or a clearly useful capability. " +
-      "Avoid broad rewrites and avoid repeating prior experiments.\n\n" +
+      "Avoid broad rewrites and avoid repeating prior experiments. " +
+      "The controller selected a diversity focus for this iteration. Prefer a genuinely useful improvement in that subsystem; only move elsewhere if inspection shows there is no worthwhile bounded change there.\n\n" +
       constitution,
     userPrompt:
       "Current benchmark baseline:\n" +
       JSON.stringify(baseline) +
+      "\n\nDiversity-selected focus subsystem:\n" +
+      String(diversityFocus?.focus || "maintainability") +
+      "\n\nRecent subsystem rotation:\n" +
+      JSON.stringify(diversityFocus?.recentSubsystems || []) +
       "\n\nRecent evolution history:\n" +
       JSON.stringify(recent.slice(-20)) +
       "\n\nInspect the project and return ONLY JSON shaped exactly like: " +
@@ -607,6 +623,8 @@ async function runExplorer(constitution, baseline) {
     likelyFiles: Array.isArray(plan.likelyFiles) ? plan.likelyFiles.slice(0, 12) : [],
     successCriteria: plan.successCriteria.map((x) => String(x).slice(0, 400)).slice(0, 8),
     risk: ["low", "medium", "high"].includes(plan.risk) ? plan.risk : "medium",
+    subsystem: inferSubsystem(plan, diversityFocus?.focus),
+    requestedFocus: diversityFocus?.focus || null,
   };
 }
 
@@ -1026,15 +1044,19 @@ async function beginFreshExperiment(constitution) {
   const baseSha = headSha();
   const baseline = await runBenchmarks(PROJECT_ROOT);
   state.metrics.lastBaseline = baseline;
+  state.metrics.qualityAnchor = state.metrics.qualityAnchor || updateQualityAnchor(null, baseline);
   state.metrics.bestQualityScore = Math.max(
     Number(state.metrics.bestQualityScore || 0),
     Number(baseline.qualityScore || 0)
   );
 
+  const diversityFocus = chooseDiversityFocus(state.metrics.diversity, state.iteration);
+
   state.currentExperiment = {
     iteration: state.iteration,
     baseSha,
     phase: "exploring",
+    diversityFocus,
     startedAt: nowIso(),
     plan: null,
     baseline,
@@ -1045,8 +1067,19 @@ async function beginFreshExperiment(constitution) {
     event: { baselineQualityScore: baseline.qualityScore },
   });
 
-  const plan = await runExplorer(constitution, baseline);
+  const plan = await runExplorer(constitution, baseline, diversityFocus);
   state.currentExperiment.plan = plan;
+  state.metrics.diversity = recordSubsystemAttempt(state.metrics.diversity, plan.subsystem);
+
+  const subsystemGate = diversityGate(state.metrics.diversity, plan.subsystem);
+  if (!subsystemGate.success) {
+    await recordRejected(
+      "diversity-cooldown",
+      subsystemGate.reason,
+      { baseSha, event: { plan, diversityFocus } }
+    );
+    return null;
+  }
 
   if (plan.risk === "high") {
     await recordRejected(
@@ -1105,6 +1138,12 @@ async function finishEngineering(constitution, experiment, { resumed = false } =
 
   const candidate = await runBenchmarks(PROJECT_ROOT);
   const comparison = compareBenchmarks(experiment.baseline, candidate);
+  const longTerm = compareToQualityAnchor(state.metrics.qualityAnchor, candidate);
+  comparison.longTerm = longTerm;
+  if (!longTerm.success) {
+    comparison.success = false;
+    comparison.reasons.push(...longTerm.reasons);
+  }
 
   state.metrics.lastCandidate = candidate;
 
@@ -1160,12 +1199,19 @@ async function finishEngineering(constitution, experiment, { resumed = false } =
     Number(state.metrics.bestQualityScore || 0),
     Number(candidate.qualityScore || 0)
   );
+  state.metrics.qualityAnchor = updateQualityAnchor(state.metrics.qualityAnchor, candidate);
+  state.metrics.diversity = recordSubsystemAcceptance(
+    state.metrics.diversity,
+    experiment.plan?.subsystem,
+    state.iteration
+  );
   state.recentAccepted = remember(state.recentAccepted, {
     iteration: state.iteration,
     at: state.lastAcceptedAt,
     files,
     summary: verdict.summary,
     plan: experiment.plan?.title || null,
+    subsystem: experiment.plan?.subsystem || null,
     benchmarkDelta: comparison.delta,
   });
   state.currentExperiment = null;
@@ -1201,6 +1247,12 @@ async function resumeReview(constitution, experiment) {
   const secretFindings = await scanFilesForSecrets(PROJECT_ROOT, files);
   const candidate = await runBenchmarks(PROJECT_ROOT);
   const comparison = compareBenchmarks(experiment.baseline, candidate);
+  const longTerm = compareToQualityAnchor(state.metrics.qualityAnchor, candidate);
+  comparison.longTerm = longTerm;
+  if (!longTerm.success) {
+    comparison.success = false;
+    comparison.reasons.push(...longTerm.reasons);
+  }
 
   if (secretFindings.length) {
     guard.success = false;
@@ -1251,6 +1303,12 @@ async function resumeReview(constitution, experiment) {
   state.metrics.bestQualityScore = Math.max(
     Number(state.metrics.bestQualityScore || 0),
     Number(candidate.qualityScore || 0)
+  );
+  state.metrics.qualityAnchor = updateQualityAnchor(state.metrics.qualityAnchor, candidate);
+  state.metrics.diversity = recordSubsystemAcceptance(
+    state.metrics.diversity,
+    experiment.plan?.subsystem,
+    state.iteration
   );
   state.currentExperiment = null;
   state.status = "running";
@@ -1314,8 +1372,26 @@ async function main() {
       if (!experiment) continue;
 
       if (experiment.phase === "exploring") {
-        const plan = await runExplorer(constitution, experiment.baseline);
+        const diversityFocus =
+          experiment.diversityFocus ||
+          chooseDiversityFocus(state.metrics.diversity, state.iteration);
+        const plan = await runExplorer(constitution, experiment.baseline, diversityFocus);
         experiment.plan = plan;
+        experiment.diversityFocus = diversityFocus;
+        state.metrics.diversity = recordSubsystemAttempt(state.metrics.diversity, plan.subsystem);
+
+        const subsystemGate = diversityGate(state.metrics.diversity, plan.subsystem);
+        if (!subsystemGate.success) {
+          await recordRejected(
+            "diversity-cooldown",
+            subsystemGate.reason,
+            {
+              baseSha: experiment.baseSha,
+              event: { plan, diversityFocus, resumed: true }
+            }
+          );
+          continue;
+        }
 
         if (plan.risk === "high") {
           await recordRejected(
