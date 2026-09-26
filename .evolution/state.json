@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "branch": "evolution",
   "status": "ready",
   "iteration": 0,
@@ -21,6 +21,13 @@
     "lastBaseline": null,
     "lastCandidate": null,
     "bestQualityScore": null,
+    "qualityAnchor": null,
+    "diversity": {
+      "acceptedBySubsystem": {},
+      "attemptedBySubsystem": {},
+      "lastAcceptedIteration": {},
+      "recentSubsystems": []
+    },
     "aiUsage": {
       "calls": 0,
       "promptTokens": 0,
