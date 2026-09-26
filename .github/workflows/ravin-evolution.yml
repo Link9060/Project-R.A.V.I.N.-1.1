@@ -53,6 +53,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --fund=false
 
       - name: Run full evolution self-test
+        env:
+          EVOLUTION_REQUIRE_BROWSER_SMOKE: "true"
         run: node .evolution/selftest.mjs
 
       - name: Verify Workers AI credentials are available
@@ -81,4 +83,5 @@ jobs:
           EVOLUTION_MAX_AGENT_STEPS: "18"
           EVOLUTION_AI_TIMEOUT_MS: "45000"
           EVOLUTION_AI_RETRIES: "3"
+          EVOLUTION_REQUIRE_BROWSER_SMOKE: "true"
         run: node .evolution/runner.mjs
