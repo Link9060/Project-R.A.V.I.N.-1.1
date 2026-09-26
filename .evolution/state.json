@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "branch": "evolution",
   "status": "ready",
   "iteration": 0,
@@ -8,10 +8,17 @@
   "rejected": 0,
   "noops": 0,
   "quotaPauses": 0,
+  "apiRetries": 0,
+  "syncsFromMain": 0,
   "lastRunAt": null,
   "lastAcceptedAt": null,
   "lastAcceptedSummary": null,
   "currentExperiment": null,
   "recentFailures": [],
-  "recentAccepted": []
+  "recentAccepted": [],
+  "metrics": {
+    "lastBaseline": null,
+    "lastCandidate": null,
+    "bestQualityScore": null
+  }
 }
