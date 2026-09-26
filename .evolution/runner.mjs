@@ -43,6 +43,22 @@ const MAX_RUN_MINUTES = numberEnv("EVOLUTION_MAX_RUN_MINUTES", 48, 5, 55);
 const MAX_AGENT_STEPS = numberEnv("EVOLUTION_MAX_AGENT_STEPS", 18, 4, 32);
 const MAX_CHANGED_FILES = numberEnv("EVOLUTION_MAX_CHANGED_FILES", 12, 1, 30);
 const MAX_DIFF_CHARS = numberEnv("EVOLUTION_MAX_DIFF_CHARS", 80_000, 10_000, 160_000);
+const MIN_TIME_BEFORE_AI_CALL_MS = 90_000;
+
+let sessionDeadline = null;
+
+class SessionPauseError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "SessionPauseError";
+  }
+}
+
+function ensureSessionTime(minRemainingMs = MIN_TIME_BEFORE_AI_CALL_MS) {
+  if (sessionDeadline && Date.now() + minRemainingMs >= sessionDeadline) {
+    throw new SessionPauseError("Evolution session is near its workflow deadline.");
+  }
+}
 
 const ENGINEER_MODEL =
   process.env.RAVIN_EVOLUTION_MODEL ||
@@ -442,6 +458,7 @@ async function toolAgent({
   ];
 
   for (let step = 1; step <= maxSteps; step += 1) {
+    ensureSessionTime();
     const result = await ai.call(messages, {
       tools,
       selectedModel,
@@ -621,6 +638,7 @@ async function runCritic({
     "\nUNTRUSTED DIFF DATA END\n\n" +
     'Return exactly: {"accept":true,"reason":"short reason","summary":"short factual improvement summary","confidence":0.0}';
 
+  ensureSessionTime();
   const result = await ai.call(
     [
       { role: "system", content: system },
@@ -776,7 +794,12 @@ async function recordNoop(summary, baseSha) {
   await checkpoint("no-op", summary || "Experiment produced no code changes.");
 }
 
-async function saveQuotaCheckpoint(phase, message, { baseSha, extra = {} } = {}) {
+async function saveInterruptionCheckpoint(
+  interruption,
+  phase,
+  message,
+  { baseSha, extra = {} } = {}
+) {
   const diff = projectDiff();
 
   if (diff.trim()) {
@@ -786,8 +809,10 @@ async function saveQuotaCheckpoint(phase, message, { baseSha, extra = {} } = {})
     await removeInflightPatch();
   }
 
-  state.quotaPauses += 1;
-  state.status = "paused_quota";
+  if (interruption === "quota") state.quotaPauses += 1;
+  if (interruption === "time") state.timePauses = Number(state.timePauses || 0) + 1;
+
+  state.status = interruption === "quota" ? "paused_quota" : "checkpointed_time";
   state.currentExperiment = {
     ...(state.currentExperiment || {}),
     ...extra,
@@ -795,11 +820,13 @@ async function saveQuotaCheckpoint(phase, message, { baseSha, extra = {} } = {})
     phase,
     hasPatch: Boolean(diff.trim()),
     pausedAt: nowIso(),
+    pauseReason: interruption,
   };
 
-  await checkpoint("quota-pause", message, {
+  await checkpoint(interruption + "-pause", message, {
     event: {
       phase,
+      interruption,
       hasPatch: Boolean(diff.trim()),
     },
   });
@@ -867,6 +894,7 @@ async function beginFreshExperiment(constitution) {
   state.attempted += 1;
   state.status = "running";
 
+  ensureSessionTime(150_000);
   const baseSha = headSha();
   const baseline = await runBenchmarks(PROJECT_ROOT);
   state.metrics.lastBaseline = baseline;
@@ -1109,7 +1137,7 @@ async function main() {
   }
 
   const constitution = await fs.readFile(CONSTITUTION_FILE, "utf8");
-  const deadline = Date.now() + MAX_RUN_MINUTES * 60 * 1000;
+  sessionDeadline = Date.now() + MAX_RUN_MINUTES * 60 * 1000;
   state.lastRunAt = nowIso();
 
   if (!state.currentExperiment) {
@@ -1128,7 +1156,7 @@ async function main() {
 
   for (
     let sessionIteration = 0;
-    sessionIteration < MAX_ITERATIONS && Date.now() < deadline;
+    sessionIteration < MAX_ITERATIONS && Date.now() + 120_000 < sessionDeadline;
     sessionIteration += 1
   ) {
     let experiment = null;
@@ -1164,11 +1192,13 @@ async function main() {
 
       throw new Error("Unknown experiment phase: " + experiment.phase);
     } catch (error) {
-      if (error instanceof QuotaPauseError) {
+      if (error instanceof QuotaPauseError || error instanceof SessionPauseError) {
         const phase = state.currentExperiment?.phase || experiment?.phase || "exploring";
         const baseSha = state.currentExperiment?.baseSha || experiment?.baseSha || headSha();
+        const interruption = error instanceof QuotaPauseError ? "quota" : "time";
 
-        await saveQuotaCheckpoint(
+        await saveInterruptionCheckpoint(
+          interruption,
           phase,
           error.message + " The same experiment will resume on a later run.",
           {
@@ -1180,7 +1210,11 @@ async function main() {
           }
         );
 
-        console.log("[EVO] Paused for quota; experiment checkpointed for resume.");
+        console.log(
+          interruption === "quota"
+            ? "[EVO] Paused for quota; experiment checkpointed for resume."
+            : "[EVO] Session time nearly exhausted; experiment checkpointed for resume."
+        );
         return;
       }
 
