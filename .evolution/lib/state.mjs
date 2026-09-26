@@ -14,6 +14,7 @@ export function defaultState() {
     rejected: 0,
     noops: 0,
     quotaPauses: 0,
+    timePauses: 0,
     apiRetries: 0,
     syncsFromMain: 0,
     lastRunAt: null,
