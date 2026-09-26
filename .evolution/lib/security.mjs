@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { URL } from "node:url";
 
 const SECRET_PATTERNS = [
   { name: "OpenAI-style secret", re: /\bsk-[A-Za-z0-9_-]{20,}\b/ },
