@@ -46,8 +46,14 @@ jobs:
       - name: Run evolution self-tests
         run: node .evolution/selftest.mjs
 
-      - name: Verify evolution cannot modify production workflow by accident
+      - name: Verify branch and production scheduler safety
         run: |
           test "$(git rev-parse --abbrev-ref HEAD)" = "evolution"
-          grep -q 'EXPECTED_BRANCH = "evolution"' .evolution/runner.mjs
-          grep -q 'RAVIN_EVOLUTION_ENABLED == '\''true'\''' .github/workflows/ravin-evolution.yml || true
+          grep -Fq 'EXPECTED_BRANCH = "evolution"' .evolution/runner.mjs
+          git fetch origin main
+          git show origin/main:.github/workflows/ravin-evolution.yml > /tmp/ravin-evolution-main.yml
+          grep -Fq "vars.RAVIN_EVOLUTION_ENABLED == 'true'" /tmp/ravin-evolution-main.yml
+          if grep -Fq "vars.RAVIN_EVOLUTION_ENABLED != 'false'" /tmp/ravin-evolution-main.yml; then
+            echo "::error::Production scheduler is fail-open instead of fail-closed."
+            exit 1
+          fi
