@@ -1094,6 +1094,15 @@ async function main() {
     if (sync.blocked) return;
   }
 
+  if (process.argv.includes("--sync-only")) {
+    console.log(
+      state.currentExperiment
+        ? "[EVO] Sync preflight skipped because an experiment is checkpointed."
+        : "[EVO] Sync preflight complete."
+    );
+    return;
+  }
+
   for (
     let sessionIteration = 0;
     sessionIteration < MAX_ITERATIONS && Date.now() < deadline;
