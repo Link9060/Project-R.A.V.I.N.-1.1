@@ -172,9 +172,27 @@ async function copyForSmoke(projectRoot) {
     dereference: false,
     filter: (source) => {
       const base = path.basename(source);
-      return base !== ".git" && base !== ".ravin-backups";
+      return (
+        base !== ".git" &&
+        base !== ".ravin-backups" &&
+        base !== "node_modules"
+      );
     },
   });
+
+  const sourceModules = path.join(projectRoot, "node_modules");
+  const targetModules = path.join(target, "node_modules");
+  try {
+    const stat = await fs.stat(sourceModules);
+    if (stat.isDirectory()) {
+      await fs.symlink(
+        sourceModules,
+        targetModules,
+        process.platform === "win32" ? "junction" : "dir"
+      );
+    }
+  } catch {}
+
   return { temp, target };
 }
 
