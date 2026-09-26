@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "branch": "evolution",
+  "status": "ready",
+  "iteration": 0,
+  "attempted": 0,
+  "accepted": 0,
+  "rejected": 0,
+  "noops": 0,
+  "quotaPauses": 0,
+  "lastRunAt": null,
+  "lastAcceptedAt": null,
+  "lastAcceptedSummary": null,
+  "currentExperiment": null,
+  "recentFailures": [],
+  "recentAccepted": []
+}
