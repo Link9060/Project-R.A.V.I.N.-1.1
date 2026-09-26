@@ -153,7 +153,7 @@ export function deterministicDiffGuard(files, diff, {
     "cdn.jsdelivr.net",
     "link9060.github.io"
   ]);
-  const urls = added.match(/https?:\\/\\/[^\\s"'\\`<>)}]+/g) || [];
+  const urls = added.match(/https?:\/\/[^\s\"'<>)}]+/g) || [];
   for (const value of urls) {
     try {
       const host = new URL(value).hostname.toLowerCase();
