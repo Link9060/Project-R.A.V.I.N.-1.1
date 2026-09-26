@@ -20,6 +20,12 @@
   "metrics": {
     "lastBaseline": null,
     "lastCandidate": null,
-    "bestQualityScore": null
+    "bestQualityScore": null,
+    "aiUsage": {
+      "calls": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0
+    }
   }
 }
