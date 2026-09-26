@@ -146,6 +146,25 @@ export function deterministicDiffGuard(files, diff, {
   const secretFindings = scanTextForSecrets(added);
   for (const finding of secretFindings) reasons.push("Possible secret introduced: " + finding + ".");
 
+  const allowedHosts = new Set([
+    "api.cloudflare.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "cdn.jsdelivr.net",
+    "link9060.github.io"
+  ]);
+  const urls = added.match(/https?:\\/\\/[^\\s"'\\`<>)}]+/g) || [];
+  for (const value of urls) {
+    try {
+      const host = new URL(value).hostname.toLowerCase();
+      if (!allowedHosts.has(host)) {
+        reasons.push("New external network destination requires human review: " + host + ".");
+      }
+    } catch {
+      reasons.push("Malformed external URL added to code.");
+    }
+  }
+
   const deletedSecurity = SECURITY_MARKERS.filter((marker) => deleted.includes(marker));
   const addedSecurity = SECURITY_MARKERS.filter((marker) => added.includes(marker));
   for (const marker of deletedSecurity) {
