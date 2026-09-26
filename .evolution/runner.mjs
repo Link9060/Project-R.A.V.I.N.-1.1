@@ -500,6 +500,7 @@ async function toolAgent({
     }
 
     messages.push(assistantForHistory(message));
+    let wroteThisStep = false;
 
     for (const call of calls) {
       const name = call?.function?.name;
@@ -520,6 +521,14 @@ async function toolAgent({
         name,
         content: serializeToolResult(toolResult),
       });
+
+      if (name === "write_file" && toolResult?.success !== false) {
+        wroteThisStep = true;
+      }
+    }
+
+    if (wroteThisStep && state.currentExperiment?.phase === "engineering") {
+      await persistWorkInProgress();
     }
 
     const contextChars = messages.reduce(
@@ -806,6 +815,43 @@ async function checkpoint(kind, summary, { includeCode = false, event = {} } = {
 
   const subject = ("evo: " + kind + " iteration " + state.iteration).slice(0, 72);
   git(["commit", "-m", subject]);
+  git(["push", "origin", "HEAD:evolution"]);
+}
+
+async function persistWorkInProgress() {
+  if (!state.currentExperiment || state.currentExperiment.phase !== "engineering") return;
+
+  const diff = projectDiff();
+  if (!diff.trim()) return;
+
+  await fs.writeFile(INFLIGHT_PATCH_FILE, diff, "utf8");
+  state.currentExperiment.hasPatch = true;
+  state.currentExperiment.wipPersistedAt = nowIso();
+
+  await writeStateAtomic(STATE_FILE, STATE_BACKUP_FILE, state);
+  await writeStatus();
+
+  gitRaw(
+    [
+      "add",
+      "-A",
+      ".evolution/state.json",
+      ".evolution/state.backup.json",
+      ".evolution/status.json",
+      ".evolution/REPORT.md",
+      ".evolution/inflight.patch"
+    ],
+    [0]
+  );
+
+  const staged = gitRaw(["diff", "--cached", "--quiet"], [0, 1]);
+  if (staged.code === 0) return;
+
+  git([
+    "commit",
+    "-m",
+    ("evo: wip checkpoint iteration " + state.iteration).slice(0, 72)
+  ]);
   git(["push", "origin", "HEAD:evolution"]);
 }
 
