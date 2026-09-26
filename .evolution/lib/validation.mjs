@@ -178,6 +178,79 @@ async function copyForSmoke(projectRoot) {
   return { temp, target };
 }
 
+
+function findBrowserCommand() {
+  for (const command of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
+    const result = spawnSync(command, ["--version"], {
+      encoding: "utf8",
+      timeout: 3000,
+    });
+    if (result.status === 0) return command;
+  }
+  return null;
+}
+
+function browserSmoke(port) {
+  const command = findBrowserCommand();
+  const required = String(process.env.EVOLUTION_REQUIRE_BROWSER_SMOKE || "").toLowerCase() === "true";
+
+  if (!command) {
+    return {
+      success: !required,
+      available: false,
+      skipped: !required,
+      reason: required
+        ? "Headless browser smoke testing is required but Chrome/Chromium was not found."
+        : "Chrome/Chromium not available; browser smoke skipped.",
+    };
+  }
+
+  const result = spawnSync(
+    command,
+    [
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-background-networking",
+      "--disable-default-apps",
+      "--disable-extensions",
+      "--disable-sync",
+      "--metrics-recording-only",
+      "--no-first-run",
+      "--mute-audio",
+      "--virtual-time-budget=2500",
+      "--dump-dom",
+      "http://127.0.0.1:" + port + "/",
+    ],
+    {
+      encoding: "utf8",
+      timeout: 12_000,
+      maxBuffer: 4 * 1024 * 1024,
+      env: {
+        PATH: process.env.PATH || "",
+        HOME: process.env.HOME || os.tmpdir(),
+      },
+    }
+  );
+
+  const dom = result.stdout || "";
+  const coreDomPresent =
+    /id=["']app["']/.test(dom) &&
+    /id=["']composer["']/.test(dom) &&
+    /id=["']messageInput["']/.test(dom) &&
+    /id=["']settingsBtn["']/.test(dom);
+
+  return {
+    success: result.status === 0 && coreDomPresent,
+    available: true,
+    skipped: false,
+    command,
+    coreDomPresent,
+    status: result.status,
+    stderr: (result.stderr || "").slice(-1200),
+  };
+}
+
 async function serverSmoke(projectRoot) {
   let copy;
   try {
@@ -242,14 +315,18 @@ async function serverSmoke(projectRoot) {
           });
         }
 
+        const browser = browserSmoke(port);
+
         result = {
           success:
             body?.ok === true &&
             body?.service === "RAVIN" &&
-            authChecks.every((check) => check.pass),
+            authChecks.every((check) => check.pass) &&
+            browser.success,
           latencyMs: Date.now() - before,
           health: body,
           authChecks,
+          browser,
         };
         break;
       }
