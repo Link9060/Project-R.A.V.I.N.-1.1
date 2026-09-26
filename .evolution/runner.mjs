@@ -591,7 +591,12 @@ async function runExplorer(constitution, baseline) {
   });
 
   const plan = parseJsonObject(result.content);
-  if (!plan.title || !plan.problem || !Array.isArray(plan.successCriteria)) {
+  if (
+    !plan.title ||
+    !plan.problem ||
+    !Array.isArray(plan.successCriteria) ||
+    plan.successCriteria.length === 0
+  ) {
     throw new Error("Explorer returned an incomplete experiment plan.");
   }
 
@@ -689,7 +694,8 @@ async function runCritic({
     "\n\nUNTRUSTED DIFF DATA START\n" +
     reviewerDiff(diff).slice(0, MAX_DIFF_CHARS + 10_000) +
     "\nUNTRUSTED DIFF DATA END\n\n" +
-    'Return exactly: {"accept":true,"reason":"short reason","summary":"short factual improvement summary","confidence":0.0}';
+    'Return exactly: {"accept":true,"reason":"short reason","summary":"short factual improvement summary","confidence":0.0,"criteria":[{"criterion":"criterion text","passed":true,"evidence":"specific evidence"}]}. ' +
+    "Include one criteria entry for EVERY success criterion from the experiment.";
 
   ensureSessionTime();
   const result = await ai.call(
@@ -707,11 +713,38 @@ async function runCritic({
 
   recordAiUsage(result.usage);
   const verdict = parseJsonObject(result.message.content);
+  const expectedCriteria = experiment.plan?.successCriteria || [];
+  const criteria = Array.isArray(verdict.criteria)
+    ? verdict.criteria.slice(0, expectedCriteria.length).map((item, index) => ({
+        criterion: String(item?.criterion || expectedCriteria[index] || "").slice(0, 500),
+        passed: item?.passed === true,
+        evidence: String(item?.evidence || "").slice(0, 900),
+      }))
+    : [];
+
+  const confidence = Math.max(0, Math.min(1, Number(verdict.confidence) || 0));
+  const criteriaPassed =
+    criteria.length === expectedCriteria.length &&
+    criteria.every((item) => item.passed && item.evidence.trim());
+
+  const accepted =
+    verdict.accept === true &&
+    confidence >= 0.65 &&
+    criteriaPassed;
+
+  const gateReasons = [];
+  if (verdict.accept !== true) gateReasons.push(String(verdict.reason || "Critic rejected the change."));
+  if (confidence < 0.65) gateReasons.push("Critic confidence was below 0.65.");
+  if (!criteriaPassed) gateReasons.push("Critic did not verify every success criterion with evidence.");
+
   return {
-    accept: verdict.accept === true,
-    reason: String(verdict.reason || "No reason supplied.").slice(0, 1000),
+    accept: accepted,
+    reason: gateReasons.length
+      ? gateReasons.join(" ")
+      : String(verdict.reason || "All critic gates passed.").slice(0, 1000),
     summary: String(verdict.summary || experiment.plan?.title || "Autonomous improvement").slice(0, 600),
-    confidence: Math.max(0, Math.min(1, Number(verdict.confidence) || 0)),
+    confidence,
+    criteria,
     model: result.model,
   };
 }
