@@ -80,7 +80,8 @@ async function checkPackageLock(projectRoot) {
 }
 
 async function checkUiContracts(projectRoot) {
-  const file = path.join(projectRoot, "public", "index.html");
+  const publicRoot = path.join(projectRoot, "public");
+  const file = path.join(publicRoot, "index.html");
   let html = "";
   try { html = await fs.readFile(file, "utf8"); } catch {}
 
@@ -96,11 +97,37 @@ async function checkUiContracts(projectRoot) {
   ];
 
   const results = contracts.map(([name, re]) => ({ name, pass: re.test(html) }));
+
+  const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((match) => match[1]);
+  const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+
+  const references = [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)]
+    .map((match) => match[1].split(/[?#]/)[0])
+    .filter((value) =>
+      value &&
+      !/^(?:https?:|data:|mailto:|tel:|#|\/\/)/i.test(value)
+    );
+
+  const missingAssets = [];
+  for (const reference of [...new Set(references)]) {
+    try {
+      const stat = await fs.stat(path.resolve(publicRoot, reference));
+      if (!stat.isFile()) missingAssets.push(reference);
+    } catch {
+      missingAssets.push(reference);
+    }
+  }
+
   return {
     results,
     passed: results.filter((x) => x.pass).length,
     total: results.length,
-    success: results.every((x) => x.pass),
+    duplicateIds,
+    missingAssets,
+    success:
+      results.every((x) => x.pass) &&
+      duplicateIds.length === 0 &&
+      missingAssets.length === 0,
   };
 }
 
@@ -195,10 +222,34 @@ async function serverSmoke(projectRoot) {
       });
       if (response.ok) {
         const body = await response.json();
+
+        const authChecks = [];
+        for (const check of [
+          { name: "chat requires auth", path: "/api/chat", method: "POST", body: { message: "smoke test" } },
+          { name: "builder requires auth", path: "/api/build", method: "POST", body: { message: "smoke test" } },
+          { name: "memory read requires auth", path: "/api/memories", method: "GET" },
+        ]) {
+          const authResponse = await fetch("http://127.0.0.1:" + port + check.path, {
+            method: check.method,
+            headers: check.body ? { "Content-Type": "application/json" } : undefined,
+            body: check.body ? JSON.stringify(check.body) : undefined,
+            signal: AbortSignal.timeout(1200),
+          });
+          authChecks.push({
+            name: check.name,
+            status: authResponse.status,
+            pass: authResponse.status === 401,
+          });
+        }
+
         result = {
-          success: body?.ok === true && body?.service === "RAVIN",
+          success:
+            body?.ok === true &&
+            body?.service === "RAVIN" &&
+            authChecks.every((check) => check.pass),
           latencyMs: Date.now() - before,
           health: body,
+          authChecks,
         };
         break;
       }
