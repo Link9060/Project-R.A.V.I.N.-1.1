@@ -103,13 +103,35 @@ function headSha() {
   return git(["rev-parse", "HEAD"]);
 }
 
-function changedFiles() {
-  const output = git(["diff", "--name-only", "--", "ravin"]);
+function untrackedProjectFiles() {
+  const output = git([
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+    "--",
+    "ravin",
+  ]);
   return output ? output.split(/\r?\n/).filter(Boolean) : [];
 }
 
+function changedFiles() {
+  const tracked = git(["diff", "--name-only", "--", "ravin"]);
+  const trackedFiles = tracked ? tracked.split(/\r?\n/).filter(Boolean) : [];
+  return [...new Set([...trackedFiles, ...untrackedProjectFiles()])].sort();
+}
+
 function projectDiff() {
-  return gitRaw(["diff", "--binary", "--", "ravin"], [0]).stdout;
+  let output = gitRaw(["diff", "--binary", "--", "ravin"], [0]).stdout;
+
+  for (const file of untrackedProjectFiles()) {
+    const newFileDiff = gitRaw(
+      ["diff", "--no-index", "--binary", "--", "/dev/null", file],
+      [0, 1]
+    ).stdout;
+    output += (output.endsWith("\n") || !output ? "" : "\n") + newFileDiff;
+  }
+
+  return output;
 }
 
 function restoreRavin(baseSha) {
