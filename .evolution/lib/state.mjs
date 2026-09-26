@@ -27,6 +27,13 @@ export function defaultState() {
       lastBaseline: null,
       lastCandidate: null,
       bestQualityScore: null,
+      qualityAnchor: null,
+      diversity: {
+        acceptedBySubsystem: {},
+        attemptedBySubsystem: {},
+        lastAcceptedIteration: {},
+        recentSubsystems: []
+      },
       aiUsage: {
         calls: 0,
         promptTokens: 0,
@@ -45,6 +52,25 @@ function migrate(input) {
   state.metrics.aiUsage = {
     ...base.metrics.aiUsage,
     ...(state.metrics.aiUsage || {})
+  };
+  state.metrics.diversity = {
+    ...base.metrics.diversity,
+    ...(state.metrics.diversity || {}),
+    acceptedBySubsystem: {
+      ...(base.metrics.diversity.acceptedBySubsystem || {}),
+      ...(state.metrics.diversity?.acceptedBySubsystem || {})
+    },
+    attemptedBySubsystem: {
+      ...(base.metrics.diversity.attemptedBySubsystem || {}),
+      ...(state.metrics.diversity?.attemptedBySubsystem || {})
+    },
+    lastAcceptedIteration: {
+      ...(base.metrics.diversity.lastAcceptedIteration || {}),
+      ...(state.metrics.diversity?.lastAcceptedIteration || {})
+    },
+    recentSubsystems: Array.isArray(state.metrics.diversity?.recentSubsystems)
+      ? state.metrics.diversity.recentSubsystems.slice(-8)
+      : []
   };
   state.recentFailures = Array.isArray(state.recentFailures) ? state.recentFailures : [];
   state.recentAccepted = Array.isArray(state.recentAccepted) ? state.recentAccepted : [];
