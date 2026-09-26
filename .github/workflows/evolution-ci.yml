@@ -46,6 +46,9 @@ jobs:
       - name: Run evolution self-tests
         run: node .evolution/selftest.mjs
 
+      - name: Run destructive mutation tests
+        run: node .evolution/mutation-test.mjs
+
       - name: Verify branch and production scheduler safety
         run: |
           test "$(git rev-parse --abbrev-ref HEAD)" = "evolution"
