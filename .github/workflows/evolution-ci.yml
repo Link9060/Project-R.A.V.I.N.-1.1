@@ -1,0 +1,53 @@
+name: RAVIN Evolution CI
+
+on:
+  push:
+    branches: ["evolution"]
+    paths:
+      - ".evolution/**"
+      - "ravin/**"
+      - ".github/workflows/evolution-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ravin-evolution-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out evolution
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ravin/package-lock.json
+
+      - name: Parse evolution modules
+        run: |
+          find .evolution -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          node -e "JSON.parse(require('fs').readFileSync('.evolution/state.json','utf8'))"
+
+      - name: Install locked RAVIN dependencies
+        working-directory: ravin
+        run: npm ci --ignore-scripts --no-audit --fund=false
+
+      - name: Run evolution self-tests
+        run: node .evolution/selftest.mjs
+
+      - name: Verify evolution cannot modify production workflow by accident
+        run: |
+          test "$(git rev-parse --abbrev-ref HEAD)" = "evolution"
+          grep -q 'EXPECTED_BRANCH = "evolution"' .evolution/runner.mjs
+          grep -q 'RAVIN_EVOLUTION_ENABLED == '\''true'\''' .github/workflows/ravin-evolution.yml || true
