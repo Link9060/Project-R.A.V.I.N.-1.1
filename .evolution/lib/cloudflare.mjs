@@ -99,13 +99,24 @@ export function createCloudflareClient({
 
       if (!response.ok) {
         const details = await response.text().catch(() => "");
+        const retryAfter = Number(response.headers.get("retry-after") || 0);
+
+        if (
+          response.status === 429 &&
+          retryAfter > 0 &&
+          retryAfter <= 60 &&
+          attempt <= maxRetries
+        ) {
+          if (onRetry) await onRetry({ attempt, reason: "short-rate-limit", details });
+          await sleep(Math.min(60_000, retryAfter * 1000));
+          continue;
+        }
 
         if (quotaLike(response.status, details)) {
           throw new QuotaPauseError("Workers AI quota/rate limit reached (" + response.status + ").");
         }
 
         if (retryable(response.status) && attempt <= maxRetries) {
-          const retryAfter = Number(response.headers.get("retry-after") || 0);
           if (onRetry) await onRetry({ attempt, reason: "http-" + response.status, details });
           await sleep(
             retryAfter > 0
