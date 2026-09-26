@@ -1,46 +1,102 @@
 # RAVIN Evolution Lab
 
-This branch is RAVIN's autonomous experimental R&D lane.
+RAVIN Evolution is an isolated autonomous R&D branch for experimenting on RAVIN without touching production.
 
-## What it does
-- runs bounded autonomous engineering sessions
-- chooses one improvement at a time
-- edits only the `ravin/` project
-- validates every proposed change
-- sends the diff through a separate review gate
-- commits accepted experiments to `evolution`
-- records rejected experiments so they are less likely to repeat
-- pauses safely when the Workers AI quota/rate limit is reached
-- resumes on a later scheduled run
+## Current architecture
 
-It never merges itself into `main`.
+Each experiment moves through a persistent three-agent pipeline:
 
-## Control plane
-`.evolution/runner.mjs` is the controller.
-`.evolution/CONSTITUTION.md` contains non-negotiable rules.
-`.evolution/state.json` persists progress between runs.
-`.evolution/journal.md` is created automatically and records each experiment.
+1. **Explorer** — inspects RAVIN and chooses one bounded, high-value experiment.
+2. **Engineer** — implements only that experiment with project-scoped read/write tools.
+3. **Critic** — independently reviews the untrusted diff, benchmarks, regression data, and security gates.
 
-The AI's file tools are rooted at `ravin/`, so the autonomous engineering agent cannot edit the controller or GitHub workflow.
+Accepted code is committed only to `evolution`. Nothing automatically merges into `main`.
 
-## Required GitHub Actions secrets
-The scheduler expects these repository Actions secrets:
+## What V2 adds
+
+- true in-flight experiment checkpoints
+- quota-safe patch persistence and resume
+- Workers AI request timeouts
+- exponential retries for temporary API/network failures
+- separate Explorer / Engineer / Critic model configuration
+- automatic sync from current `main` before starting a fresh experiment
+- atomic state writes plus a recovery copy
+- long-term JSONL experiment history
+- history search available to Explorer and Engineer
+- symlink-aware project path containment
+- secret/credential scanning
+- deleted-security-code detection
+- new external-network-destination gating
+- package.json/package-lock consistency checks
+- JavaScript syntax checks across the whole RAVIN project
+- JSON validation across the project
+- ARROW/RAVIN UI contract checks
+- API/auth contract checks
+- isolated server startup + `/api/health` smoke testing
+- baseline vs candidate quality metrics
+- regression comparisons for contracts, latency, size, and quality score
+- `.evolution/status.json` machine-readable status
+- `.evolution/REPORT.md` human-readable evolution report
+
+## Persistent files
+
+- `CONSTITUTION.md` — non-negotiable rules
+- `state.json` — current evolution state
+- `state.backup.json` — previous valid state snapshot
+- `history.jsonl` — long-term experiment history
+- `journal.md` — compact human-readable event journal
+- `inflight.patch` — only exists when unfinished code must survive a quota cutoff
+- `status.json` — compact dashboard data
+- `REPORT.md` — readable dashboard/report
+
+## Resume behavior
+
+If quota is exhausted while an experiment is being engineered or reviewed:
+
+1. the current RAVIN diff is saved to `inflight.patch`
+2. the working tree is restored to its clean base
+3. experiment phase, plan, benchmark baseline, and checkpoint metadata are committed
+4. the next run reapplies the exact patch
+5. the same experiment continues instead of starting over
+
+No unfinished patch is merged into production.
+
+## Required Actions secrets
 
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN`
 
-Use the same Workers AI credentials that RAVIN already uses if you want evolution to share that free quota.
+## Activation
 
-## Optional controls
-Repository variable `RAVIN_EVOLUTION_ENABLED=false` pauses scheduled evolution without deleting anything.
+Evolution is deliberately **opt-in**.
 
-Repository variable `RAVIN_EVOLUTION_MODEL` can override the default work model.
+Scheduled and manual workflow runs execute only when this repository variable is exactly:
 
-## Safety model
-Evolution is intentionally separated from production:
-- scheduler definition lives on `main`
-- scheduler checks out `evolution`
-- all autonomous commits are pushed only to `evolution`
-- production deployment remains tied to `main`
-- failed/unreviewed experiments are reverted
-- merges into production remain a human decision
+`RAVIN_EVOLUTION_ENABLED=true`
+
+If the variable is absent or anything other than `true`, the evolution job stays off.
+
+## Optional model variables
+
+- `RAVIN_EVOLUTION_MODEL` — Engineer
+- `RAVIN_EVOLUTION_EXPLORER_MODEL` — Explorer
+- `RAVIN_EVOLUTION_CRITIC_MODEL` — Critic
+
+Keeping the Critic on a different model from the Engineer helps reduce correlated mistakes.
+
+## Safety boundary
+
+The autonomous tools can read/write only inside `ravin/`.
+
+They cannot directly edit:
+
+- `.evolution/`
+- `.github/`
+- git metadata
+- environment files
+- GitHub Actions configuration
+- credentials
+
+The controller, not the AI, owns commits, pushes, benchmarks, regression gates, quota checkpoints, and branch synchronization.
+
+Production remains a human decision.
