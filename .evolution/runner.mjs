@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -256,21 +257,7 @@ function deterministicValidation() {
 }
 
 function requireText(repoPath) {
-  const result = spawnSync("git", ["show", ":" + repoPath], {
-    cwd: ROOT,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024,
-  });
-  if (result.status === 0) return result.stdout;
-
-  const diskPath = path.join(ROOT, repoPath);
-  const disk = spawnSync(process.execPath, ["-e", "process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'))", diskPath], {
-    cwd: ROOT,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024,
-  });
-  if (disk.status !== 0) throw new Error("Could not read " + repoPath);
-  return disk.stdout;
+  return fsSync.readFileSync(path.join(ROOT, repoPath), "utf8");
 }
 
 const TOOL_DEFINITIONS = [
