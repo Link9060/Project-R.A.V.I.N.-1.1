@@ -295,6 +295,7 @@ async function serverSmoke(projectRoot) {
       });
       if (response.ok) {
         const body = await response.json();
+        const healthLatencyMs = Date.now() - before;
 
         const authChecks = [];
         for (const check of [
@@ -323,7 +324,7 @@ async function serverSmoke(projectRoot) {
             body?.service === "RAVIN" &&
             authChecks.every((check) => check.pass) &&
             browser.success,
-          latencyMs: Date.now() - before,
+          latencyMs: healthLatencyMs,
           health: body,
           authChecks,
           browser,
