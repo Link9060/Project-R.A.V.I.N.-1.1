@@ -1,0 +1,25 @@
+{
+  "updatedAt": null,
+  "status": "ready",
+  "iteration": 0,
+  "attempted": 0,
+  "accepted": 0,
+  "rejected": 0,
+  "noops": 0,
+  "quotaPauses": 0,
+  "apiRetries": 0,
+  "syncsFromMain": 0,
+  "lastAcceptedAt": null,
+  "lastAcceptedSummary": null,
+  "currentExperiment": null,
+  "metrics": {
+    "lastBaseline": null,
+    "lastCandidate": null,
+    "bestQualityScore": null
+  },
+  "models": {
+    "explorer": "configured at runtime",
+    "engineer": "configured at runtime",
+    "critic": "configured at runtime"
+  }
+}
