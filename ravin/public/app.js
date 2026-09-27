@@ -10,6 +10,7 @@ const READ_RECEIPTS_KEY_PREFIX="ravin_read_receipts";
 const boot=$("boot");
 const bootLine=$("bootLine");
 const app=$("app");
+const arrivingFromOrbit=new URLSearchParams(location.search).get("from")==="orbit";
 const settingsBtn=$("settingsBtn");
 const settingsPanel=$("settingsPanel");
 const themeToggle=$("themeToggle");
@@ -19,6 +20,14 @@ const clearBtn=$("clearBtn");
 const finishBoot=()=>{
   if(!app||!boot)return;
   app.classList.add("app-visible");
+
+  // Orbit already owns the transition. Do not run a second boot reveal under
+  // the arrival overlay or the handoff looks like it stutters twice.
+  if(arrivingFromOrbit){
+    boot.hidden=true;
+    return;
+  }
+
   if(bootLine)bootLine.textContent="RAVIN READY";
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   window.setTimeout(()=>{
