@@ -3,7 +3,7 @@
   const backendUrl = isLocal && location.port === "3000"
     ? location.origin
     : "https://ravin-hyeq.onrender.com";
-  const supabaseUrl = "https://bzjudqhjrbwglxdfbkmj.supabase.co";
+  const supabaseUrl = "https://cnorozrjugxpanpfmssa.supabase.co";
 
   window.RAVIN_CONFIG = Object.freeze({
     productName: "RAVIN",
@@ -11,7 +11,7 @@
     release: "0.2.0",
     backendUrl,
     supabaseUrl,
-    supabaseAnonKey: "sb_publishable_wVnTPMs0hUuWdt1_LGMIYQ_D-aXveMV",
+    supabaseAnonKey: "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg",
     authUrl: `${supabaseUrl}/functions/v1/ravin-auth`,
     models: Object.freeze({
       conversation: Object.freeze({ label: "Granite", modeLabel: "Conversation" }),
