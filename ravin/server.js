@@ -21,6 +21,25 @@ const PORT = Number(process.env.PORT || 3000);
 const RELEASE = process.env.RAVIN_RELEASE || "0.2.0";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+
+const RAVIN_TABLES = Object.freeze({
+  conversations: "ravin_conversations",
+  messages: "ravin_messages",
+  session_summaries: "ravin_session_summaries",
+  project_memory: "ravin_project_memory",
+  permanent_memories: "ravin_permanent_memories",
+  projects: "ravin_projects",
+  files: "ravin_files",
+  user_settings: "ravin_user_settings",
+});
+
+function ravinRestPath(pathname) {
+  return String(pathname).replace(/^\/rest\/v1\/([^/?]+)/, (match, table) => {
+    const mapped = RAVIN_TABLES[table];
+    return mapped ? `/rest/v1/${mapped}` : match;
+  });
+}
+
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || "";
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CLOUDFLARE_API_KEY || "";
 const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "").replace(/\/$/, "");
@@ -107,6 +126,7 @@ function requireSupabase() {
 
 async function supabaseRequest(pathname, { token, method = "GET", body, prefer = "" } = {}) {
   requireSupabase();
+  pathname = ravinRestPath(pathname);
   const headers = { apikey: SUPABASE_ANON_KEY, Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (prefer) headers.Prefer = prefer;
