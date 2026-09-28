@@ -1,7 +1,7 @@
 (() => {
   const BACKEND_URL = "https://ravin-hyeq.onrender.com";
-  const SUPABASE_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_wVnTPMs0hUuWdt1_LGMIYQ_D-aXveMV";
+  const SUPABASE_URL = "https://cnorozrjugxpanpfmssa.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg";
   const AUTH_URL = `${SUPABASE_URL}/functions/v1/ravin-auth`;
   const MODE_KEY = "ravin_mode";
   const AUTH_KEYS = {
@@ -44,16 +44,12 @@
   };
 
   async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem(AUTH_KEYS.refresh) || "";
-    if (!refreshToken) throw new Error("Your RAVIN session expired. Sign in again.");
-    const response = await fetch(AUTH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "refresh", refresh_token: refreshToken }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || `Session refresh failed (${response.status}).`);
-    return persistSession(data.session, data.user);
+    if (window.RavinAuth?.refreshSession) {
+      const refreshed = await window.RavinAuth.refreshSession();
+      if (!refreshed) throw new Error("Your ARROW session expired. Sign in again.");
+      return window.RavinAuth.getAccessToken();
+    }
+    throw new Error("Your ARROW session expired. Sign in again.");
   }
 
   async function ensureToken(forceRefresh = false) {
@@ -182,12 +178,12 @@
 
     const stored = conversationId(mode);
     if (stored) {
-      const rows = await supabase(`/rest/v1/conversations?id=eq.${encodeURIComponent(stored)}&user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&limit=1`);
+      const rows = await supabase(`/rest/v1/ravin_conversations?id=eq.${encodeURIComponent(stored)}&user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&limit=1`);
       if (rows?.[0]?.id) return rows[0].id;
       setConversationId("", mode);
     }
 
-    const rows = await supabase(`/rest/v1/conversations?user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=25`);
+    const rows = await supabase(`/rest/v1/ravin_conversations?user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=25`);
     const selected = rows.find((row) => String(row?.metadata?.mode || "conversation") === mode)
       || (mode === "conversation" ? rows.find((row) => !row?.metadata?.mode) : null);
     if (selected?.id) {
@@ -212,7 +208,7 @@
         setStatus(`${currentMode.toUpperCase()} · READY`);
         return;
       }
-      const rows = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,role,content,created_at&order=created_at.asc&limit=200`);
+      const rows = await supabase(`/rest/v1/ravin_messages?conversation_id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,role,content,created_at&order=created_at.asc&limit=200`);
       renderMessages(rows || []);
       setStatus(`${currentMode.toUpperCase()} · ${rows?.length || 0} MESSAGES`);
     } catch (error) {
