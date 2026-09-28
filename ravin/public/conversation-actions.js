@@ -1,6 +1,6 @@
 (() => {
-  const SUPABASE_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_wVnTPMs0hUuWdt1_LGMIYQ_D-aXveMV";
+  const SUPABASE_URL = "https://cnorozrjugxpanpfmssa.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg";
   const AUTH_KEYS = { access: "ravin_access_token", user: "ravin_user" };
   const conversationKeys = {
     conversation: "ravin_conversation_id_conversation",
@@ -62,7 +62,7 @@
       return [];
     }
 
-    const query = `/rest/v1/conversations?user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`;
+    const query = `/rest/v1/ravin_conversations?user_id=eq.${encodeURIComponent(currentUser.id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`;
     const response = await fetch(`${SUPABASE_URL}${query}`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -188,7 +188,7 @@
     error.textContent = "";
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(currentUser.id)}`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/ravin_conversations?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(currentUser.id)}`, {
         method: "DELETE",
         headers: {
           apikey: SUPABASE_KEY,
