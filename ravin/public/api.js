@@ -6,6 +6,13 @@
   };
 
   let currentMode = localStorage.getItem(MODE_KEY) === "work" ? "work" : "conversation";
+  const APP_BASE = window.location.pathname === "/ravin" || window.location.pathname.startsWith("/ravin/")
+    ? "/ravin"
+    : "";
+
+  function apiPath(path) {
+    return path.startsWith("/api/") ? `${APP_BASE}${path}` : path;
+  }
 
   function normalizeMode(mode) {
     return String(mode || "").toLowerCase() === "work" ? "work" : "conversation";
@@ -24,7 +31,7 @@
     const headers = { ...(options.headers || {}), "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const response = await fetch(path, { ...options, headers });
+    const response = await fetch(apiPath(path), { ...options, headers });
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
