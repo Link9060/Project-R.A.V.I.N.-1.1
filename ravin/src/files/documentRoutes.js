@@ -4,6 +4,25 @@ import { documentKind, extractDocument } from "./documentExtractor.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+
+const RAVIN_TABLES = Object.freeze({
+  conversations: "ravin_conversations",
+  messages: "ravin_messages",
+  session_summaries: "ravin_session_summaries",
+  project_memory: "ravin_project_memory",
+  permanent_memories: "ravin_permanent_memories",
+  projects: "ravin_projects",
+  files: "ravin_files",
+  user_settings: "ravin_user_settings",
+});
+
+function ravinRestPath(pathname) {
+  return String(pathname).replace(/^\/rest\/v1\/([^/?]+)/, (match, table) => {
+    const mapped = RAVIN_TABLES[table];
+    return mapped ? `/rest/v1/${mapped}` : match;
+  });
+}
+
 const FILE_BUCKET = "ravin-files";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_STORED_TEXT_CHARS = 180_000;
@@ -19,6 +38,7 @@ function requireConfig() {
 
 async function supabaseRequest(pathname, { token, method = "GET", body, prefer = "", extraHeaders = {} } = {}) {
   requireConfig();
+  pathname = ravinRestPath(pathname);
   const headers = { apikey: SUPABASE_ANON_KEY, Accept: "application/json", ...extraHeaders };
   if (body !== undefined && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
   if (prefer) headers.Prefer = prefer;
