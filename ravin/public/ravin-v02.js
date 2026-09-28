@@ -1,7 +1,10 @@
 (() => {
-  const BACKEND_URL = "https://ravin-hyeq.onrender.com";
-  const SUPABASE_URL = "https://bzjudqhjrbwglxdfbkmj.supabase.co";
-  const AUTH_URL = `${SUPABASE_URL}/functions/v1/ravin-auth`;
+  const BACKEND_URL = window.location.pathname === "/ravin" || window.location.pathname.startsWith("/ravin/")
+    ? "/ravin"
+    : "https://ravin-hyeq.onrender.com";
+  const SUPABASE_URL = "https://cnorozrjugxpanpfmssa.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg";
+  const SHARED_SESSION_KEY = "sb-cnorozrjugxpanpfmssa-auth-token";
   const AUTH_KEYS = {
     access: "ravin_access_token",
     refresh: "ravin_refresh_token",
@@ -27,29 +30,54 @@
     try { return JSON.parse(value) ?? fallback; } catch { return fallback; }
   }
 
-  function currentUser() { return parseJson(localStorage.getItem(AUTH_KEYS.user), null); }
+  function currentUser() {
+    return sharedSession()?.user || parseJson(localStorage.getItem(AUTH_KEYS.user), null);
+  }
   function currentMode() { return localStorage.getItem("ravin_mode") === "work" ? "work" : "conversation"; }
   function conversationKey(mode = currentMode()) { return `ravin_conversation_id_${mode}`; }
   function currentConversationId() { return localStorage.getItem(conversationKey()) || ""; }
 
-  async function refreshToken() {
-    const refresh = localStorage.getItem(AUTH_KEYS.refresh) || "";
-    if (!refresh) throw new Error("Your RAVIN session expired. Sign in again.");
-    const response = await fetch(AUTH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "refresh", refresh_token: refresh }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data?.session?.access_token) throw new Error(data?.error || "RAVIN couldn't refresh your session.");
-    localStorage.setItem(AUTH_KEYS.access, data.session.access_token);
-    if (data.session.refresh_token) localStorage.setItem(AUTH_KEYS.refresh, data.session.refresh_token);
-    if (data.user || data.session.user) localStorage.setItem(AUTH_KEYS.user, JSON.stringify(data.user || data.session.user));
-    const expiresAt = data.session.expires_at
-      ? Number(data.session.expires_at) * 1000
-      : Date.now() + Number(data.session.expires_in || 3600) * 1000;
+  function sharedSession() {
+    try { return JSON.parse(localStorage.getItem(SHARED_SESSION_KEY) || "null"); }
+    catch { return null; }
+  }
+
+  function mirrorSharedSession(session = sharedSession()) {
+    if (!session?.access_token) return null;
+    localStorage.setItem(AUTH_KEYS.access, session.access_token);
+    if (session.refresh_token) localStorage.setItem(AUTH_KEYS.refresh, session.refresh_token);
+    if (session.user) localStorage.setItem(AUTH_KEYS.user, JSON.stringify(session.user));
+    const expiresAt = session.expires_at
+      ? Number(session.expires_at) * 1000
+      : Date.now() + Number(session.expires_in || 3600) * 1000;
     localStorage.setItem(AUTH_KEYS.expires, String(expiresAt));
-    return data.session.access_token;
+    return session;
+  }
+
+  mirrorSharedSession();
+
+  async function refreshToken() {
+    const current = sharedSession();
+    const refresh = current?.refresh_token || localStorage.getItem(AUTH_KEYS.refresh) || "";
+    if (!refresh) throw new Error("Your ARROW session expired. Sign in again.");
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.access_token) {
+      throw new Error(data?.message || data?.error_description || "ARROW couldn't refresh your session.");
+    }
+
+    localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(data));
+    mirrorSharedSession(data);
+    return data.access_token;
   }
 
   async function getToken(force = false) {
