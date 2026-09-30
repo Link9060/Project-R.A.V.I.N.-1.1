@@ -6,6 +6,7 @@ import {
 } from "../cloudflareClient.js";
 import { RAVIN_SYSTEM_PROMPT } from "../systemPrompt.js";
 import { TOOL_DEFINITIONS } from "./tools.js";
+import { ARROW_TOOL_DEFINITIONS } from "./arrowTools.js";
 import { executeToolCall } from "./toolExecutor.js";
 
 const DEFAULT_MAX_STEPS = 20;
@@ -111,46 +112,140 @@ async function runConversationPath(userMessage, startedAt, {
   initialMessages = null,
   systemPrompt = CONVERSATION_SYSTEM_PROMPT,
   onToken = null,
+  toolContext = null,
 } = {}) {
   const messages = compactMessages(buildMessages(userMessage, systemPrompt, initialMessages));
-  const beforeCall = Date.now();
-  const requestOptions = {
-    mode: "conversation",
-    tools: [],
-    temperature: 0.7,
-    maxTokens: CONVERSATION_MAX_TOKENS,
-  };
+  const hasArrowTools = typeof toolContext?.executeArrowTool === "function";
 
-  const assistantMessage = onToken
-    ? await streamChatWithCloudflare(messages, requestOptions, onToken)
-    : await requestWithRecovery(messages, requestOptions);
-
-  const latencyMs = Date.now() - beforeCall;
-  const finalContent = assistantMessage.content?.trim();
-  if (!finalContent) throw new Error("Cloudflare returned no visible response content. Try again.");
-
-  const totalTimeMs = Date.now() - startedAt;
-  const meta = assistantMessage._ravinMeta || {};
-  console.log(`[RAVIN perf] mode=conversation total=${totalTimeMs}ms ai=${latencyMs}ms model=${meta.routedModel || getRavinModel("conversation")}`);
-
-  return {
-    reply: finalContent,
-    steps: 1,
-    trace: [],
-    performance: {
+  if (!hasArrowTools) {
+    const beforeCall = Date.now();
+    const requestOptions = {
       mode: "conversation",
-      totalMs: totalTimeMs,
-      aiCalls: [{
-        step: 1,
-        latencyMs,
-        cloudflare: meta,
-        contextChars: estimateMessageChars(messages),
-        toolEnabled: false,
-      }],
-      toolTimeMs: 0,
-      contextCompactions: 0,
-    },
-  };
+      tools: [],
+      temperature: 0.7,
+      maxTokens: CONVERSATION_MAX_TOKENS,
+    };
+
+    const assistantMessage = onToken
+      ? await streamChatWithCloudflare(messages, requestOptions, onToken)
+      : await requestWithRecovery(messages, requestOptions);
+
+    const latencyMs = Date.now() - beforeCall;
+    const finalContent = assistantMessage.content?.trim();
+    if (!finalContent) throw new Error("Cloudflare returned no visible response content. Try again.");
+
+    const totalTimeMs = Date.now() - startedAt;
+    const meta = assistantMessage._ravinMeta || {};
+    console.log(`[RAVIN perf] mode=conversation total=${totalTimeMs}ms ai=${latencyMs}ms model=${meta.routedModel || getRavinModel("conversation")}`);
+
+    return {
+      reply: finalContent,
+      steps: 1,
+      trace: [],
+      performance: {
+        mode: "conversation",
+        totalMs: totalTimeMs,
+        aiCalls: [{
+          step: 1,
+          latencyMs,
+          cloudflare: meta,
+          contextChars: estimateMessageChars(messages),
+          toolEnabled: false,
+        }],
+        toolTimeMs: 0,
+        contextCompactions: 0,
+      },
+    };
+  }
+
+  const trace = [];
+  const aiCalls = [];
+  let toolTimeMs = 0;
+  let contextCompactions = 0;
+  const maxSteps = 6;
+
+  for (let step = 1; step <= maxSteps; step += 1) {
+    const beforeCall = Date.now();
+    const assistantMessage = await requestWithRecovery(messages, {
+      mode: "conversation",
+      tools: ARROW_TOOL_DEFINITIONS,
+      toolChoice: "auto",
+      temperature: 0.65,
+      maxTokens: CONVERSATION_MAX_TOKENS,
+    });
+    const latencyMs = Date.now() - beforeCall;
+
+    aiCalls.push({
+      step,
+      latencyMs,
+      cloudflare: assistantMessage._ravinMeta || null,
+      contextChars: estimateMessageChars(messages),
+      toolEnabled: true,
+    });
+
+    const toolCalls = assistantMessage.tool_calls || [];
+    if (!toolCalls.length) {
+      const finalContent = assistantMessage.content?.trim();
+      if (!finalContent) {
+        throw new Error("RAVIN completed a conversation step without returning a response.");
+      }
+
+      const totalTimeMs = Date.now() - startedAt;
+      return {
+        reply: finalContent,
+        steps: step,
+        trace,
+        performance: {
+          mode: "conversation",
+          totalMs: totalTimeMs,
+          aiCalls,
+          toolTimeMs,
+          contextCompactions,
+        },
+      };
+    }
+
+    messages.push(assistantMessageForHistory(assistantMessage));
+
+    for (const toolCall of toolCalls) {
+      const toolName = toolCall?.function?.name || "unknown";
+      trace.push({ step, type: "tool_call", tool: toolName });
+      const toolStartedAt = Date.now();
+
+      try {
+        const result = await executeToolCall(toolCall, toolContext);
+        const elapsed = Date.now() - toolStartedAt;
+        toolTimeMs += elapsed;
+        trace.push({ step, type: "tool_result", tool: toolName, success: true, toolTimeMs: elapsed });
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          name: toolName,
+          content: serializeToolResult(result),
+        });
+      } catch (error) {
+        const elapsed = Date.now() - toolStartedAt;
+        toolTimeMs += elapsed;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        trace.push({ step, type: "tool_result", tool: toolName, success: false, error: errorMessage, toolTimeMs: elapsed });
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          name: toolName,
+          content: JSON.stringify({ success: false, error: errorMessage }),
+        });
+      }
+    }
+
+    if (estimateMessageChars(messages) > MAX_CONTEXT_CHARS) {
+      const compacted = compactMessages(messages);
+      messages.length = 0;
+      messages.push(...compacted);
+      contextCompactions += 1;
+    }
+  }
+
+  throw new Error(`RAVIN reached its conversation action limit of ${maxSteps} steps without completing the request.`);
 }
 
 export async function runAgent(userMessage, {
@@ -160,6 +255,7 @@ export async function runAgent(userMessage, {
   initialMessages = null,
   onToken = null,
   mode = "conversation",
+  toolContext = null,
 } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) {
     throw new Error("A user message is required.");
@@ -173,10 +269,14 @@ export async function runAgent(userMessage, {
       initialMessages,
       systemPrompt: initialMessages?.length ? systemPrompt : CONVERSATION_SYSTEM_PROMPT,
       onToken,
+      toolContext,
     });
   }
 
   const messages = buildMessages(userMessage, systemPrompt, initialMessages);
+  const workTools = typeof toolContext?.executeArrowTool === "function"
+    ? [...ARROW_TOOL_DEFINITIONS, ...TOOL_DEFINITIONS]
+    : TOOL_DEFINITIONS;
   const trace = [];
   const aiCalls = [];
   let toolTimeMs = 0;
@@ -186,7 +286,7 @@ export async function runAgent(userMessage, {
     const beforeCall = Date.now();
     const assistantMessage = await requestWithRecovery(messages, {
       mode: "work",
-      tools: TOOL_DEFINITIONS,
+      tools: workTools,
       toolChoice: "auto",
       temperature,
       maxTokens: 1800,
@@ -198,7 +298,7 @@ export async function runAgent(userMessage, {
       latencyMs: aiCallTimeMs,
       cloudflare: assistantMessage._ravinMeta || null,
       contextChars: estimateMessageChars(messages),
-      toolEnabled: TOOL_DEFINITIONS.length > 0,
+      toolEnabled: workTools.length > 0,
     });
 
     const toolCalls = assistantMessage.tool_calls || [];
@@ -232,7 +332,7 @@ export async function runAgent(userMessage, {
       const toolStartedAt = Date.now();
 
       try {
-        const result = await executeToolCall(toolCall);
+        const result = await executeToolCall(toolCall, toolContext);
         const elapsed = Date.now() - toolStartedAt;
         toolTimeMs += elapsed;
         trace.push({ step, type: "tool_result", tool: toolName, success: true, toolTimeMs: elapsed });
