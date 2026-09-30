@@ -3,6 +3,8 @@ name: Validate RAVIN fallback
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -15,8 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate browser JavaScript
+      - name: Validate RAVIN JavaScript
         run: |
+          node --check ravin/server.js
           for file in ravin/public/*.js; do
             echo "Checking $file"
             node --check "$file"
