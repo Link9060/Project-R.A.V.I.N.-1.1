@@ -3,6 +3,8 @@ name: Deploy RAVIN to GitHub Pages
 on:
   push:
     branches: ["deployment-prep"]
+  pull_request:
+    branches: ["deployment-prep"]
   workflow_dispatch:
 
 permissions:
@@ -45,6 +47,7 @@ jobs:
           ! grep -q 'arrow-system.js' public/index.html
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: quality
     environment:
       name: github-pages

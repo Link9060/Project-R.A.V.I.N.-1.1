@@ -5,6 +5,12 @@
   const SUPABASE_URL = "https://cnorozrjugxpanpfmssa.supabase.co";
   const SUPABASE_KEY = "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg";
   const SHARED_SESSION_KEY = "sb-cnorozrjugxpanpfmssa-auth-token";
+  const ARROW_SURFACES = new Set(["orbit", "relay", "waypoint", "atlas", "ravin"]);
+  const ARROW_SURFACE = (() => {
+    const params = new URLSearchParams(location.search);
+    const requested = String(params.get("surface") || params.get("from") || "ravin").toLowerCase();
+    return ARROW_SURFACES.has(requested) ? requested : "ravin";
+  })();
   const AUTH_KEYS = {
     access: "ravin_access_token",
     refresh: "ravin_refresh_token",
@@ -529,6 +535,8 @@
         mode,
         conversation_id: currentConversationId() || null,
         environment: state.environment,
+        surface: ARROW_SURFACE,
+        surface_context: { module: ARROW_SURFACE },
         memory_enabled: state.memoryEnabled,
         attachment_ids: uploaded.map((file) => file.id),
       };
@@ -845,6 +853,47 @@
     }
   }
 
+  function consumeIncomingArrowPrompt() {
+    document.documentElement.dataset.ravinSurface = ARROW_SURFACE;
+
+    const params = new URLSearchParams(location.search);
+    const prompt = String(params.get("prompt") || "").trim();
+    if (!prompt) return;
+
+    params.delete("prompt");
+    const nextSearch = params.toString();
+    history.replaceState(
+      {},
+      "",
+      `${location.pathname}${nextSearch ? `?${nextSearch}` : ""}${location.hash}`,
+    );
+
+    let attempts = 0;
+    const deliver = () => {
+      const input = $("#messageInput");
+      const composer = $("#composer");
+      if (!input || !composer) {
+        attempts += 1;
+        if (attempts < 24) setTimeout(deliver, 50);
+        return;
+      }
+
+      input.value = prompt;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+
+      if (currentUser()?.id) {
+        setTimeout(() => {
+          if (!state.controller && input.value.trim() === prompt) {
+            composer.requestSubmit();
+          }
+        }, 80);
+      }
+    };
+
+    deliver();
+  }
+
   function initObserver() {
     const root = $("#messages");
     if (!root) return;
@@ -865,6 +914,7 @@
     bindProductEvents();
     enhanceMessages();
     initObserver();
+    consumeIncomingArrowPrompt();
     addEventListener("keydown", (event) => {
       if (event.key === "Escape") closeDrawer();
     });

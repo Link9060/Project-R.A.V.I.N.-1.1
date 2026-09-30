@@ -351,7 +351,7 @@
   async function loadConversations() {
     if (!currentUser()?.id) { state.conversations = []; renderHistory(); return; }
     try {
-      const rows = await supabase(`/rest/v1/conversations?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`);
+      const rows = await supabase(`/rest/v1/ravin_conversations?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`);
       state.conversations = rows || [];
       renderHistory($("#historySearch")?.value || "");
     } catch (error) {
@@ -377,7 +377,7 @@
     if (!row?.id || !currentUser()?.id) { emptyState(); return; }
     $("#headerConversationTitle").textContent = row.title || "Untitled conversation";
     try {
-      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,created_at&order=created_at.asc&limit=250`);
+      const messages = await supabase(`/rest/v1/ravin_messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,created_at&order=created_at.asc&limit=250`);
       renderMessages(messages || []);
     } catch (error) {
       console.error("[RAVIN messages]", error);
