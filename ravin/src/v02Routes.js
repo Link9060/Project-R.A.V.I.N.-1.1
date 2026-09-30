@@ -12,6 +12,13 @@ import {
   listCapabilityEnvironments,
   resolveCapabilityEnvironment,
 } from "./capabilities/registry.js";
+import {
+  ARROW_TOOL_DEFINITIONS,
+  executeArrowTool,
+  loadArrowContext,
+  normalizeArrowSurface,
+  shouldUseArrowTools,
+} from "./arrowIntegration.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
@@ -233,7 +240,7 @@ async function conversationRecord(conversationId, userId, token) {
   return rows?.[0] || null;
 }
 
-async function createConversation({ userId, token, title, mode, environment, projectId = null }) {
+async function createConversation({ userId, token, title, mode, environment, surface, projectId = null }) {
   const rows = await supabaseRequest("/rest/v1/conversations", {
     method: "POST",
     token,
@@ -242,7 +249,7 @@ async function createConversation({ userId, token, title, mode, environment, pro
       user_id: userId,
       title: String(title || "New conversation").slice(0, 80),
       project_id: projectId || null,
-      metadata: { mode, environment },
+      metadata: { mode, environment, surface },
     },
   });
   return rows?.[0] || null;
@@ -313,12 +320,14 @@ async function buildAttachmentContext(ids, auth, mode) {
   return { files, text: textParts.join("\n\n"), images };
 }
 
-function buildModelMessages({ priorMessages, userText, memoryText, attachmentText, images, environment, mode }) {
+function buildModelMessages({ priorMessages, userText, memoryText, attachmentText, images, environment, mode, arrowText = "", actionText = "" }) {
   const modeInstruction = mode === "work"
     ? "WORK MODE: Handle complex reasoning, planning, coding, file/image analysis, and structured tasks carefully. Customer Work mode has no source-code self-modification privileges. Uploaded/recent file contents are supplied directly in ATTACHMENT CONTEXT when available. Use that context immediately; do not ask the user for an exact filename when relevant file context is already present. This streaming chat has NO model-emitted tool-call protocol: never output internal syntax such as <|tool_call|>, <|tool_call>, call:file_analysis, function calls, or tool JSON. Answer the user directly."
     : "CONVERSATION MODE: Be quick, natural, conversational, and concise unless the user asks for depth. Never output internal tool-call syntax or fake function calls.";
 
   const system = [RAVIN_SYSTEM_PROMPT, modeInstruction, capabilityContext(environment), memoryText];
+  if (arrowText) system.push(arrowText);
+  if (actionText) system.push(actionText);
   if (attachmentText) system.push(`ATTACHMENT CONTEXT:\n${attachmentText}`);
 
   const messages = [
@@ -341,6 +350,113 @@ function buildModelMessages({ priorMessages, userText, memoryText, attachmentTex
     messages.push({ role: "user", content: userText });
   }
   return messages;
+}
+
+
+function serializeArrowToolResult(value) {
+  let text = "";
+  try {
+    text = JSON.stringify(value);
+  } catch {
+    text = String(value);
+  }
+  return text.length > 14000 ? `${text.slice(0, 14000)}…` : text;
+}
+
+async function runArrowActionPlanning({
+  auth,
+  message,
+  surface,
+  mode,
+  arrowContext,
+}) {
+  if (!shouldUseArrowTools(message, surface)) {
+    return { context: "", actions: [] };
+  }
+
+  const plannerMessages = [
+    {
+      role: "system",
+      content: [
+        "You are RAVIN's private ARROW action planner.",
+        "Use only the provided ARROW tools. Never answer the user directly in this planning pass.",
+        "Use tools when the request asks to read or change shared ARROW tasks, calendar, notes, or Field.",
+        "For write actions, act only when the user explicitly requested the change.",
+        "If an item id is needed and unknown, list/search first, then perform the requested action.",
+        "Do not invent dates, titles, ids, or user data when a tool can retrieve them.",
+        "When the requested ARROW work is finished, stop calling tools.",
+        arrowContext,
+      ].join("\n\n"),
+    },
+    { role: "user", content: message },
+  ];
+
+  const actions = [];
+
+  for (let round = 0; round < 4; round += 1) {
+    const planner = await chatWithCloudflare(plannerMessages, {
+      mode,
+      tools: ARROW_TOOL_DEFINITIONS,
+      toolChoice: "auto",
+      temperature: 0.05,
+      maxTokens: 520,
+    });
+
+    const calls = Array.isArray(planner?.tool_calls) ? planner.tool_calls : [];
+    if (!calls.length) break;
+
+    plannerMessages.push({
+      role: "assistant",
+      content: planner.content || "",
+      tool_calls: calls,
+    });
+
+    for (const call of calls.slice(0, 4)) {
+      const name = call?.function?.name || "";
+      let args = {};
+      try {
+        args = JSON.parse(call?.function?.arguments || "{}");
+      } catch {
+        args = {};
+      }
+
+      let result;
+      try {
+        result = await executeArrowTool(name, args, {
+          userId: auth.user.id,
+          token: auth.token,
+          surface,
+          supabaseRequest,
+        });
+        actions.push({ name, success: true, result });
+      } catch (error) {
+        result = {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+        actions.push({ name, success: false, result });
+      }
+
+      plannerMessages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        name,
+        content: serializeArrowToolResult(result),
+      });
+    }
+  }
+
+  if (!actions.length) return { context: "", actions };
+
+  const context = [
+    "ARROW ACTION RESULTS:",
+    "These results came from authenticated ARROW tools under the signed-in user's normal permissions. Use them to answer the request accurately. Do not claim an action happened unless a successful result below shows it.",
+    ...actions.map((action) =>
+      `- ${action.name}: ${action.success ? "success" : "failed"} — ${serializeArrowToolResult(action.result)}`
+    ),
+  ].join("\n");
+
+  return { context, actions };
 }
 
 function sendEvent(res, event, data) {
@@ -491,6 +607,9 @@ export function registerV02Routes(app) {
 
     const mode = normalizeRavinMode(req.body?.mode);
     const environment = resolveCapabilityEnvironment(req.body?.environment).id;
+    const surface = normalizeArrowSurface(
+      req.body?.surface || req.body?.surface_context?.module || req.body?.from,
+    );
     const memoryEnabled = req.body?.memory_enabled !== false;
     const attachmentIds = Array.isArray(req.body?.attachment_ids) ? req.body.attachment_ids.slice(0, MAX_ATTACHMENTS) : [];
 
@@ -509,6 +628,7 @@ export function registerV02Routes(app) {
           title: message,
           mode,
           environment,
+          surface,
           projectId: req.body?.project_id || null,
         });
       }
@@ -524,11 +644,35 @@ export function registerV02Routes(app) {
           })
         : Promise.resolve(EMPTY_MEMORIES);
 
-      const [priorMessages, memories, attachments] = await Promise.all([
+      const [priorMessages, memories, attachments, arrowContext] = await Promise.all([
         loadRecentMessages(conversation.id, auth.user.id, auth.token),
         memoryPromise,
         buildAttachmentContext(attachmentIds, auth, mode),
+        loadArrowContext({
+          userId: auth.user.id,
+          token: auth.token,
+          query: message,
+          surface,
+          supabaseRequest,
+        }).catch((error) => {
+          console.warn("[RAVIN ARROW context]", error?.message || error);
+          return `ARROW SURFACE CONTEXT:\nCurrent surface: ${surface.toUpperCase()}.\nShared Field context was unavailable for this request.`;
+        }),
       ]);
+
+      const arrowPlanning = await runArrowActionPlanning({
+        auth,
+        message,
+        surface,
+        mode,
+        arrowContext,
+      }).catch((error) => {
+        console.warn("[RAVIN ARROW actions]", error?.message || error);
+        return {
+          context: `ARROW ACTION RESULTS:\nThe shared ARROW action pass failed: ${error?.message || error}`,
+          actions: [],
+        };
+      });
 
       await saveMessage({
         userId: auth.user.id,
@@ -539,6 +683,7 @@ export function registerV02Routes(app) {
         metadata: {
           mode,
           environment,
+          surface,
           memory_enabled: memoryEnabled,
           attachment_ids: attachmentIds,
           file_context: req.body?.ravin_file_context || null,
@@ -550,10 +695,12 @@ export function registerV02Routes(app) {
         mode,
         model: RAVIN_MODELS[mode],
         environment,
+        surface,
         memory_enabled: memoryEnabled,
         attachments: attachments.files.map((file) => ({ id: file.id, name: file.file_name, type: file.mime_type })),
         file_context: req.body?.ravin_file_context || null,
         memory_hits: (memories.permanent?.length || 0) + (memories.project?.length || 0) + (memories.session?.length || 0),
+        arrow_actions: arrowPlanning.actions.map((action) => ({ name: action.name, success: action.success })),
       });
 
       const modelMessages = buildModelMessages({
@@ -564,6 +711,8 @@ export function registerV02Routes(app) {
         images: attachments.images,
         environment,
         mode,
+        arrowText: arrowContext,
+        actionText: arrowPlanning.context,
       });
 
       let streamProbe = "";
@@ -630,6 +779,7 @@ export function registerV02Routes(app) {
         metadata: {
           mode,
           environment,
+          surface,
           memory_enabled: memoryEnabled,
           file_context: req.body?.ravin_file_context || null,
           model: result?._ravinMeta?.routedModel || RAVIN_MODELS[mode],
@@ -641,6 +791,7 @@ export function registerV02Routes(app) {
         reply,
         conversation_id: conversation.id,
         mode,
+        surface,
         model: result?._ravinMeta?.routedModel || RAVIN_MODELS[mode],
       });
       res.end();
