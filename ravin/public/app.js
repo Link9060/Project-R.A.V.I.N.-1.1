@@ -10,7 +10,10 @@ const READ_RECEIPTS_KEY_PREFIX="ravin_read_receipts";
 const boot=$("boot");
 const bootLine=$("bootLine");
 const app=$("app");
-const arrivingFromOrbit=new URLSearchParams(location.search).get("from")==="orbit";
+const incomingParams=new URLSearchParams(location.search);
+const incomingSurface=(incomingParams.get("surface")||incomingParams.get("from")||"ravin").toLowerCase();
+const incomingPrompt=(incomingParams.get("prompt")||"").trim();
+const arrivingFromOrbit=incomingParams.get("from")==="orbit";
 const settingsBtn=$("settingsBtn");
 const settingsPanel=$("settingsPanel");
 const themeToggle=$("themeToggle");
@@ -309,5 +312,44 @@ if(memorySection&&window.RavinAuth){
   window.addEventListener("ravin-auth-changed",()=>{updateMemoryVisibility();renderMemoryList();});
 }
 
+const surfaceCopy={
+  orbit:"You came from Orbit. I can pull together context from across ARROW.",
+  relay:"You came from Relay. I can use your shared notes, tasks, calendar, and Field context; private chats stay out unless you explicitly opt them in.",
+  waypoint:"You came from Waypoint. I’m prioritizing tasks, calendar, plans, notes, and your next move.",
+  atlas:"You came from Atlas. I’m prioritizing retrieval, connections, and knowledge in your Field.",
+  ravin:"Full RAVIN workspace — connected to your ARROW Field and memory."
+};
+
+const applyIncomingContext=()=>{
+  const introSub=document.querySelector(".intro-sub");
+  if(introSub&&surfaceCopy[incomingSurface]){
+    introSub.textContent=surfaceCopy[incomingSurface];
+    introSub.dataset.surfaceContext="true";
+  }
+  window.RavinAPI?.setSurface?.(incomingSurface);
+
+  if(!incomingPrompt||!input)return;
+  input.value=incomingPrompt;
+
+  const url=new URL(location.href);
+  url.searchParams.delete("prompt");
+  history.replaceState({}, "", url.pathname+url.search+url.hash);
+
+  const sendIncoming=()=>{
+    if(!window.RavinAuth?.isSignedIn?.())return false;
+    if(!input.value.trim())return true;
+    void sendMessage();
+    return true;
+  };
+
+  if(!sendIncoming()){
+    const onAuth=()=>{
+      if(sendIncoming())window.removeEventListener("ravin-auth-changed",onAuth);
+    };
+    window.addEventListener("ravin-auth-changed",onAuth);
+  }
+};
+
+applyIncomingContext();
 renderMemoryList();
 })();
