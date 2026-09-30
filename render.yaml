@@ -16,7 +16,7 @@ services:
       - key: OMNIROUTE_BASE_URL
         value: http://localhost:20128/v1
       - key: FRONTEND_ORIGIN
-        value: https://link9060.github.io
+        value: https://enterarrow.com
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
@@ -36,7 +36,7 @@ services:
       - key: OAUTH_REDIRECT_BASE
         value: https://ravin-hyeq.onrender.com
       - key: FRONTEND_APP_URL
-        value: https://link9060.github.io/Project-R.A.V.I.N.-1.1/
+        value: https://enterarrow.com/ravin/
       - key: JWT_SECRET
         generateValue: true
       - key: API_KEY_SECRET
