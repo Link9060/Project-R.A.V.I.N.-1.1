@@ -183,7 +183,7 @@ async function executeArrowTool(name, args, { userId, token, surface }) {
     }
 
     case "arrow_create_task": {
-      const title = cleanArrowText(args.title, "Task title", 240);
+      const title = cleanArrowText(args.title, "Task title", 120);
       const dueOn = args.due_on ? validateArrowDate(args.due_on, "Task due date") : arrowLocalDate();
       const estimatedMinutes = args.estimated_minutes === undefined
         ? null
@@ -235,11 +235,11 @@ async function executeArrowTool(name, args, { userId, token, surface }) {
     }
 
     case "arrow_create_event": {
-      const title = cleanArrowText(args.title, "Event title", 240);
+      const title = cleanArrowText(args.title, "Event title", 120);
       const eventDate = validateArrowDate(args.event_date, "Event date");
       const startTime = validateArrowTime(args.start_time, "Start time");
       const endTime = validateArrowTime(args.end_time, "End time");
-      const details = args.details ? String(args.details).trim().slice(0, 2000) : null;
+      const details = args.details ? String(args.details).trim().slice(0, 1000) : null;
       const rows = await supabaseRequest("/rest/v1/relay_calendar_events", {
         method: "POST",
         token,
