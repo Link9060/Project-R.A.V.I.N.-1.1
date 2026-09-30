@@ -394,7 +394,7 @@
     const ids = [...new Set(rows.flatMap((row) => Array.isArray(row?.metadata?.attachment_ids) ? row.metadata.attachment_ids : []).filter(Boolean))];
     if (!ids.length || !currentUser()?.id) return new Map();
     try {
-      const files = await supabase(`/rest/v1/files?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,file_name,mime_type,size_bytes,created_at&order=created_at.desc&limit=200`);
+      const files = await supabase(`/rest/v1/ravin_files?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,file_name,mime_type,size_bytes,created_at&order=created_at.desc&limit=200`);
       const wanted = new Set(ids);
       return new Map((Array.isArray(files) ? files : []).filter((file) => wanted.has(file.id)).map((file) => [file.id, file]));
     } catch (error) {
@@ -467,7 +467,7 @@
       return;
     }
     try {
-      const rows = await supabase(`/rest/v1/conversations?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`);
+      const rows = await supabase(`/rest/v1/ravin_conversations?user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,title,metadata,created_at&order=created_at.desc&limit=100`);
       state.conversations = Array.isArray(rows) ? rows : [];
       syncActiveConversation();
       renderHistory($('#historySearch')?.value || '');
@@ -499,7 +499,7 @@
     $('#headerConversationTitle').textContent = row.title || 'Untitled conversation';
     $('#messages').innerHTML = '<div class="ravin-shell-loading"><i></i><span>Loading conversation</span></div>';
     try {
-      const messages = await supabase(`/rest/v1/messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,metadata,created_at&order=created_at.desc&limit=250`);
+      const messages = await supabase(`/rest/v1/ravin_messages?conversation_id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,role,content,metadata,created_at&order=created_at.desc&limit=250`);
       if (version !== messageLoadVersion || currentConversationId() !== row.id) return;
       await renderMessages(Array.isArray(messages) ? messages.reverse() : []);
     } catch (error) {
@@ -706,7 +706,7 @@
       remove.textContent = 'Deleting…';
       try {
         const data = await supabase(
-          `/rest/v1/conversations?id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}`,
+          `/rest/v1/ravin_conversations?id=eq.${encodeURIComponent(row.id)}&user_id=eq.${encodeURIComponent(currentUser().id)}`,
           { method: 'DELETE', prefer: 'return=representation' },
         );
         if (Array.isArray(data) && data.length === 0) throw new Error('RAVIN could not verify that this chat was deleted.');
