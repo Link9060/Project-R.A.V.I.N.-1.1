@@ -6,6 +6,11 @@
   };
 
   let currentMode = localStorage.getItem(MODE_KEY) === "work" ? "work" : "conversation";
+  const SURFACES = new Set(["orbit", "relay", "waypoint", "atlas", "ravin"]);
+  const incomingSurface = new URLSearchParams(location.search).get("surface") || new URLSearchParams(location.search).get("from");
+  let currentSurface = SURFACES.has(String(incomingSurface || "").toLowerCase())
+    ? String(incomingSurface).toLowerCase()
+    : "ravin";
   const APP_BASE = window.location.pathname === "/ravin" || window.location.pathname.startsWith("/ravin/")
     ? "/ravin"
     : "";
@@ -56,6 +61,7 @@
       body: JSON.stringify({
         message,
         mode,
+        surface: options.surface || currentSurface,
         conversation_id: conversationIds[mode],
       }),
     });
@@ -77,12 +83,20 @@
     conversationIds[normalizeMode(mode)] = null;
   }
 
+  function setSurface(surface) {
+    const normalized = String(surface || "").toLowerCase();
+    currentSurface = SURFACES.has(normalized) ? normalized : "ravin";
+    return currentSurface;
+  }
+
   window.RavinAPI = {
     chat,
     request,
     setMode,
     getMode: () => currentMode,
     clearConversation,
+    setSurface,
+    getSurface: () => currentSurface,
     getConversationId: (mode = currentMode) => conversationIds[normalizeMode(mode)],
   };
 })();
