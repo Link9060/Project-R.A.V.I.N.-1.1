@@ -181,6 +181,31 @@ function publicError(error, fallback = "RAVIN could not complete that request.")
   return fallback;
 }
 
+const waypointRateBuckets = new Map();
+const WAYPOINT_RATE_WINDOW_MS = 60_000;
+const WAYPOINT_RATE_LIMIT = 15;
+
+function waypointRetryAfter(userId) {
+  const now = Date.now();
+  const existing = waypointRateBuckets.get(userId) || [];
+  const recent = existing.filter((stamp) => now - stamp < WAYPOINT_RATE_WINDOW_MS);
+  if (recent.length >= WAYPOINT_RATE_LIMIT) {
+    waypointRateBuckets.set(userId, recent);
+    return Math.max(1, Math.ceil((WAYPOINT_RATE_WINDOW_MS - (now - recent[0])) / 1000));
+  }
+  recent.push(now);
+  waypointRateBuckets.set(userId, recent);
+
+  if (waypointRateBuckets.size > 5000) {
+    for (const [key, stamps] of waypointRateBuckets.entries()) {
+      if (!stamps.some((stamp) => now - stamp < WAYPOINT_RATE_WINDOW_MS)) {
+        waypointRateBuckets.delete(key);
+      }
+    }
+  }
+  return 0;
+}
+
 async function loadConversationContext(conversationId, userId, token) {
   const rows = await supabaseRequest(
     `/rest/v1/messages?conversation_id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=role,content,metadata,created_at&order=created_at.desc&limit=50`,
@@ -198,6 +223,28 @@ app.post("/api/waypoint/interpret", async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
 
+  const retryAfter = waypointRetryAfter(auth.user.id);
+  if (retryAfter) {
+    res.setHeader("Retry-After", String(retryAfter));
+    return res.status(429).json({
+      error: "RAVIN is receiving too many Capture requests from this account. Try again shortly.",
+      retry_after: retryAfter,
+      request_id: req.ravinRequestId,
+    });
+  }
+
+  const context = req.body?.context && typeof req.body.context === "object"
+    ? req.body.context
+    : {};
+  let contextSize = 0;
+  try { contextSize = Buffer.byteLength(JSON.stringify(context), "utf8"); } catch {}
+  if (contextSize > 120_000) {
+    return res.status(413).json({
+      error: "Waypoint context is too large for one Capture request.",
+      request_id: req.ravinRequestId,
+    });
+  }
+
   const input = typeof req.body?.input === "string" ? req.body.input.trim() : "";
   if (!input) {
     return res.status(400).json({ error: "Capture can't be empty.", request_id: req.ravinRequestId });
@@ -211,9 +258,7 @@ app.post("/api/waypoint/interpret", async (req, res) => {
       currentDate: typeof req.body?.current_date === "string" ? req.body.current_date : "",
       localTime: typeof req.body?.local_time === "string" ? req.body.local_time : "",
       timeZone: typeof req.body?.timezone === "string" ? req.body.timezone.slice(0, 100) : "UTC",
-      waypointContext: req.body?.context && typeof req.body.context === "object"
-        ? req.body.context
-        : {},
+      waypointContext: context,
     });
 
     res.json({
@@ -224,7 +269,7 @@ app.post("/api/waypoint/interpret", async (req, res) => {
   } catch (error) {
     console.error(`[RAVIN Waypoint error] id=${req.ravinRequestId} user=${auth.user?.id || "unknown"}`, error);
     res.status(Number(error?.status || 500)).json({
-      error: publicError(error, "RAVIN could not interpret this brain dump."),
+      error: publicError(error, "RAVIN could not interpret this Capture."),
       request_id: req.ravinRequestId,
     });
   }
