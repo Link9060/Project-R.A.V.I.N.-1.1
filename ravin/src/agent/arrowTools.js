@@ -36,7 +36,7 @@ export const ARROW_TOOL_DEFINITIONS = [
           title: {
             type: "string",
             minLength: 1,
-            maxLength: 240,
+            maxLength: 120,
             description: "Task title."
           },
           due_on: {
@@ -118,7 +118,7 @@ export const ARROW_TOOL_DEFINITIONS = [
           title: {
             type: "string",
             minLength: 1,
-            maxLength: 240,
+            maxLength: 120,
             description: "Event title."
           },
           event_date: {
@@ -135,7 +135,7 @@ export const ARROW_TOOL_DEFINITIONS = [
           },
           details: {
             type: "string",
-            maxLength: 2000,
+            maxLength: 1000,
             description: "Optional event details."
           }
         },
