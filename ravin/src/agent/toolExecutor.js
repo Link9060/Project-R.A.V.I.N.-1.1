@@ -2,6 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
+import { ARROW_TOOL_NAMES } from "./arrowTools.js";
+
 import {
   PROJECT_ROOT,
   inspectProject,
@@ -526,7 +528,8 @@ export async function executeTool(
 }
 
 export async function executeToolCall(
-  toolCall
+  toolCall,
+  context = {}
 ) {
   const functionName =
     toolCall?.function?.name;
@@ -547,6 +550,19 @@ export async function executeToolCall(
   } catch {
     throw new Error(
       `Invalid JSON arguments for tool: ${functionName}`
+    );
+  }
+
+  if (ARROW_TOOL_NAMES.has(functionName)) {
+    if (typeof context.executeArrowTool !== "function") {
+      throw new Error(
+        `ARROW tool is unavailable in this request: ${functionName}`
+      );
+    }
+
+    return context.executeArrowTool(
+      functionName,
+      args
     );
   }
 
