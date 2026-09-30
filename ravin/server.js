@@ -200,10 +200,10 @@ app.post("/api/waypoint/interpret", async (req, res) => {
 
   const input = typeof req.body?.input === "string" ? req.body.input.trim() : "";
   if (!input) {
-    return res.status(400).json({ error: "Brain dump can't be empty.", request_id: req.ravinRequestId });
+    return res.status(400).json({ error: "Capture can't be empty.", request_id: req.ravinRequestId });
   }
   if (input.length > 12000) {
-    return res.status(413).json({ error: "Brain dump is too large.", request_id: req.ravinRequestId });
+    return res.status(413).json({ error: "Capture is too large.", request_id: req.ravinRequestId });
   }
 
   try {
@@ -211,6 +211,9 @@ app.post("/api/waypoint/interpret", async (req, res) => {
       currentDate: typeof req.body?.current_date === "string" ? req.body.current_date : "",
       localTime: typeof req.body?.local_time === "string" ? req.body.local_time : "",
       timeZone: typeof req.body?.timezone === "string" ? req.body.timezone.slice(0, 100) : "UTC",
+      waypointContext: req.body?.context && typeof req.body.context === "object"
+        ? req.body.context
+        : {},
     });
 
     res.json({
