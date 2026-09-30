@@ -9,6 +9,7 @@ import { buildFeature } from "./src/self/selfBuilder.js";
 import { registerDocumentRoutes } from "./src/files/documentRoutes.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
 import { registerV02Routes } from "./src/v02Routes.js";
+import { interpretWaypointDump } from "./src/waypointInterpreter.js";
 import {
   RAVIN_MODELS,
   normalizeRavinMode,
@@ -47,6 +48,9 @@ const FRONTEND_ORIGIN = (process.env.FRONTEND_ORIGIN || "").replace(/\/$/, "");
 const allowedOrigins = new Set([
   "https://link9060.github.io",
   "https://ravin-hyeq.onrender.com",
+  "https://enterarrow.com",
+  "https://www.enterarrow.com",
+  "https://enterarrow-waypoint.onrender.com",
 ]);
 if (FRONTEND_ORIGIN) allowedOrigins.add(FRONTEND_ORIGIN);
 
@@ -189,6 +193,39 @@ async function loadConversationContext(conversationId, userId, token) {
       .map((row) => ({ role: row.role, content: row.content })),
   ];
 }
+
+app.post("/api/waypoint/interpret", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+
+  const input = typeof req.body?.input === "string" ? req.body.input.trim() : "";
+  if (!input) {
+    return res.status(400).json({ error: "Brain dump can't be empty.", request_id: req.ravinRequestId });
+  }
+  if (input.length > 12000) {
+    return res.status(413).json({ error: "Brain dump is too large.", request_id: req.ravinRequestId });
+  }
+
+  try {
+    const result = await interpretWaypointDump(input, {
+      currentDate: typeof req.body?.current_date === "string" ? req.body.current_date : "",
+      localTime: typeof req.body?.local_time === "string" ? req.body.local_time : "",
+      timeZone: typeof req.body?.timezone === "string" ? req.body.timezone.slice(0, 100) : "UTC",
+    });
+
+    res.json({
+      ...result,
+      source: "ravin",
+      request_id: req.ravinRequestId,
+    });
+  } catch (error) {
+    console.error(`[RAVIN Waypoint error] id=${req.ravinRequestId} user=${auth.user?.id || "unknown"}`, error);
+    res.status(Number(error?.status || 500)).json({
+      error: publicError(error, "RAVIN could not interpret this brain dump."),
+      request_id: req.ravinRequestId,
+    });
+  }
+});
 
 // Legacy non-streaming route retained for compatibility. New clients should use /api/v2/chat/stream.
 app.post("/api/chat", async (req, res) => {
