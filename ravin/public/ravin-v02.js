@@ -15,6 +15,11 @@
   const MEMORY_KEY = "ravin_memory_enabled";
   const MAX_FILES = 4;
   const MAX_FILE_BYTES = 8 * 1024 * 1024;
+  const ARROW_SURFACES = new Set(["orbit", "relay", "waypoint", "atlas", "ravin"]);
+  const ENTRY_PARAMS = new URLSearchParams(window.location.search);
+  const ENTRY_SURFACE_RAW = String(ENTRY_PARAMS.get("surface") || ENTRY_PARAMS.get("from") || "ravin").toLowerCase();
+  const ENTRY_SURFACE = ARROW_SURFACES.has(ENTRY_SURFACE_RAW) ? ENTRY_SURFACE_RAW : "ravin";
+  const ENTRY_PROMPT = String(ENTRY_PARAMS.get("prompt") || "").trim().slice(0, 24000);
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -529,6 +534,7 @@
         mode,
         conversation_id: currentConversationId() || null,
         environment: state.environment,
+        surface: ENTRY_SURFACE,
         memory_enabled: state.memoryEnabled,
         attachment_ids: uploaded.map((file) => file.id),
       };
@@ -860,9 +866,39 @@
     observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   }
 
+  function applyArrowEntryContext() {
+    document.documentElement.dataset.ravinSurface = ENTRY_SURFACE;
+
+    const input = $("#messageInput");
+    if (input && ENTRY_SURFACE !== "ravin") {
+      input.placeholder = `Ask RAVIN from ${ENTRY_SURFACE.charAt(0).toUpperCase() + ENTRY_SURFACE.slice(1)}...`;
+    }
+
+    if (!ENTRY_PROMPT || !input) return;
+    input.value = ENTRY_PROMPT;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("prompt");
+    history.replaceState({}, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+
+    let attempts = 0;
+    const sendWhenReady = () => {
+      attempts += 1;
+      const composer = $("#composer");
+      if (currentUser()?.id && composer && !state.controller && input.value.trim()) {
+        composer.requestSubmit();
+        return;
+      }
+      if (attempts < 80) setTimeout(sendWhenReady, 250);
+    };
+    setTimeout(sendWhenReady, 80);
+  }
+
   function init() {
     injectControls();
     bindProductEvents();
+    applyArrowEntryContext();
     enhanceMessages();
     initObserver();
     addEventListener("keydown", (event) => {
