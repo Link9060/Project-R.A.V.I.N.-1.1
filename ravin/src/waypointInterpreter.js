@@ -2,6 +2,7 @@ import { chatWithCloudflare } from "./cloudflareClient.js";
 
 const ALLOWED_TYPES = new Set(["task", "event", "note", "goal", "project", "later"]);
 const ALLOWED_SIGNALS = new Set(["priority", "dependency", "conflict", "constraint", "opportunity"]);
+const ALLOWED_PLACEMENTS = new Set(["today", "plans", "calendar", "direction", "notes", "later"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -51,6 +52,19 @@ function normalizeItem(item, index) {
     context: nullableClip(item?.context, 260),
     why: nullableClip(item?.why, 220),
     priority: ["low", "medium", "high"].includes(item?.priority) ? item.priority : "medium",
+    placement: ALLOWED_PLACEMENTS.has(item?.placement)
+      ? item.placement
+      : type === "event"
+        ? "calendar"
+        : type === "project"
+          ? "plans"
+          : type === "goal"
+            ? "direction"
+            : type === "note"
+              ? "notes"
+              : type === "later"
+                ? "later"
+                : "today",
     duration_minutes: Number.isFinite(duration) && duration > 0 && duration <= 1440
       ? Math.round(duration)
       : null,
@@ -167,6 +181,7 @@ Return ONLY one JSON object with this exact shape:
       "context": "useful next-step or context, or null",
       "why": "why RAVIN classified/prioritized it this way, or null",
       "priority": "low|medium|high",
+      "placement": "today|plans|calendar|direction|notes|later",
       "duration_minutes": "integer or null",
       "depends_on": ["titles of prerequisite items, if any"]
     }
@@ -179,6 +194,8 @@ Rules:
 - A project is multi-step and should usually have a useful next action in context, rather than being flattened into many arbitrary tasks.
 - Events belong on the calendar only when they occur at a real date/time.
 - A task with a deadline is still a task unless the text describes an event that happens at that time.
+- placement is where Waypoint should put the item after approval. Use today only for work that genuinely deserves attention now/today. Use plans for future or project-linked actions, calendar for actual events, direction for goals, notes for information/ideas, and later for intentionally deferred work.
+- Do not overload Today just because an item is a task.
 - Resolve relative dates such as today, tomorrow, Friday, or next week from the supplied date/time/timezone.
 - Compare proposed work against existing tasks/events/library items. If it already exists, mention that in a signal or summary instead of creating a duplicate.
 - If the Capture is reflective or exploratory rather than action-oriented, it is valid to return mostly notes/goals/questions and only a few or zero tasks.
