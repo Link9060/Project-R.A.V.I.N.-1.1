@@ -108,9 +108,6 @@ async function requireUser(req, res) {
     res.status(401).json({ error: "Please sign in to RAVIN." });
     return null;
   }
-  const profiles = await supabaseRequest('/rest/v1/profiles?id=eq.' + encodeURIComponent(auth.user.id) + '&select=banned_at', {token:auth.token}).catch(() => null);
-  if (!profiles || !profiles.length) { res.status(503).json({error:'ARROW account status could not be verified.'}); return null; }
-  if (profiles[0].banned_at) { res.status(403).json({error:'This ARROW account is suspended.'}); return null; }
   return auth;
 }
 

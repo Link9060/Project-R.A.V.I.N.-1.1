@@ -163,7 +163,6 @@ html[data-theme="light"] .ravin-message.user .ravin-message-body:not(.ravin-forc
   }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-field-visual-v3{ opacity: .34 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-visual-v3 { opacity: .34 !important; }
 }
-:root[data-arrow-motion="reduce"] .ravin-field-visual-v3{ opacity: .34 !important; }
-

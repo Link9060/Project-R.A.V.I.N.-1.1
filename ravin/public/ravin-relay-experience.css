@@ -346,6 +346,7 @@ html[data-ravin-lock-in='true'] .ravin-context-card { box-shadow: none !importan
   .ravin-palette-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-experience-controls *,:root:not([data-arrow-motion="full"]) #ravinApp *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ravin-experience-controls *,
+  #ravinApp * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
-:root[data-arrow-motion="reduce"] .ravin-experience-controls *,:root[data-arrow-motion="reduce"] #ravinApp *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

@@ -103,7 +103,7 @@
   .ravin-message-body.ravin-force-flow-active { max-width: 100% !important; }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-field-canvas{ opacity: .42; }:root:not([data-arrow-motion="full"]) .ravin-v02-streaming .ravin-message-body{ transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-canvas { opacity: .42; }
+  .ravin-v02-streaming .ravin-message-body { transition: none !important; }
 }
-:root[data-arrow-motion="reduce"] .ravin-field-canvas{ opacity: .42; }:root[data-arrow-motion="reduce"] .ravin-v02-streaming .ravin-message-body{ transition: none !important; }
-

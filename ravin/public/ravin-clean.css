@@ -404,6 +404,6 @@ html[data-ravin-experience="scifi"] .ravin-status-pill i { box-shadow: 0 0 14px 
   .ravin-context-toggle { display: none !important; }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) *,:root:not([data-arrow-motion="full"]) *::before,:root:not([data-arrow-motion="full"]) *::after{ scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
-:root[data-arrow-motion="reduce"] *,:root[data-arrow-motion="reduce"] *::before,:root[data-arrow-motion="reduce"] *::after{ scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

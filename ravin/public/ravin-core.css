@@ -211,7 +211,7 @@ html[data-theme="light"] .ravin-spatial-core::after {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-spatial-core{ transition: none !important; }:root:not([data-arrow-motion="full"]) .ravin-spatial-core::after{ animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ravin-spatial-core { transition: none !important; }
+  .ravin-spatial-core::after { animation: none !important; }
 }
-:root[data-arrow-motion="reduce"] .ravin-spatial-core{ transition: none !important; }:root[data-arrow-motion="reduce"] .ravin-spatial-core::after{ animation: none !important; }
-

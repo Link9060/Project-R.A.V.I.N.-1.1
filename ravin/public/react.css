@@ -1936,14 +1936,11 @@ textarea:focus-visible {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]){
+@media (prefers-reduced-motion: reduce) {
+  html {
     scroll-behavior: auto !important;
   }
 }
-:root[data-arrow-motion="reduce"]{
-    scroll-behavior: auto !important;
-  }
-
 
 /* Workspace deck v2 — every dock destination is a full, sliding view. */
 .workspace-deck {
@@ -2918,26 +2915,25 @@ textarea:focus-visible {
 }
 
 /* Keep the intentional state change visible even when ambient motion is reduced. */
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .overdrive-boot .overdrive-flash{
+@media (prefers-reduced-motion: reduce) {
+  .overdrive-boot .overdrive-flash {
     animation: screenFlash 1.48s ease-out both !important;
-  }:root:not([data-arrow-motion="full"]) .overdrive-boot .overdrive-shockwave{
+  }
+
+  .overdrive-boot .overdrive-shockwave {
     animation: shockwave 1.48s cubic-bezier(0.2, 0.7, 0.2, 1) both !important;
-  }:root:not([data-arrow-motion="full"]) .ravin-core.overdrive-starting{
+  }
+
+  .ravin-core.overdrive-starting {
     animation: overdriveCharge 1.48s cubic-bezier(0.18, 0.75, 0.16, 1) both !important;
-  }:root:not([data-arrow-motion="full"]) .overdrive-exit .ravin-core,:root:not([data-arrow-motion="full"]) .overdrive-exit .ambient-wash,:root:not([data-arrow-motion="full"]) .overdrive-exit .neural-field{
+  }
+
+  .overdrive-exit .ravin-core,
+  .overdrive-exit .ambient-wash,
+  .overdrive-exit .neural-field {
     animation-duration: 820ms !important;
   }
 }
-:root[data-arrow-motion="reduce"] .overdrive-boot .overdrive-flash{
-    animation: screenFlash 1.48s ease-out both !important;
-  }:root[data-arrow-motion="reduce"] .overdrive-boot .overdrive-shockwave{
-    animation: shockwave 1.48s cubic-bezier(0.2, 0.7, 0.2, 1) both !important;
-  }:root[data-arrow-motion="reduce"] .ravin-core.overdrive-starting{
-    animation: overdriveCharge 1.48s cubic-bezier(0.18, 0.75, 0.16, 1) both !important;
-  }:root[data-arrow-motion="reduce"] .overdrive-exit .ravin-core,:root[data-arrow-motion="reduce"] .overdrive-exit .ambient-wash,:root[data-arrow-motion="reduce"] .overdrive-exit .neural-field{
-    animation-duration: 820ms !important;
-  }
-
 
 @media (max-width: 900px) {
   .workspace-deck { inset: 0; }

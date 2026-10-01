@@ -119,15 +119,12 @@ html[data-theme="light"] .ravin-v02-streaming.ravin-field-writing .ravin-message
   }
 }
 
-@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-field-visual-v3{
+@media (prefers-reduced-motion: reduce) {
+  .ravin-field-visual-v3 {
     opacity: .58 !important;
-  }:root:not([data-arrow-motion="full"]) .ravin-v02-streaming .ravin-message-body{
+  }
+
+  .ravin-v02-streaming .ravin-message-body {
     transition: none !important;
   }
 }
-:root[data-arrow-motion="reduce"] .ravin-field-visual-v3{
-    opacity: .58 !important;
-  }:root[data-arrow-motion="reduce"] .ravin-v02-streaming .ravin-message-body{
-    transition: none !important;
-  }
-
