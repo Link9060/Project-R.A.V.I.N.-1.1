@@ -1,6 +1,7 @@
 (() => {
   const SUPABASE_URL = "https://cnorozrjugxpanpfmssa.supabase.co";
   const SUPABASE_KEY = "sb_publishable_yVNPiB7opT0WRvBfKTZ2BA_s5bOQLRg";
+  const BETA = location.hostname === "link9060.github.io" && location.pathname.startsWith("/Resonant-Relay/arrow/");
   const SHARED_KEY = "sb-cnorozrjugxpanpfmssa-auth-token";
   const LEGACY_KEYS = {
     access: "ravin_access_token",
@@ -99,12 +100,17 @@
   }
 
   function open() {
+    if (BETA) { localStorage.setItem("arrow-post-auth-url-v1", location.href); location.assign("/Resonant-Relay/login/"); return; }
     const login = new URL("/", window.location.origin);
     login.searchParams.set("next", "/ravin/");
     window.location.assign(login.toString());
   }
 
   function signOut() {
+    if (BETA) {
+      const token=readShared()?.access_token;
+      void (async()=>{try {if(token)await fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+token}});}finally{localStorage.removeItem(SHARED_KEY);mirror();location.assign("/Resonant-Relay/login/");}})();return;
+    }
     window.location.assign("/signout/");
   }
 
