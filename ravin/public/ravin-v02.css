@@ -212,6 +212,7 @@
   .ravin-code-block pre { max-width:calc(100vw - 52px); }
 }
 
-@media (prefers-reduced-motion:reduce) {
-  .ravin-v02-drawer,.ravin-v02-drawer-backdrop,.ravin-v02-toast,.ravin-v02-streaming .ravin-message-body::after { animation:none!important; }
+@media (prefers-reduced-motion:reduce) {:root:not([data-arrow-motion="full"]) .ravin-v02-drawer,:root:not([data-arrow-motion="full"]) .ravin-v02-drawer-backdrop,:root:not([data-arrow-motion="full"]) .ravin-v02-toast,:root:not([data-arrow-motion="full"]) .ravin-v02-streaming .ravin-message-body::after{ animation:none!important; }
 }
+:root[data-arrow-motion="reduce"] .ravin-v02-drawer,:root[data-arrow-motion="reduce"] .ravin-v02-drawer-backdrop,:root[data-arrow-motion="reduce"] .ravin-v02-toast,:root[data-arrow-motion="reduce"] .ravin-v02-streaming .ravin-message-body::after{ animation:none!important; }
+

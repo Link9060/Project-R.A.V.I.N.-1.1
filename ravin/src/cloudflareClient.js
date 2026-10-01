@@ -124,6 +124,7 @@ export async function chatWithCloudflare(messages, options = {}) {
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(options.timeoutMs || 60000),
     });
   } catch (networkError) {
     throw new Error(`Couldn't reach Cloudflare Workers AI. ${networkError?.message || networkError}`);

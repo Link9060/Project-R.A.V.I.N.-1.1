@@ -157,17 +157,21 @@
     return data;
   }
 
+  document.addEventListener('click', event => {
+    const button=event.target.closest('[data-arrow-open]');
+    if(button)window.ArrowOS?.openPanel(button.dataset.arrowOpen,'ravin',button);
+  });
   function buildShell() {
     document.body.insertAdjacentHTML('beforeend', `
       <div id="ravinApp" class="${state.sidebarCollapsed ? 'sidebar-collapsed' : ''}">
         <aside class="ravin-sidebar" aria-label="RAVIN navigation">
           <div class="ravin-brand">
             <span class="ravin-brand-mark" aria-hidden="true"></span>
-            <span class="ravin-brand-copy"><strong>RAVIN</strong><small>RESONANT ASSIST</small></span>
+            <span class="ravin-brand-copy"><strong>RAVIN</strong><small>ARROW INTELLIGENCE</small></span>
           </div>
           <button class="ravin-sidebar-action primary" id="newChatBtn" type="button">${icon('plus')}<span class="ravin-action-label">New chat</span></button>
           <div class="ravin-search-wrap">${icon('search')}<label class="ravin-sr-only" for="historySearch">Search chats</label><input class="ravin-search" id="historySearch" placeholder="Search chats" autocomplete="off" /></div>
-          <div class="ravin-section-label">Chats</div>
+          <nav class="ravin-arrow-nav" aria-label="ARROW tools"><button type="button" data-arrow-open="tasks">Tasks</button><button type="button" data-arrow-open="calendar">Calendar</button><a href="/atlas/">Atlas</a><a href="/waypoint/">Waypoint</a></nav><div class="ravin-section-label">Conversations</div>
           <div class="ravin-history" id="historyList" aria-live="polite"></div>
           <div class="ravin-sidebar-bottom">
             <button class="ravin-account-row" id="accountBtn" type="button" aria-haspopup="menu">
@@ -215,9 +219,9 @@
             </section>
 
             <aside class="ravin-context" id="workContext" aria-label="Work context">
-              <h3>Work context</h3><p>See the model, tools, and active session context RAVIN is using.</p>
-              <div class="ravin-context-card"><small>MODEL</small><strong>Gemma 4 26B A4B</strong><span>Reasoning-focused model for longer and more complex work.</span></div>
-              <div class="ravin-context-card"><small>TOOLS</small><strong>Available</strong><span>Files, planning, code, memory, and supported RAVIN tools surface here.</span></div>
+              <h3>Your ARROW workspace</h3><p>Plan with Waypoint, explore in Atlas, and keep shared tasks and calendar close.</p>
+              <div class="ravin-context-card"><small>PLANNING</small><strong>One connected plan</strong><a href="/waypoint/">Open Waypoint</a></div>
+              <div class="ravin-context-card"><small>KNOWLEDGE</small><strong>Find the bigger picture</strong><a href="/atlas/">Explore Atlas</a></div>
               <div class="ravin-context-card"><small>SESSION</small><strong id="contextSession">No active thread</strong><span id="contextMessageCount">Start a Work conversation to create context.</span></div>
             </aside>
           </div>
@@ -737,7 +741,7 @@
     backdrop.className = 'ravin-auth-backdrop';
     backdrop.innerHTML = `
       <section class="ravin-auth-card" role="dialog" aria-modal="true" aria-labelledby="ravinAuthTitle">
-        <div class="ravin-auth-brand"><span class="ravin-brand-mark" aria-hidden="true"></span><span class="ravin-brand-copy"><strong>RAVIN</strong><small>RESONANT ASSIST</small></span></div>
+        <div class="ravin-auth-brand"><span class="ravin-brand-mark" aria-hidden="true"></span><span class="ravin-brand-copy"><strong>RAVIN</strong><small>ARROW INTELLIGENCE</small></span></div>
         <h2 id="ravinAuthTitle">${mode === 'signin' ? 'Welcome back' : 'Create your account'}</h2>
         <p>${mode === 'signin' ? 'Sign in to continue your RAVIN conversations.' : 'Create an account to keep conversations, files, and memory connected.'}</p>
         <form id="authForm" novalidate>

@@ -529,8 +529,11 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .core-ring {
+@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .core-ring{
     animation: none !important;
   }
 }
+:root[data-arrow-motion="reduce"] .core-ring{
+    animation: none !important;
+  }
+

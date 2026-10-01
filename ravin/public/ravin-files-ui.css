@@ -383,7 +383,7 @@
   .ravin-message-file { max-width: 100%; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ravin-files-upload-progress i { animation: none; }
-  .ravin-global-drop { transition: none; }
+@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-files-upload-progress i{ animation: none; }:root:not([data-arrow-motion="full"]) .ravin-global-drop{ transition: none; }
 }
+:root[data-arrow-motion="reduce"] .ravin-files-upload-progress i{ animation: none; }:root[data-arrow-motion="reduce"] .ravin-global-drop{ transition: none; }
+

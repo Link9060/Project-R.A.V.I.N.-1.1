@@ -371,14 +371,11 @@ html[data-theme="light"] .ravin-composer:focus-within {
   .ravin-message.user .ravin-message-body { justify-self: start; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html.ravin-ui-reveal #ravinApp,
-  html.ravin-ui-reveal .ravin-sidebar,
-  html.ravin-ui-reveal .ravin-header,
-  html.ravin-ui-reveal .ravin-composer-zone,
-  .ravin-empty,
-  .ravin-thinking {
+@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]).ravin-ui-reveal #ravinApp,:root:not([data-arrow-motion="full"]).ravin-ui-reveal .ravin-sidebar,:root:not([data-arrow-motion="full"]).ravin-ui-reveal .ravin-header,:root:not([data-arrow-motion="full"]).ravin-ui-reveal .ravin-composer-zone,:root:not([data-arrow-motion="full"]) .ravin-empty,:root:not([data-arrow-motion="full"]) .ravin-thinking{
     animation: none !important;
-  }
-  .ravin-messages { scroll-behavior: auto; }
+  }:root:not([data-arrow-motion="full"]) .ravin-messages{ scroll-behavior: auto; }
 }
+:root[data-arrow-motion="reduce"].ravin-ui-reveal #ravinApp,:root[data-arrow-motion="reduce"].ravin-ui-reveal .ravin-sidebar,:root[data-arrow-motion="reduce"].ravin-ui-reveal .ravin-header,:root[data-arrow-motion="reduce"].ravin-ui-reveal .ravin-composer-zone,:root[data-arrow-motion="reduce"] .ravin-empty,:root[data-arrow-motion="reduce"] .ravin-thinking{
+    animation: none !important;
+  }:root[data-arrow-motion="reduce"] .ravin-messages{ scroll-behavior: auto; }
+

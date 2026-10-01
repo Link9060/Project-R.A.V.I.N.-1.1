@@ -290,10 +290,10 @@ button { -webkit-tap-highlight-color: transparent; }
   .ravin-message.user .ravin-message-body { width: auto !important; max-width: 88% !important; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ravin-shell-loading i,
-  .ravin-product-toast { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) .ravin-shell-loading i,:root:not([data-arrow-motion="full"]) .ravin-product-toast{ animation: none !important; }
 }
+:root[data-arrow-motion="reduce"] .ravin-shell-loading i,:root[data-arrow-motion="reduce"] .ravin-product-toast{ animation: none !important; }
+
 
 
 /* Sidebar overflow / history geometry ------------------------------------- */

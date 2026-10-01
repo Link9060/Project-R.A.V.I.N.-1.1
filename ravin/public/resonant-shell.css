@@ -230,6 +230,7 @@ button:not(:disabled):active { transform: scale(.965); opacity: .84; transition-
 }
 .ravin-mobile-menu { display:none; }
 
-@media (prefers-reduced-motion: reduce) {
-  *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
+@media (prefers-reduced-motion: reduce) {:root:not([data-arrow-motion="full"]) *,:root:not([data-arrow-motion="full"]) *::before,:root:not([data-arrow-motion="full"]) *::after{ animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
 }
+:root[data-arrow-motion="reduce"] *,:root[data-arrow-motion="reduce"] *::before,:root[data-arrow-motion="reduce"] *::after{ animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important; }
+
