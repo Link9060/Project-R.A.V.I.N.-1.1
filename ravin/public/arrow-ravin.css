@@ -17,3 +17,14 @@ html[data-arrow-ravin="true"] .ravin-context { width:250px; }
 :root[data-arrow-ravin="true"][data-arrow-theme="light"] #ravinApp { background:#edf0f5; }
 :root[data-arrow-ravin="true"][data-arrow-theme="light"] :is(.ravin-main,.ravin-sidebar) { background:#fff; color:#171c26; }
 @media(max-width:900px) { html[data-arrow-ravin="true"] #ravinApp { padding:0; gap:0; } html[data-arrow-ravin="true"] .ravin-main { border-radius:0; border:0; } html[data-arrow-ravin="true"] .ravin-context { display:none; } html[data-arrow-ravin="true"] .ravin-messages-inner { padding:20px; } html[data-arrow-ravin="true"] .ravin-composer-zone { padding:12px; } html[data-arrow-ravin="true"] .ravin-header { padding:16px; } }
+
+html:not([data-arrow-ravin="true"]) .ravin-arrow-nav { display:none; }
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] #ravinApp { gap:0; padding:0; }
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] :is(.ravin-sidebar,.ravin-main) { border-radius:0; border-top:0; border-bottom:0; box-shadow:none; }
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] .ravin-context { display:none; }
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] .ravin-messages-inner { max-width:720px; }
+html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] .ravin-main { background:linear-gradient(145deg,rgba(var(--arrow-accent-rgb,136,159,229),.13),transparent 45%); border-color:rgba(var(--arrow-accent-rgb,136,159,229),.4); }
+html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] .ravin-header { border-bottom:3px solid var(--ravin-accent); }
+html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { background:radial-gradient(ellipse at top left,rgba(var(--arrow-accent-rgb,136,159,229),.22),var(--ravin-bg,#090b10) 65%); gap:22px; padding:24px; }
+html[data-arrow-ravin="true"][data-arrow-experience="glass"] :is(.ravin-main,.ravin-sidebar) { backdrop-filter:blur(28px); background:rgba(var(--arrow-surface-rgb,20,25,36),.62); box-shadow:0 18px 64px #0002; border-radius:28px; }
+@media(max-width:900px) { html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { padding:0;gap:0; } }

@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const IN_ARROW = document.documentElement.dataset.arrowRavin === 'true';
   const CONFIG = window.RAVIN_CONFIG || {};
   const SUPABASE_URL = String(CONFIG.supabaseUrl || '').replace(/\/$/, '');
   const SUPABASE_KEY = CONFIG.supabaseAnonKey || '';
@@ -167,7 +168,7 @@
         <aside class="ravin-sidebar" aria-label="RAVIN navigation">
           <div class="ravin-brand">
             <span class="ravin-brand-mark" aria-hidden="true"></span>
-            <span class="ravin-brand-copy"><strong>RAVIN</strong><small>ARROW INTELLIGENCE</small></span>
+            <span class="ravin-brand-copy"><strong>RAVIN</strong><small>${IN_ARROW ? "ARROW INTELLIGENCE" : "RESONANT ASSIST"}</small></span>
           </div>
           <button class="ravin-sidebar-action primary" id="newChatBtn" type="button">${icon('plus')}<span class="ravin-action-label">New chat</span></button>
           <div class="ravin-search-wrap">${icon('search')}<label class="ravin-sr-only" for="historySearch">Search chats</label><input class="ravin-search" id="historySearch" placeholder="Search chats" autocomplete="off" /></div>
@@ -741,7 +742,7 @@
     backdrop.className = 'ravin-auth-backdrop';
     backdrop.innerHTML = `
       <section class="ravin-auth-card" role="dialog" aria-modal="true" aria-labelledby="ravinAuthTitle">
-        <div class="ravin-auth-brand"><span class="ravin-brand-mark" aria-hidden="true"></span><span class="ravin-brand-copy"><strong>RAVIN</strong><small>ARROW INTELLIGENCE</small></span></div>
+        <div class="ravin-auth-brand"><span class="ravin-brand-mark" aria-hidden="true"></span><span class="ravin-brand-copy"><strong>RAVIN</strong><small>${IN_ARROW ? "ARROW INTELLIGENCE" : "RESONANT ASSIST"}</small></span></div>
         <h2 id="ravinAuthTitle">${mode === 'signin' ? 'Welcome back' : 'Create your account'}</h2>
         <p>${mode === 'signin' ? 'Sign in to continue your RAVIN conversations.' : 'Create an account to keep conversations, files, and memory connected.'}</p>
         <form id="authForm" novalidate>
