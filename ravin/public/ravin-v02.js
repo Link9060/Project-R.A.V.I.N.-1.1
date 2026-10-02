@@ -882,13 +882,6 @@
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
 
-      if (currentUser()?.id) {
-        setTimeout(() => {
-          if (!state.controller && input.value.trim() === prompt) {
-            composer.requestSubmit();
-          }
-        }, 80);
-      }
     };
 
     deliver();
