@@ -172,7 +172,7 @@
           </div>
           <button class="ravin-sidebar-action primary" id="newChatBtn" type="button">${icon('plus')}<span class="ravin-action-label">New chat</span></button>
           <div class="ravin-search-wrap">${icon('search')}<label class="ravin-sr-only" for="historySearch">Search chats</label><input class="ravin-search" id="historySearch" placeholder="Search chats" autocomplete="off" /></div>
-          <nav class="ravin-arrow-nav" aria-label="ARROW tools"><button type="button" data-arrow-open="tasks">Tasks</button><button type="button" data-arrow-open="calendar">Calendar</button><a href="/atlas/">Atlas</a><a href="/waypoint/">Waypoint</a></nav><div class="ravin-section-label">Conversations</div>
+          <nav class="ravin-arrow-nav" aria-label="ARROW tools"><button type="button" data-arrow-open="tasks">Tasks</button><button type="button" data-arrow-open="calendar">Calendar</button><a href="../atlas/">Atlas</a><a href="../waypoint/">Waypoint</a></nav><div class="ravin-section-label">Conversations</div>
           <div class="ravin-history" id="historyList" aria-live="polite"></div>
           <div class="ravin-sidebar-bottom">
             <button class="ravin-account-row" id="accountBtn" type="button" aria-haspopup="menu">
@@ -221,8 +221,8 @@
 
             <aside class="ravin-context" id="workContext" aria-label="Work context">
               <h3>Your ARROW workspace</h3><p>Plan with Waypoint, explore in Atlas, and keep shared tasks and calendar close.</p>
-              <div class="ravin-context-card"><small>PLANNING</small><strong>One connected plan</strong><a href="/waypoint/">Open Waypoint</a></div>
-              <div class="ravin-context-card"><small>KNOWLEDGE</small><strong>Find the bigger picture</strong><a href="/atlas/">Explore Atlas</a></div>
+              <div class="ravin-context-card"><small>PLANNING</small><strong>One connected plan</strong><a href="../waypoint/">Open Waypoint</a></div>
+              <div class="ravin-context-card"><small>KNOWLEDGE</small><strong>Find the bigger picture</strong><a href="../atlas/">Explore Atlas</a></div>
               <div class="ravin-context-card"><small>SESSION</small><strong id="contextSession">No active thread</strong><span id="contextMessageCount">Start a Work conversation to create context.</span></div>
             </aside>
           </div>
