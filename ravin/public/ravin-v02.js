@@ -63,6 +63,10 @@
   mirrorSharedSession();
 
   async function refreshToken() {
+    if (window.RavinAuth?.refreshSession) {
+      if (!await window.RavinAuth.refreshSession()) throw new Error('Your ARROW session expired. Sign in again.');
+      return sharedSession()?.access_token || '';
+    }
     const current = sharedSession();
     const refresh = current?.refresh_token || localStorage.getItem(AUTH_KEYS.refresh) || "";
     if (!refresh) throw new Error("Your ARROW session expired. Sign in again.");
@@ -87,6 +91,11 @@
   }
 
   async function getToken(force = false) {
+    if (window.RavinAuth?.ensureSession) {
+      const valid = force ? await window.RavinAuth.refreshSession() : await window.RavinAuth.ensureSession();
+      if (!valid) throw new Error('Your ARROW session expired. Sign in again.');
+      return sharedSession()?.access_token || '';
+    }
     let token = localStorage.getItem(AUTH_KEYS.access) || "";
     const expiresAt = Number(localStorage.getItem(AUTH_KEYS.expires) || 0);
     if (!token) throw new Error("Sign in to RAVIN first.");
@@ -100,11 +109,13 @@
     headers.set("Accept", "application/json");
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     headers.set("Authorization", `Bearer ${token}`);
-    let response = await fetch(`${BACKEND_URL}${path}`, { ...options, headers });
+    const signals = [AbortSignal.timeout(45000),options.signal,state.controller?.signal].filter(Boolean);
+    const signal = AbortSignal.any(signals);
+    let response = await fetch(`${BACKEND_URL}${path}`, { ...options, headers, signal });
     if (response.status === 401 && retry) {
       token = await getToken(true);
       headers.set("Authorization", `Bearer ${token}`);
-      response = await fetch(`${BACKEND_URL}${path}`, { ...options, headers });
+      response = await fetch(`${BACKEND_URL}${path}`, { ...options, headers, signal });
     }
     if (response.status === 204) return null;
     const data = await response.json().catch(() => ({}));
@@ -462,8 +473,14 @@
       try { payload = JSON.parse(dataLines.join("\n")); } catch { payload = { text: dataLines.join("\n") }; }
       handlers[event]?.(payload);
     };
+    try {
     while (true) {
-      const { value, done } = await reader.read();
+      let timer;
+      const stalled = new Promise((_,reject) => { timer=setTimeout(() => { reject(new Error('RAVIN stopped responding. Check your connection and conversation history before retrying.')); void reader.cancel(); },45000); });
+      let chunk;
+      try { chunk = await Promise.race([reader.read(),stalled]); }
+      finally { clearTimeout(timer); }
+      const { value, done } = chunk;
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const chunks = buffer.split(/\r?\n\r?\n/);
@@ -472,6 +489,7 @@
     }
     buffer += decoder.decode();
     if (buffer) process(buffer);
+    } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
   }
 
   async function streamRequest(payload, handlers, retry = true) {
@@ -484,7 +502,7 @@
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: state.controller.signal,
+      signal: AbortSignal.any([state.controller.signal,AbortSignal.timeout(180000)]),
     });
     let response = await request();
     if (response.status === 401 && retry) {
@@ -495,7 +513,9 @@
       const data = await response.json().catch(() => ({}));
       throw new Error(data?.error || `RAVIN request failed (${response.status}).`);
     }
-    await readSse(response, handlers);
+    let completed=false;
+    await readSse(response, {...handlers,done:data=>{completed=true;handlers.done?.(data);}});
+    if (!completed) throw new Error('The response was interrupted. Check conversation history before retrying.');
   }
 
   async function submitMessage(event) {
@@ -581,6 +601,7 @@
       state.attachments = [];
       renderAttachments();
     } catch (error) {
+      if (!state.firstToken) { input.value=text; input.dispatchEvent(new Event('input',{bubbles:true})); }
       aborted = error?.name === "AbortError";
       if (assistant) {
         assistant.classList.remove("ravin-v02-streaming");
@@ -607,6 +628,15 @@
       enhanceMessages();
     }
   }
+
+  let accountIdentity = currentUser()?.id || '';
+  window.addEventListener('ravin-auth-changed', () => {
+    const next = sharedSession()?.user?.id || '';
+    if (next === accountIdentity) return;
+    accountIdentity=next; state.controller?.abort(); state.attachments=[];
+    $('#messages')?.replaceChildren();
+    window.location.reload();
+  });
 
   function closeDrawer() {
     $(".ravin-v02-drawer")?.remove();
@@ -917,3 +947,4 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
   else init();
 })();
+

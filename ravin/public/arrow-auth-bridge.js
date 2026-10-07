@@ -30,6 +30,12 @@
   }
 
   function mirror(session = readShared()) {
+    const owner = session?.user?.id || '';
+    const previousOwner = localStorage.getItem('ravin_conversation_owner_v1') || '';
+    if (owner !== previousOwner) {
+      for (const key of ['ravin_conversation_id_conversation','ravin_conversation_id_work','ravin_conversation_id']) localStorage.removeItem(key);
+      localStorage.setItem('ravin_conversation_owner_v1',owner);
+    }
     if (!session?.access_token) {
       state.accessToken = "";
       state.refreshToken = "";
@@ -64,9 +70,10 @@
     }));
   }
 
-  async function refreshSession() {
+  let refreshing = null;
+  async function performRefresh() {
     const current = readShared();
-    const refreshToken = current?.refresh_token || state.refreshToken;
+    const refreshToken = current?.refresh_token;
     if (!refreshToken) return false;
 
     const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
@@ -76,14 +83,24 @@
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: AbortSignal.timeout(12000),
     });
 
     const next = await response.json().catch(() => ({}));
     if (!response.ok || !next?.access_token) return false;
 
+    if (readShared()?.refresh_token !== refreshToken) return false;
     writeShared(next);
     mirror(next);
     return true;
+  }
+
+  async function refreshSession() {
+    if (refreshing) return refreshing;
+    const pending = performRefresh();
+    refreshing = pending;
+    try { return await pending; }
+    finally { if (refreshing === pending) refreshing = null; }
   }
 
   async function ensureSession() {
@@ -109,7 +126,8 @@
   function signOut() {
     if (BETA) {
       const token=readShared()?.access_token;
-      void (async()=>{try {if(token)await fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+token}});}finally{localStorage.removeItem(SHARED_KEY);mirror();location.assign("/Resonant-Relay/login/");}})();return;
+      localStorage.removeItem(SHARED_KEY); mirror();
+      void (async()=>{try {if(token)await fetch(SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+token},signal:AbortSignal.timeout(12000)});}catch{}finally{location.assign("/Resonant-Relay/login/");}})();return;
     }
     window.location.assign("/signout/");
   }

@@ -107,6 +107,10 @@
 
   let refreshPromise = null;
   async function refreshAccessToken() {
+    if (window.RavinAuth?.refreshSession) {
+      if (!await window.RavinAuth.refreshSession()) throw Object.assign(new Error('Your ARROW session expired. Sign in again.'),{status:401});
+      return window.RavinAuth.getAccessToken();
+    }
     if (refreshPromise) return refreshPromise;
     refreshPromise = performRefresh().finally(() => { refreshPromise = null; });
     return refreshPromise;
@@ -121,6 +125,11 @@
   }
 
   async function ensureToken(force = false) {
+    if (window.RavinAuth?.ensureSession) {
+      const valid = force ? await window.RavinAuth.refreshSession() : await window.RavinAuth.ensureSession();
+      if (!valid) throw Object.assign(new Error('Your ARROW session expired. Sign in again.'),{status:401});
+      return window.RavinAuth.getAccessToken();
+    }
     let token = currentToken();
     const expiresAt = Number(localStorage.getItem(AUTH_KEYS.expires) || 0);
     if (!token) throw new Error('Sign in to RAVIN first.');
@@ -142,6 +151,7 @@
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(20000),
       });
     };
 
@@ -551,6 +561,7 @@
   }
 
   async function switchMode(mode) {
+    if (isStreaming()) { notify('Stop the current response before switching modes.'); return; }
     if (state.mode === mode) return;
     state.mode = mode;
     state.activeConversation = currentConversationId(mode);
@@ -558,6 +569,8 @@
   }
 
   function newChat() {
+    if (isStreaming()) { notify('Stop the current response before starting a new chat.'); return; }
+    messageLoadVersion++;
     setConversationId('', state.mode);
     state.activeConversation = '';
     $('#headerConversationTitle').textContent = 'New conversation';
@@ -974,3 +987,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+
