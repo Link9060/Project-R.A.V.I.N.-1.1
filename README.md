@@ -64,3 +64,14 @@ The `deployment-prep` branch deploys `ravin/public` to GitHub Pages. The API run
 - Browser auth currently uses the RAVIN Supabase flow and client-side session storage; moving to a same-origin, HttpOnly-cookie deployment is a future hardening target.
 
 See [Architecture](docs/ARCHITECTURE.md), [Roadmap](docs/ROADMAP.md), and [Production](docs/PRODUCTION.md) for more detail.
+
+
+## ARROW beta review — October 6, 2026
+
+ARROW’s shared account supports username/password registration without email or phone. Usernames use 3–20 letters, digits or underscores; new passwords require at least 12 characters. Recovery email can be linked and verified from Relay Profile → Sign-in and recovery; phone linking is offered only when SMS Auth is enabled. Existing Google and email sign-in remain available. New accounts still follow the existing beta approval policy.
+
+The ARROW bar → Settings links to profile, notification device registration and setup, layout and particle preferences, privacy, terms, account export/deletion, and the setup guide. Appearance supports system/light/dark, reduced motion and custom accent color. Device preferences are separate from cloud account planning data.
+
+Phone sign-in is currently blocked by `external.phone=false` in Supabase Auth. The UI detects that and explains the available alternatives. Enabling real SMS delivery requires a configured provider; code alone does not enable it.
+
+This review also repairs shared panel Escape handling, failed task/event writes, stale panel responses, notification/help discoverability, light-theme surfaces and accent propagation. The 200 additional corrections listed in Relay’s `docs/arrow-ui-200.md` are individual small-text readability corrections, not 200 independent functionality bugs.

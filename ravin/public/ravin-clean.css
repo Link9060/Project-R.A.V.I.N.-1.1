@@ -107,7 +107,7 @@ body { background: rgb(var(--rv-bg)) !important; }
   color: rgb(var(--rv-muted));
   cursor: pointer;
   text-align: left;
-  font-size: 11px;
+  font-size: 14px;
 }
 .ravin-clean-nav-item svg { width: 16px; height: 16px; flex: none; }
 .ravin-clean-nav-item:hover { background: rgb(var(--rv-panel)); color: rgb(var(--rv-text)); }

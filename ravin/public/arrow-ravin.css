@@ -28,3 +28,20 @@ html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] .ravin-header { b
 html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { background:radial-gradient(ellipse at top left,rgba(var(--arrow-accent-rgb,136,159,229),.22),var(--ravin-bg,#090b10) 65%); gap:22px; padding:24px; }
 html[data-arrow-ravin="true"][data-arrow-experience="glass"] :is(.ravin-main,.ravin-sidebar) { backdrop-filter:blur(28px); background:rgba(var(--arrow-surface-rgb,20,25,36),.62); box-shadow:0 18px 64px #0002; border-radius:28px; }
 @media(max-width:900px) { html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { padding:0;gap:0; } }
+
+/* Shared custom color reaches RAVIN actions, navigation and composer. */
+html[data-arrow-ravin="true"] { --rv-accent:var(--arrow-accent-channels,245 245 247); --rv-accent-soft:var(--arrow-accent-channels,245 245 247); }
+html[data-arrow-ravin="true"] :is(.ravin-send,.ravin-primary,.ravin-composer-send) { background:var(--arrow-accent-color)!important; color:var(--arrow-accent-on)!important; min-height:44px; }
+html[data-arrow-ravin="true"] :is(.ravin-nav-item.active,.ravin-conversation.active,.ravin-tab.active) { border-color:var(--arrow-accent-color)!important; background:rgba(var(--arrow-accent-rgb),.1)!important; }
+html[data-arrow-ravin="true"] :is(button,a,input,textarea,select):focus-visible { outline:2px solid var(--arrow-accent-color)!important; outline-offset:3px; }
+html[data-arrow-ravin="true"] .ravin-composer:focus-within { border-color:var(--arrow-accent-color)!important; }
+html[data-arrow-ravin="true"] :is(.ravin-sidebar,.ravin-context,.ravin-messages) { overscroll-behavior:contain; scrollbar-gutter:stable; }
+html[data-arrow-ravin="true"] :is(.ravin-nav-item,.ravin-icon-button,.ravin-composer button,.ravin-arrow-nav a,.ravin-arrow-nav button) { min-height:44px; }
+html[data-arrow-ravin="true"] :is(.ravin-conversation,.ravin-header-title,.ravin-message-content,.ravin-file-item) { min-width:0; overflow-wrap:anywhere; }
+html[data-arrow-ravin="true"] .ravin-message-content pre { max-width:100%; overflow-x:auto; white-space:pre; }
+html[data-arrow-ravin="true"] :is(input,textarea,select) { font-size:16px!important; }
+html[data-arrow-ravin="true"][data-arrow-theme="light"] :is(.ravin-header,.ravin-composer-zone,.ravin-context) { background:rgb(var(--rv-panel)); color:rgb(var(--rv-text)); }
+html[data-arrow-ravin="true"][data-arrow-theme="light"] { --rv-faint:100 105 118; }
+html[data-arrow-ravin="true"][data-arrow-theme="dark"] { --rv-faint:156 160 175; }
+html[data-arrow-ravin="true"][data-arrow-motion="reduce"] :is(.ravin-main,.ravin-sidebar,.ravin-message) { animation:none!important; transition:none!important; }
+@media(max-width:680px) { html[data-arrow-ravin="true"] .ravin-header { min-height:64px; flex-wrap:wrap; gap:8px; } html[data-arrow-ravin="true"] .ravin-messages-inner { padding:16px 12px; } html[data-arrow-ravin="true"] .ravin-composer-zone { padding-bottom:max(12px,env(safe-area-inset-bottom)); } }
