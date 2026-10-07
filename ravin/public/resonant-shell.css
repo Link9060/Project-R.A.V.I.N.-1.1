@@ -24,7 +24,7 @@ html { color-scheme: dark; background: rgb(var(--canvas)); }
 body {
   overflow: hidden;
   background:
-    radial-gradient(circle at 72% 12%, rgba(255,255,255,.025), transparent 24rem),
+    radial-gradient(circle at 72% 12%, rgb(var(--ui-fg) / .025), transparent 24rem),
     rgb(var(--canvas));
   color: rgb(var(--ink));
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -65,7 +65,7 @@ button:not(:disabled):active { transform: scale(.965); opacity: .84; transition-
 }
 .ravin-brand-mark { width: 29px; height: 29px; position: relative; flex: none; display: grid; place-items: center; }
 .ravin-brand-mark::before { content:""; width: 8px; height: 8px; border-radius: 999px; background: rgb(var(--ink)); box-shadow: 0 0 18px rgba(255,255,255,.46); }
-.ravin-brand-mark::after { content:""; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.18); border-radius:999px; }
+.ravin-brand-mark::after { content:""; position:absolute; inset:4px; border:1px solid rgb(var(--ui-fg) / .18); border-radius:999px; }
 .ravin-brand-copy { min-width:0; display:flex; flex-direction:column; gap:2px; white-space:nowrap; overflow:hidden; }
 .ravin-brand-copy strong { font-family:"Space Grotesk",system-ui,sans-serif; font-size:14px; letter-spacing:.17em; }
 .ravin-brand-copy small { color: rgb(var(--ink-faint)); font:500 8px/1.2 "IBM Plex Mono",monospace; letter-spacing:.11em; }
@@ -74,7 +74,7 @@ button:not(:disabled):active { transform: scale(.965); opacity: .84; transition-
   appearance:none; width:100%; border:0; background:transparent; color:rgb(var(--ink-muted)); text-align:left; cursor:pointer;
 }
 .ravin-sidebar-action, .ravin-nav-item {
-  min-height: 40px; border-radius: 9px; display:flex; align-items:center; gap:10px; padding:0 10px; font-size:12px;
+  min-height: 44px; border-radius: 9px; display:flex; align-items:center; gap:10px; padding:0 10px; font-size:12px;
 }
 .ravin-sidebar-action.primary { background: rgb(var(--ink)); color: rgb(var(--canvas)); font-weight:600; margin-bottom:5px; }
 .ravin-sidebar-action:not(.primary):hover, .ravin-nav-item:hover { background:rgb(var(--surface)); color:rgb(var(--ink)); }
@@ -136,7 +136,7 @@ button:not(:disabled):active { transform: scale(.965); opacity: .84; transition-
 .ravin-header-right { display:flex; align-items:center; gap:6px; }
 .ravin-status-pill { display:flex; align-items:center; gap:6px; color:rgb(var(--ink-faint)); font:500 8px/1 "IBM Plex Mono",monospace; letter-spacing:.08em; }
 .ravin-status-pill i { width:5px; height:5px; border-radius:999px; background:rgb(var(--ink)); box-shadow:0 0 8px rgba(255,255,255,.34); }
-.ravin-icon-button { width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; }
+.ravin-icon-button { width:44px; height:44px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:rgb(var(--ink-muted)); cursor:pointer; }
 .ravin-icon-button:hover { background:rgb(var(--surface)); color:rgb(var(--ink)); }
 .ravin-icon-button svg { width:17px; height:17px; }
 

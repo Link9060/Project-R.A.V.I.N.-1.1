@@ -171,7 +171,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .ravin-settings-popover {
   width: min(34rem, calc(100vw - 24px)) !important;
-  max-height: min(760px, calc(100vh - 24px)) !important;
+  max-height: min(760px, calc(100dvh - 24px)) !important;
   padding: 8px !important;
 }
 
@@ -212,7 +212,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .ravin-delete-error { min-height: 14px; margin-top: 10px; color: rgb(var(--ravin-danger)); font-size: 12px; }
 .ravin-delete-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .ravin-delete-actions button {
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid rgb(var(--rv-line));
   border-radius: 8px;
   background: rgb(var(--rv-panel));
@@ -285,7 +285,7 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .ravin-history-delete { opacity: .72; }
   .ravin-composer-hint { display: none; }
-  .ravin-settings-popover { width: calc(100vw - 18px) !important; max-height: calc(100vh - 18px) !important; }
+  .ravin-settings-popover { width: calc(100vw - 18px) !important; max-height: calc(100dvh - 18px) !important; }
   .ravin-product-toast { bottom: 18px; }
   .ravin-message.user .ravin-message-body { width: auto !important; max-width: 88% !important; }
 }

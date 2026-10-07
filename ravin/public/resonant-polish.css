@@ -365,7 +365,7 @@ html[data-theme="light"] .ravin-composer:focus-within {
 @media (max-width: 460px) {
   .ravin-mode-switch button { font-size: 8px; padding: 6px 8px; }
   .ravin-header-right { gap: 2px; }
-  .ravin-icon-button { width: 32px; height: 32px; }
+  .ravin-icon-button { width: 44px; height: 44px; }
   .ravin-message { grid-template-columns: 1fr; gap: 5px; padding-block: 13px; }
   .ravin-message-role { padding-top: 0; }
   .ravin-message.user .ravin-message-body { justify-self: start; }

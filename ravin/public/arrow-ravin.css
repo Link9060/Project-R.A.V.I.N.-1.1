@@ -1,6 +1,6 @@
 /* This layout is exclusively the RAVIN surface inside ARROW. */
 html[data-arrow-ravin="true"] { --ravin-accent:var(--arrow-accent-color,#889fe5); }
-html[data-arrow-ravin="true"] #ravinApp { opacity:1!important; visibility:visible!important; animation:none!important; padding:16px; gap:14px; background:var(--ravin-bg,#090b10); }
+html[data-arrow-ravin="true"] #ravinApp { opacity:1!important; visibility:visible!important; animation:none!important; padding:16px; gap:14px; background:var(--ravin-bg,rgb(var(--ui-surface) / 1)); }
 html[data-arrow-ravin="true"] .ravin-sidebar { border:1px solid rgba(136,150,175,.16); border-radius:18px; padding:20px 14px; width:260px; }
 html[data-arrow-ravin="true"] .ravin-main { border:1px solid rgba(136,150,175,.16); border-radius:22px; overflow:hidden; }
 html[data-arrow-ravin="true"] .ravin-header { min-height:80px; padding:20px 28px; }
@@ -25,7 +25,7 @@ html[data-arrow-ravin="true"][data-arrow-experience="quiet"] .ravin-context { di
 html[data-arrow-ravin="true"][data-arrow-experience="quiet"] .ravin-messages-inner { max-width:720px; }
 html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] .ravin-main { background:linear-gradient(145deg,rgba(var(--arrow-accent-rgb,136,159,229),.13),transparent 45%); border-color:rgba(var(--arrow-accent-rgb,136,159,229),.4); }
 html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] .ravin-header { border-bottom:3px solid var(--ravin-accent); }
-html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { background:radial-gradient(ellipse at top left,rgba(var(--arrow-accent-rgb,136,159,229),.22),var(--ravin-bg,#090b10) 65%); gap:22px; padding:24px; }
+html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { background:radial-gradient(ellipse at top left,rgba(var(--arrow-accent-rgb,136,159,229),.22),var(--ravin-bg,rgb(var(--ui-surface) / 1)) 65%); gap:22px; padding:24px; }
 html[data-arrow-ravin="true"][data-arrow-experience="glass"] :is(.ravin-main,.ravin-sidebar) { backdrop-filter:blur(28px); background:rgba(var(--arrow-surface-rgb,20,25,36),.62); box-shadow:0 18px 64px #0002; border-radius:28px; }
 @media(max-width:900px) { html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp { padding:0;gap:0; } }
 
