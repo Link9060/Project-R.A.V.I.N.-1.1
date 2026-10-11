@@ -87,7 +87,7 @@ export function normalizeItem(item, index) {
       ? Math.round(duration)
       : null,
     depends_on: stringList(item?.depends_on, 5, 120),
-    accepted: true,
+    accepted: type !== "event" || Boolean(date),
   };
 }
 
@@ -97,6 +97,20 @@ function normalizeSignal(signal) {
   const detail = clip(signal?.detail, 240);
   if (!title || !detail) return null;
   return { kind, title, detail };
+}
+
+export function calendarConflicts(items, events) {
+  const minute = time => Number(time.slice(0,2))*60+Number(time.slice(3,5));
+  const proposed = items.filter(item=>item.type==='event' && item.date && item.time && item.duration_minutes)
+    .map(item=>({title:item.title,date:item.date,start:minute(item.time),end:minute(item.time)+item.duration_minutes}));
+  const existing = events.filter(event=>event.date && (event.is_all_day || event.time))
+    .map(event=>({title:event.title,date:event.date,start:event.is_all_day?0:minute(event.time),end:event.is_all_day?1440:event.end_time?minute(event.end_time):minute(event.time)+60}));
+  const signals=[];
+  for(let i=0;i<proposed.length;i++) for(const other of [...existing,...proposed.slice(i+1)]) {
+    const item=proposed[i];
+    if(item.date===other.date && item.start<other.end && other.start<item.end) signals.push({kind:'conflict',title:'Calendar overlap',detail:`${item.title} overlaps ${other.title} on ${item.date}. Review their times before applying.`});
+  }
+  return signals.slice(0,6);
 }
 
 function normalizeRouteStep(step, index) {
@@ -225,6 +239,7 @@ Rules:
 - Compare proposed work against existing tasks/events/library items. If it already exists, mention that in a signal or summary instead of creating a duplicate.
 - If the Capture is reflective or exploratory rather than action-oriented, it is valid to return mostly notes/goals/questions and only a few or zero tasks.
 - next_move should be useful even if the Capture contains many unrelated things.
+- Do not invent prerequisites between unrelated commitments merely because they happen on the same day.
 - Treat completed tasks as finished; do not re-add them. Refer to existing tasks by ID in depends_on. For new prerequisites use their exact proposed titles.
 - Preserve explicit event duration, including work shifts, lessons, and appointments. A 16:00–18:00 shift has duration_minutes 120.
 - Distinguish deadlines from scheduled work. Check duration against available windows and existing events; report conflicts instead of silently overbooking.
@@ -273,9 +288,8 @@ Rules:
     return true;
   });
 
-  const signals = Array.isArray(parsed?.signals)
-    ? parsed.signals.slice(0, 6).map(normalizeSignal).filter(Boolean)
-    : [];
+  const modelSignals = Array.isArray(parsed?.signals) ? parsed.signals.slice(0,6).map(normalizeSignal).filter(Boolean) : [];
+  const signals = [...calendarConflicts(items,context.events),...modelSignals].slice(0,6);
 
   const route = Array.isArray(parsed?.route)
     ? parsed.route.slice(0, 6).map(normalizeRouteStep).filter(Boolean)
