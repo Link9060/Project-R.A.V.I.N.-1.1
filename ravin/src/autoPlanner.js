@@ -12,8 +12,9 @@ export function buildSchedule({tasks=[],events=[],order=[],now=new Date(),timezo
   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(end)||minute(end)<=minute(start))throw new Error('Choose a valid planning window with an end after its start.');
   const local=localClock(now,timezone); const open=tasks.filter(t=>!t.completed);
   const priority=new Map(order.filter(id=>open.some(t=>t.id===id)).map((id,index)=>[id,index]));
-  const sorted=[...open].sort((a,b)=>(a.due_on||'9999').localeCompare(b.due_on||'9999')||(priority.get(a.id)??999)-(priority.get(b.id)??999)||(a.position||0)-(b.position||0));
-  const blocks=[];const unscheduled=[];const occupied=new Map();const conflicts=[];
+  const blocked=open.filter(t=>t.depends_on?.some(ref=>{const matches=tasks.filter(other=>other.id===ref || other.source_key===ref || String(other.title).trim().toLowerCase()===String(ref).trim().toLowerCase());return matches.length!==1 || !matches[0].completed;}));
+  const sorted=open.filter(t=>!blocked.includes(t)).sort((a,b)=>(a.due_on||'9999').localeCompare(b.due_on||'9999')||(priority.get(a.id)??999)-(priority.get(b.id)??999)||(a.position||0)-(b.position||0));
+  const blocks=[];const unscheduled=blocked.map(t=>({task_id:t.id,title:t.title,reason:'Complete its prerequisites before scheduling this task.'}));const occupied=new Map();const conflicts=[];
   for(let offset=0;offset<Math.max(1,Math.min(14,days));offset++) {
     const date=dayAfter(local.date,offset);const onDay=events.filter(e=>e.event_date===date);
     for(const task of open.filter(t=>t.scheduled_on===date&&t.scheduled_start)){if(onDay.some(e=>e.source_key==='schedule:'+task.id))continue;const startAt=minute(task.scheduled_start);onDay.push({event_date:date,title:task.title,start_time:clock(startAt),end_time:clock(Math.min(1440,startAt+(Number(task.estimated_minutes)||30)))});}
@@ -24,7 +25,7 @@ export function buildSchedule({tasks=[],events=[],order=[],now=new Date(),timezo
   for(const task of sorted) {
     // Keep existing scheduled work; rescheduling is a separate explicit edit.
     if(task.scheduled_on&&task.scheduled_start&&task.scheduled_on>=local.date)continue;
-    const duration=Math.max(5,Math.min(240,Number(task.estimated_minutes)||30));let placed=false;
+    const duration=Math.max(5,Math.min(720,Number(task.estimated_minutes)||30));let placed=false;
     for(const [date,slots] of occupied) {
       let at=minute(start);if(date===local.date)at=Math.max(at,Math.ceil((local.minutes+5)/5)*5);
       for(const slot of [...slots].sort((a,b)=>a.start-b.start)) {if(at+duration<=slot.start)break;if(at<slot.end&&at+duration>slot.start)at=slot.end+5;}

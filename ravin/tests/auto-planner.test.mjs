@@ -15,3 +15,8 @@ test('untrusted prioritization cannot create tasks or override deadlines',()=>{
  assert.deepEqual(r.blocks.map(b=>b.task_id),['a','b']);
 });
 test('invalid planning windows reject',()=>{assert.throws(()=>buildSchedule({start:'22:00',end:'08:00'}));});
+
+test('scheduler blocks unmet prerequisites and preserves a six-hour estimate',()=>{
+ const r=buildSchedule({now,start:'08:00',end:'20:00',tasks:[{id:'prereq',title:'Research',completed:false,estimated_minutes:360},{id:'blocked',title:'Build',depends_on:['prereq']}]});
+ assert.equal(r.blocks[0].minutes,360);assert.equal(r.unscheduled[0].task_id,'blocked');assert.match(r.unscheduled[0].reason,/prerequisites/);
+});

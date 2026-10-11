@@ -43,6 +43,7 @@ test('concurrent token refreshes share one request and release the lock after fa
   let calls = 0;
   let fail = false;
   const scope = {
+    window: {},
     AUTH_KEYS: { refresh: 'refresh' },
     localStorage: { getItem: () => 'test-refresh' },
     authRequest: async () => {
