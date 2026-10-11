@@ -42,6 +42,8 @@ function buildRequest(messages, {
   maxTokens = DEFAULT_MAX_TOKENS,
   model = null,
   stream = false,
+  responseFormat = null,
+  timeoutMs = 60_000,
 } = {}) {
   const config = getConfig();
   const requestedMode = normalizeRavinMode(mode);
@@ -53,6 +55,8 @@ function buildRequest(messages, {
     max_tokens: maxTokens,
     stream,
   };
+
+  if (responseFormat) body.response_format = responseFormat;
 
   if (tools.length > 0) {
     body.tools = tools;
@@ -124,6 +128,7 @@ export async function chatWithCloudflare(messages, options = {}) {
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(options.timeoutMs || 60_000),
     });
   } catch (networkError) {
     throw new Error(`Couldn't reach Cloudflare Workers AI. ${networkError?.message || networkError}`);
@@ -143,6 +148,7 @@ export async function chatWithCloudflare(messages, options = {}) {
     mode: requestedMode,
     requestedModel,
     routedModel: data.model || requestedModel,
+    finishReason: data.choices?.[0]?.finish_reason || null,
     usage: data.usage || null,
     timings: {
       requestMs: Math.round(performance.now() - requestStartedAt),

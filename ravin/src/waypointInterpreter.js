@@ -23,22 +23,40 @@ function stringList(value, limit = 6, max = 160) {
     .slice(0, limit);
 }
 
-function extractJson(content) {
-  const raw = String(content || "").trim();
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1]?.trim() || raw;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("RAVIN did not return a JSON object.");
-  return JSON.parse(candidate.slice(start, end + 1));
+export function validDate(value) {
+  if (!DATE_RE.test(String(value || ""))) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function normalizeItem(item, index) {
+export function extractJson(content) {
+  if (content && typeof content === "object" && !Array.isArray(content)) return content;
+  const raw = String(content || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  // Find a complete object, respecting braces inside quoted strings.
+  for (let start = raw.indexOf("{"); start >= 0; start = raw.indexOf("{", start + 1)) {
+    let depth = 0, quoted = false, escaped = false;
+    for (let i = start; i < raw.length; i++) {
+      const char = raw[i];
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === '"') quoted = false;
+      } else if (char === '"') quoted = true;
+      else if (char === "{") depth++;
+      else if (char === "}" && --depth === 0) {
+        try { return JSON.parse(raw.slice(start, i + 1)); } catch { break; }
+      }
+    }
+  }
+  throw new Error("RAVIN did not return a complete planning object. Retry this Capture.");
+}
+
+export function normalizeItem(item, index) {
   const type = ALLOWED_TYPES.has(item?.type) ? item.type : "task";
   const title = clip(item?.title, 180);
   if (!title) return null;
 
-  const date = DATE_RE.test(String(item?.date || "")) ? String(item.date) : null;
+  const date = validDate(item?.date) ? String(item.date) : null;
   const time = TIME_RE.test(String(item?.time || "")) ? String(item.time) : null;
   const duration = Number(item?.duration_minutes);
 
@@ -100,14 +118,21 @@ function safeContext(value) {
 
   return {
     tasks: tasks.map((item) => ({
+      id: clip(item?.id, 120),
       title: clip(item?.title || item?.text, 160),
+      due_on: validDate(item?.due_on) ? item.due_on : null,
+      estimated_minutes: Number(item?.estimated_minutes) || null,
+      scheduled_on: validDate(item?.scheduled_on) ? item.scheduled_on : null,
+      scheduled_start: nullableClip(item?.scheduled_start, 8),
       completed: Boolean(item?.completed || item?.done),
       meta: nullableClip(item?.meta, 120),
     })).filter((item) => item.title),
     events: events.map((item) => ({
       title: clip(item?.title, 160),
-      date: DATE_RE.test(String(item?.date || "")) ? String(item.date) : null,
+      date: validDate(item?.date) ? String(item.date) : null,
       time: TIME_RE.test(String(item?.time || "")) ? String(item.time) : null,
+      end_time: nullableClip(item?.end_time, 8),
+      is_all_day: Boolean(item?.is_all_day),
     })).filter((item) => item.title),
     library: library.map((item) => ({
       title: clip(item?.title, 160),
@@ -183,7 +208,7 @@ Return ONLY one JSON object with this exact shape:
       "priority": "low|medium|high",
       "placement": "today|plans|calendar|direction|notes|later",
       "duration_minutes": "integer or null",
-      "depends_on": ["titles of prerequisite items, if any"]
+      "depends_on": ["existing prerequisite task IDs, or exact proposed item titles"]
     }
   ]
 }
@@ -200,6 +225,11 @@ Rules:
 - Compare proposed work against existing tasks/events/library items. If it already exists, mention that in a signal or summary instead of creating a duplicate.
 - If the Capture is reflective or exploratory rather than action-oriented, it is valid to return mostly notes/goals/questions and only a few or zero tasks.
 - next_move should be useful even if the Capture contains many unrelated things.
+- Treat completed tasks as finished; do not re-add them. Refer to existing tasks by ID in depends_on. For new prerequisites use their exact proposed titles.
+- Preserve explicit event duration, including work shifts, lessons, and appointments. A 16:00–18:00 shift has duration_minutes 120.
+- Distinguish deadlines from scheduled work. Check duration against available windows and existing events; report conflicts instead of silently overbooking.
+- An explicit "not today", "no deadline", or "someday" must never become a today deadline. Use date null and placement plans/later as appropriate.
+- Ignore framing, test labels, and instructions about how to process the Capture as proposed items.
 - Keep language concise, calm, and practical.
 - No markdown or commentary outside the JSON object.`;
 
@@ -211,20 +241,37 @@ Rules:
     capture: cleanInput,
   });
 
-  const response = await chatWithCloudflare([
-    { role: "system", content: system },
-    { role: "user", content: user },
-  ], {
-    mode: "work",
-    tools: [],
-    temperature: 0.2,
-    maxTokens: 2400,
+  const messages = [{ role: "system", content: system }, { role: "user", content: user }];
+  let response, parsed;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    response = await chatWithCloudflare(messages, {
+      mode: "work", tools: [], temperature: 0.2,
+      maxTokens: 8192, timeoutMs: 40_000,
+      responseFormat: { type: "json_object" },
+    });
+    try {
+      parsed = extractJson(response?.content);
+      if (!Array.isArray(parsed.items) || !Array.isArray(parsed.route) || !Array.isArray(parsed.questions)) {
+        throw new Error("Incomplete planning response. Retry this Capture.");
+      }
+      break;
+    } catch (error) {
+      if (attempt === 1) throw error;
+      messages.push({ role: "user", content: "Your response was incomplete. Return the full requested JSON object only. Keep explanations short and ensure items, route, and questions are arrays." });
+    }
+  }
+  const existingTitles = new Set([...context.tasks, ...context.events, ...context.library]
+    .map(item => item.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()));
+  const seen = new Set(existingTitles);
+  const items = parsed.items.slice(0, 14).map(normalizeItem).filter(item => {
+    if (!item) return false;
+    const key = item.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    // Never silently promote an undated task to a deadline today.
+    if (item.type === "task" && !item.date && item.placement === "today" && /\b(someday|no deadline|not today)\b/i.test(item.when || "")) item.placement = "plans";
+    return true;
   });
-
-  const parsed = extractJson(response?.content);
-  const items = Array.isArray(parsed?.items)
-    ? parsed.items.slice(0, 14).map(normalizeItem).filter(Boolean)
-    : [];
 
   const signals = Array.isArray(parsed?.signals)
     ? parsed.signals.slice(0, 6).map(normalizeSignal).filter(Boolean)
