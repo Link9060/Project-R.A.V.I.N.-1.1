@@ -246,7 +246,7 @@ Rules:
   for (let attempt = 0; attempt < 2; attempt++) {
     response = await chatWithCloudflare(messages, {
       mode: "work", tools: [], temperature: 0.2,
-      maxTokens: 8192, timeoutMs: 40_000,
+      maxTokens: 4096, timeoutMs: 40_000, enableThinking: false,
       responseFormat: { type: "json_object" },
     });
     try {
