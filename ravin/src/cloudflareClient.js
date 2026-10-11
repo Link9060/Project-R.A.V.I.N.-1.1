@@ -43,7 +43,7 @@ function buildRequest(messages, {
   model = null,
   stream = false,
   responseFormat = null,
-  timeoutMs = 60_000,
+  enableThinking = null,
 } = {}) {
   const config = getConfig();
   const requestedMode = normalizeRavinMode(mode);
@@ -57,6 +57,7 @@ function buildRequest(messages, {
   };
 
   if (responseFormat) body.response_format = responseFormat;
+  if (enableThinking !== null) body.chat_template_kwargs = {enable_thinking: enableThinking};
 
   if (tools.length > 0) {
     body.tools = tools;
