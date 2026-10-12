@@ -314,8 +314,6 @@
 
       pop.classList.add('ravin-settings-popover');
       pop.style.removeProperty('width');
-      pop.style.removeProperty('left');
-      pop.style.removeProperty('top');
       bindAppearanceControls(setting);
       syncSettingsControls(setting);
     });

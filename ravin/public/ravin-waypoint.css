@@ -1,0 +1,92 @@
+/* ARROW RAVIN: the same quiet workspace proportions as Waypoint. */
+html[data-arrow-ravin="true"] { --sidebar-width:250px; --sidebar-collapsed:72px; --header-height:96px; --rw-fg:var(--ui-fg,var(--rv-text)); --rw-bg:var(--ui-surface,var(--rv-bg)); --rw-line:rgb(var(--rw-fg) / .1); }
+html[data-arrow-ravin="true"] #ravinApp { padding:0!important; gap:0!important; grid-template-columns:250px minmax(0,1fr)!important; background:radial-gradient(circle at 78% 6%,rgb(var(--rw-fg) / .055),transparent 32%),rgb(var(--rw-bg))!important; }
+html[data-arrow-ravin="true"] #ravinApp.sidebar-collapsed { grid-template-columns:72px minmax(0,1fr)!important; }
+html[data-arrow-ravin="true"] .ravin-sidebar { width:auto!important; min-height:0; border:0!important; border-right:1px solid var(--rw-line)!important; border-radius:0!important; padding:24px 18px 18px!important; background:rgb(var(--rw-bg) / .8)!important; backdrop-filter:blur(26px); }
+html[data-arrow-ravin="true"] .ravin-brand { height:auto; min-height:45px; padding:5px 7px 24px; margin:0; gap:12px; }
+html[data-arrow-ravin="true"] .ravin-brand-mark { width:45px; height:45px; border:1px solid var(--rw-line); border-radius:15px; background:rgb(var(--rw-fg) / .035); }
+html[data-arrow-ravin="true"] .ravin-brand-mark::after { inset:12px; }
+html[data-arrow-ravin="true"] .ravin-brand-copy strong { font:650 17px/1.3 Inter,system-ui; letter-spacing:-.02em; }
+html[data-arrow-ravin="true"] .ravin-brand-copy small { font:600 10px/1.5 Inter,system-ui; letter-spacing:.1em; }
+html[data-arrow-ravin="true"] :is(.ravin-sidebar-action,.ravin-nav-item) { min-height:44px; border-radius:13px; padding:10px 12px; font-size:14px; }
+html[data-arrow-ravin="true"] .ravin-sidebar-action.primary { background:rgb(var(--rw-fg) / .075)!important; color:rgb(var(--rw-fg))!important; border:1px solid var(--rw-line)!important; }
+html[data-arrow-ravin="true"] .ravin-search { height:42px; border-radius:12px; background:rgb(var(--rw-fg) / .035)!important; font-size:14px!important; }
+html[data-arrow-ravin="true"] .ravin-arrow-nav { padding:10px 0 16px; gap:6px; }
+html[data-arrow-ravin="true"] .ravin-arrow-nav :is(a,button) { min-height:40px; padding:9px 10px; font-size:13px; border-radius:12px; background:transparent; border-color:var(--rw-line); }
+html[data-arrow-ravin="true"] .ravin-section-label { font:650 10px/1.4 Inter,system-ui; letter-spacing:.12em; margin:14px 10px 8px; }
+html[data-arrow-ravin="true"] .ravin-history { flex:1; min-height:0; }
+html[data-arrow-ravin="true"] .ravin-history-item { min-height:58px; padding:10px 32px 10px 10px!important; border-radius:13px; gap:6px; }
+html[data-arrow-ravin="true"] .ravin-history-copy { display:flex; flex-direction:column; gap:5px; min-width:0; overflow:hidden; }
+html[data-arrow-ravin="true"] .ravin-history-title { display:block; min-width:0; font:500 13px/1.4 Inter,system-ui; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[data-arrow-ravin="true"] .ravin-history-meta { display:block; margin:0; font:600 9px/1.3 Inter,system-ui; letter-spacing:.07em; }
+html[data-arrow-ravin="true"] .ravin-mode-dot { display:none; }
+html[data-arrow-ravin="true"] .ravin-account-controls { display:flex; align-items:center; gap:4px; }
+html[data-arrow-ravin="true"] .ravin-account-row { flex:1; width:auto; min-width:0; }
+html[data-arrow-ravin="true"] .ravin-account-copy small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:145px; }
+html[data-arrow-ravin="true"] .ravin-collapse { margin:0; width:36px; height:44px; }
+html[data-arrow-ravin="true"] #ravinApp.sidebar-collapsed .ravin-sidebar { padding:24px 8px 18px!important; }
+html[data-arrow-ravin="true"] #ravinApp.sidebar-collapsed :is(.ravin-arrow-nav,.ravin-account-row) { display:none; }
+html[data-arrow-ravin="true"] #ravinApp.sidebar-collapsed .ravin-brand { padding:5px 4px 24px; }
+html[data-arrow-ravin="true"] .ravin-main { border:0!important; border-radius:0!important; background:transparent!important; overflow:hidden; grid-template-rows:auto minmax(0,1fr); }
+html[data-arrow-ravin="true"] .ravin-header { min-height:96px; height:auto; padding:20px 34px!important; gap:16px; border-bottom:1px solid var(--rw-line)!important; background:rgb(var(--rw-bg) / .96)!important; }
+html[data-arrow-ravin="true"] .ravin-header-left { flex:1; min-width:0; gap:16px; }
+html[data-arrow-ravin="true"] .ravin-header-title { flex:1; min-width:0; gap:6px; }
+html[data-arrow-ravin="true"] .ravin-header-title strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:620 22px/1.3 Inter,system-ui!important; letter-spacing:-.035em; }
+html[data-arrow-ravin="true"] .ravin-header-title small { display:block; font:650 10px/1.4 Inter,system-ui; letter-spacing:.12em; }
+html[data-arrow-ravin="true"] .ravin-header-right { flex:none; gap:4px; }
+html[data-arrow-ravin="true"] .ravin-mode-switch { flex:none; border-radius:12px; padding:3px; }
+html[data-arrow-ravin="true"] .ravin-mode-switch button { font-size:12px; min-height:36px; border-radius:9px; padding:8px 12px; }
+html[data-arrow-ravin="true"] .ravin-icon-button { border:1px solid var(--rw-line); border-radius:12px; width:40px; height:40px; }
+html[data-arrow-ravin="true"] .ravin-environment-button { min-height:40px; padding:8px!important; font-size:10px!important; max-width:92px; }
+html[data-arrow-ravin="true"] .ravin-status-pill { display:none; }
+html[data-arrow-ravin="true"] .ravin-workspace.work-mode { grid-template-columns:minmax(0,1fr) 250px; }
+html[data-arrow-ravin="true"] .ravin-context { width:auto!important; background:rgb(var(--rw-fg) / .025)!important; padding:24px 18px!important; border-color:var(--rw-line)!important; }
+html[data-arrow-ravin="true"] .ravin-context-card { border-radius:18px!important; padding:18px!important; }
+html[data-arrow-ravin="true"] .ravin-messages { padding:24px 34px 16px!important; }
+html[data-arrow-ravin="true"] .ravin-messages-inner { width:100%!important; max-width:860px!important; padding:0!important; margin:auto; }
+html[data-arrow-ravin="true"] .ravin-message { font-size:16px!important; line-height:1.7; padding:24px 0!important; margin:0!important; grid-template-columns:64px minmax(0,1fr)!important; gap:14px; }
+html[data-arrow-ravin="true"] .ravin-message-body { min-width:0; overflow-wrap:anywhere; }
+html[data-arrow-ravin="true"] .ravin-message.user .ravin-message-body { max-width:100%; padding:14px 18px!important; border-radius:18px!important; }
+html[data-arrow-ravin="true"] .ravin-message-role { font:650 10px/1.6 Inter,system-ui!important; letter-spacing:.1em; }
+html[data-arrow-ravin="true"] .ravin-message-actions { opacity:1; flex-wrap:wrap; }
+html[data-arrow-ravin="true"] .ravin-message-body :is(pre,table) { max-width:100%; overflow:auto; }
+html[data-arrow-ravin="true"] .ravin-message-body pre { white-space:pre; }
+html[data-arrow-ravin="true"] .ravin-composer-zone { width:100%; max-width:928px; margin:auto; padding:12px 34px 20px!important; background:transparent!important; }
+html[data-arrow-ravin="true"] .ravin-composer { border:1px solid var(--rw-line)!important; border-radius:24px!important; background:rgb(var(--rw-fg) / .04)!important; box-shadow:inset 0 1px rgb(var(--rw-fg) / .045)!important; }
+html[data-arrow-ravin="true"] .ravin-composer-row { padding:12px; gap:10px; }
+html[data-arrow-ravin="true"] #messageInput { font-size:16px!important; line-height:1.6; }
+html[data-arrow-ravin="true"] .ravin-composer-meta { padding:9px 16px; }
+html[data-arrow-ravin="true"] .ravin-empty { padding:36px 16px!important; }
+html[data-arrow-ravin="true"] .ravin-empty h1 { font:570 clamp(28px,3vw,42px)/1.1 Inter,system-ui!important; letter-spacing:-.05em; }
+html[data-arrow-ravin="true"] .ravin-empty p { max-width:480px; font-size:15px; line-height:1.65; }
+html[data-arrow-ravin="true"] .ravin-popover { left:var(--ravin-popover-left,12px)!important; right:auto!important; top:var(--ravin-popover-top,12px)!important; max-height:var(--ravin-popover-height,calc(100dvh - 24px))!important; max-width:calc(100vw - 24px)!important; overflow-y:auto!important; overscroll-behavior:contain; border-radius:20px!important; }
+html[data-arrow-ravin="true"] .ravin-settings-popover { width:min(480px,calc(100vw - 24px))!important; }
+html[data-arrow-ravin="true"] .ravin-experience-option { min-height:88px!important; padding:12px!important; border-radius:14px!important; }
+html[data-arrow-ravin="true"] .ravin-experience-option p { font-size:12px!important; line-height:1.45; }
+html[data-arrow-ravin="true"] :is(button,a,input,textarea,select):focus-visible { outline:2px solid var(--arrow-accent-color,rgb(var(--rw-fg)))!important; outline-offset:3px; }
+@media(max-width:1200px) {
+ html[data-arrow-ravin="true"] .ravin-header { flex-wrap:wrap; padding:16px 24px!important; }
+ html[data-arrow-ravin="true"] .ravin-header-left { flex-basis:100%; }
+ html[data-arrow-ravin="true"] .ravin-header-right { margin-left:auto; }
+ html[data-arrow-ravin="true"] .ravin-workspace.work-mode { grid-template-columns:minmax(0,1fr); }
+ html[data-arrow-ravin="true"] .ravin-context { display:none!important; }
+}
+@media(max-width:700px) {
+ html[data-arrow-ravin="true"] #ravinApp,html[data-arrow-ravin="true"] #ravinApp.sidebar-collapsed { grid-template-columns:minmax(0,1fr)!important; }
+ html[data-arrow-ravin="true"] .ravin-sidebar { width:250px!important; max-width:calc(100vw - 48px); }
+ html[data-arrow-ravin="true"] .ravin-header { padding:12px 16px!important; gap:8px; min-height:76px; }
+ html[data-arrow-ravin="true"] .ravin-header-title strong { font-size:18px!important; }
+ html[data-arrow-ravin="true"] .ravin-mode-switch { margin-left:auto; }
+ html[data-arrow-ravin="true"] .ravin-mode-switch button { padding:6px 8px; font-size:11px; }
+ html[data-arrow-ravin="true"] .ravin-header-title { max-width:calc(100vw - 220px); }
+ html[data-arrow-ravin="true"] .ravin-messages { padding:16px!important; }
+ html[data-arrow-ravin="true"] .ravin-message { grid-template-columns:minmax(0,1fr)!important; gap:8px; padding:18px 0!important; }
+ html[data-arrow-ravin="true"] .ravin-composer-zone { padding:10px 12px max(12px,env(safe-area-inset-bottom))!important; }
+ html[data-arrow-ravin="true"] .ravin-composer-hint { font-size:10px; }
+}
+@media(prefers-reduced-motion:reduce) { html[data-arrow-ravin="true"] :is(.ravin-sidebar,.ravin-main,.ravin-message) { animation:none!important; transition:none!important; } }
+
+html[data-arrow-ravin="true"] .ravin-clean-nav-item { min-height:44px; border-radius:13px; padding:10px 12px; font-size:14px; }
+html[data-arrow-ravin="true"] .ravin-message { display:grid!important; }
+html[data-arrow-ravin="true"] .ravin-experience-description { font-size:12px!important; line-height:1.45; }
+@media(max-width:380px) { html[data-arrow-ravin="true"] .ravin-header-title { max-width:none; } html[data-arrow-ravin="true"] .ravin-header-left { flex-wrap:wrap; } html[data-arrow-ravin="true"] .ravin-mode-switch { margin-left:52px; } }

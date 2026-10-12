@@ -185,11 +185,10 @@
           <nav class="ravin-arrow-nav" aria-label="ARROW tools"><button type="button" data-arrow-open="tasks">Tasks</button><button type="button" data-arrow-open="calendar">Calendar</button><a href="../atlas/">Atlas</a><a href="../waypoint/">Waypoint</a></nav><div class="ravin-section-label">Conversations</div>
           <div class="ravin-history" id="historyList" aria-live="polite"></div>
           <div class="ravin-sidebar-bottom">
-            <button class="ravin-account-row" id="accountBtn" type="button" aria-haspopup="menu">
+            <div class="ravin-account-controls"><button class="ravin-account-row" id="accountBtn" type="button" aria-haspopup="menu">
               <span class="ravin-avatar" id="avatar">?</span>
               <span class="ravin-account-copy"><strong id="accountName">Guest</strong><small id="accountSub">Sign in to RAVIN</small></span>
-              <span class="ravin-collapse" id="collapseBtn" role="button" tabindex="0" aria-label="Collapse sidebar">${icon('chevron')}</span>
-            </button>
+              </button><button class="ravin-collapse" id="collapseBtn" type="button" aria-label="Collapse sidebar">${icon('chevron')}</button></div>
           </div>
         </aside>
 
@@ -589,28 +588,35 @@
 
   function positionPopover(pop, anchor) {
     if (!pop?.isConnected || !anchor?.isConnected) return;
-    const gap = 8;
     const margin = 12;
+    const viewport = window.visualViewport;
+    const viewportWidth = viewport?.width || innerWidth;
+    const viewportHeight = viewport?.height || innerHeight;
+    const offsetLeft = viewport?.offsetLeft || 0;
+    const offsetTop = viewport?.offsetTop || 0;
     const rect = anchor.getBoundingClientRect();
-    const width = Math.min(pop.offsetWidth || 260, innerWidth - margin * 2);
-    const height = Math.min(pop.offsetHeight || 120, innerHeight - margin * 2);
-    let left = rect.right - width;
-    left = Math.max(margin, Math.min(left, innerWidth - width - margin));
-    const below = rect.bottom + gap;
-    const above = rect.top - height - gap;
-    let top = below;
-    if (below + height > innerHeight - margin && above >= margin) top = above;
-    top = Math.max(margin, Math.min(top, innerHeight - height - margin));
+    const width = Math.min(pop.offsetWidth || 260, viewportWidth - margin * 2);
+    const height = Math.min(pop.offsetHeight || 120, viewportHeight - margin * 2);
+    const left = Math.max(offsetLeft + margin, Math.min(rect.right - width, offsetLeft + viewportWidth - width - margin));
+    const below = rect.bottom + 8;
+    const above = rect.top - height - 8;
+    let top = below + height > offsetTop + viewportHeight - margin && above >= offsetTop + margin ? above : below;
+    top = Math.max(offsetTop + margin, Math.min(top, offsetTop + viewportHeight - height - margin));
     pop.style.left = `${Math.round(left)}px`;
     pop.style.top = `${Math.round(top)}px`;
-    pop.style.maxHeight = `${Math.max(160, innerHeight - margin * 2)}px`;
+    pop.style.maxHeight = `${Math.max(80, offsetTop + viewportHeight - top - margin)}px`;
+    pop.style.setProperty('--ravin-popover-left', pop.style.left);
+    pop.style.setProperty('--ravin-popover-top', pop.style.top);
+    pop.style.setProperty('--ravin-popover-height', pop.style.maxHeight);
   }
 
   function buildPopover(anchor, contents, { className = '' } = {}) {
     closePopovers();
+    window.ArrowOS?.closePanel(false);
     const pop = document.createElement('div');
     pop.className = `ravin-popover ${className}`.trim();
-    pop.setAttribute('role', 'menu');
+    pop.setAttribute('role', className.includes('settings') ? 'dialog' : 'menu');
+    if (className.includes('settings')) pop.setAttribute('aria-label', 'RAVIN appearance and settings');
     pop.innerHTML = contents;
     document.body.appendChild(pop);
 
@@ -624,7 +630,11 @@
         pop.remove();
       }
     };
+    let outsideTimer;
+    const escape = (event) => { if(event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); pop._ravinCleanup?.(); pop.remove(); anchor.focus({preventScroll:true}); } };
+    pop.addEventListener('keydown', escape);
     const cleanup = () => {
+      clearTimeout(outsideTimer);
       observer.disconnect();
       document.removeEventListener('pointerdown', close, true);
       window.removeEventListener('resize', place);
@@ -633,7 +643,8 @@
     };
     pop._ravinCleanup = cleanup;
     anchor.setAttribute('aria-expanded', 'true');
-    setTimeout(() => document.addEventListener('pointerdown', close, true));
+    outsideTimer = setTimeout(() => { if(pop.isConnected) document.addEventListener('pointerdown', close, true); });
+    requestAnimationFrame(() => pop.querySelector('button,input')?.focus({preventScroll:true}));
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
     return pop;
@@ -895,6 +906,7 @@
       }
     });
 
+    addEventListener('arrow:panelopen', closePopovers);
     addEventListener('online', syncOnlineState);
     addEventListener('offline', syncOnlineState);
     addEventListener('arrow:themechange', (event) => {
@@ -903,6 +915,8 @@
     addEventListener('keydown', (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        if (state.sidebarCollapsed) toggleSidebar();
+        if(innerWidth <= 700) $('#ravinApp').classList.add('mobile-sidebar-open');
         $('#historySearch')?.focus();
       }
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
@@ -987,4 +1001,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+
 
