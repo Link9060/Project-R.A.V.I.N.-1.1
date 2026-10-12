@@ -612,7 +612,8 @@
 
   function buildPopover(anchor, contents, { className = '' } = {}) {
     closePopovers();
-    window.ArrowOS?.closePanel(false);
+    if(window.ArrowOS?.closeOverlays) window.ArrowOS.closeOverlays();
+    else window.ArrowOS?.closePanel(false);
     const pop = document.createElement('div');
     pop.className = `ravin-popover ${className}`.trim();
     pop.setAttribute('role', className.includes('settings') ? 'dialog' : 'menu');
