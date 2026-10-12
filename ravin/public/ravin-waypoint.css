@@ -88,5 +88,13 @@ html[data-arrow-ravin="true"] :is(button,a,input,textarea,select):focus-visible 
 
 html[data-arrow-ravin="true"] .ravin-clean-nav-item { min-height:44px; border-radius:13px; padding:10px 12px; font-size:14px; }
 html[data-arrow-ravin="true"] .ravin-message { display:grid!important; }
+/* Body and actions belong to the flexible track, independent of legacy column rules. */
+html[data-arrow-ravin="true"] .ravin-message { grid-template-areas:"role body" ". actions"!important; }
+html[data-arrow-ravin="true"] .ravin-message.user { grid-template-columns:minmax(0,1fr) 64px!important; grid-template-areas:"body role" "actions ."!important; }
+html[data-arrow-ravin="true"] .ravin-message > .ravin-message-role { grid-area:role!important; }
+html[data-arrow-ravin="true"] .ravin-message > .ravin-message-body { grid-area:body!important; }
+html[data-arrow-ravin="true"] .ravin-message > .ravin-message-actions { grid-area:actions!important; }
+html[data-arrow-ravin="true"] .ravin-message.user > .ravin-message-body { justify-self:end; min-width:0; width:fit-content; max-width:100%; }
+@media(max-width:700px) { html[data-arrow-ravin="true"] .ravin-message,html[data-arrow-ravin="true"] .ravin-message.user { grid-template-columns:minmax(0,1fr)!important; grid-template-areas:"role" "body" "actions"!important; } }
 html[data-arrow-ravin="true"] .ravin-experience-description { font-size:12px!important; line-height:1.45; }
 @media(max-width:380px) { html[data-arrow-ravin="true"] .ravin-header-title { max-width:none; } html[data-arrow-ravin="true"] .ravin-header-left { flex-wrap:wrap; } html[data-arrow-ravin="true"] .ravin-mode-switch { margin-left:52px; } }
