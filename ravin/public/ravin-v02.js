@@ -650,6 +650,9 @@
     backdrop.addEventListener("click", closeDrawer);
     const drawer = document.createElement("section");
     drawer.className = "ravin-v02-drawer";
+    drawer.setAttribute("role", "dialog");
+    drawer.setAttribute("aria-modal", "true");
+    drawer.setAttribute("aria-label", title);
     drawer.innerHTML = `
       <header class="ravin-v02-drawer-head">
         <div><strong></strong><small></small></div>
@@ -939,7 +942,7 @@
     initObserver();
     consumeIncomingArrowPrompt();
     addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeDrawer();
+      if (event.key === "Escape" && document.querySelector(".ravin-v02-drawer")) { event.preventDefault(); event.stopImmediatePropagation(); closeDrawer(); }
     });
     document.documentElement.dataset.ravinV02 = "true";
   }
@@ -947,4 +950,5 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
   else init();
 })();
+
 

@@ -184,49 +184,24 @@
     });
   }
 
-  function paletteMarkup(option, selected) {
-    return `<button type="button" class="ravin-palette-option${selected ? ' selected' : ''}" data-ravin-palette-option="${option.id}" aria-pressed="${selected}" title="${option.name}">
-      <span class="ravin-palette-swatch" style="--swatch-light-a:${option.light};--swatch-light-b:${option.secondaryLight};--swatch-dark-a:${option.dark};--swatch-dark-b:${option.secondaryDark}" aria-hidden="true"></span>
-      <span class="ravin-palette-name">${option.name}</span>
-      ${option.duo ? '<span class="ravin-duo-tag">Duo</span>' : ''}
-    </button>`;
-  }
-
   function appearanceMarkup() {
     const current = readAppearance();
-    const singles = PALETTES.filter((item) => !item.duo);
-    const duos = PALETTES.filter((item) => item.duo);
     return `
       <section class="ravin-experience-controls" data-ravin-appearance>
         <div class="ravin-experience-head">
           <div>
             <h3>RAVIN Experience</h3>
-            <p>Choose how RAVIN moves, feels and uses color. Your palette and light or dark mode shape the final look.</p>
+            <p>Choose an experience and adjust its motion.</p>
           </div>
         </div>
 
-        <div class="ravin-experience-options">
-          ${EXPERIENCES.map((option) => `<button type="button" class="ravin-experience-option${current.experience === option.id ? ' selected' : ''}" data-ravin-experience-option="${option.id}" data-experience-preview="${option.id}" aria-pressed="${current.experience === option.id}">
-            <span class="ravin-experience-option-top">
-              <span class="ravin-experience-copy"><strong>${option.name}</strong><small>${option.signature}</small></span>
-              <span class="ravin-mode-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-            </span>
-            <span class="ravin-experience-description">${option.description}</span>
-          </button>`).join('')}
-        </div>
-
-        <div class="ravin-experience-section ravin-palette-section">
-          <div class="ravin-section-head"><strong>Color palette</strong><span>${PALETTES.length} options</span></div>
-          <p class="ravin-section-help">Most modes use color as an accent. Vivid uses lighter and darker shades of your selected primary color across more of the interface.</p>
-          <div class="ravin-palette-group">
-            <div class="ravin-palette-group-label">Single colors</div>
-            <div class="ravin-palette-grid">${singles.map((option) => paletteMarkup(option, current.palette === option.id)).join('')}</div>
-          </div>
-          <div class="ravin-palette-group">
-            <div class="ravin-palette-group-label">Two-color palettes</div>
-            <div class="ravin-palette-grid">${duos.map((option) => paletteMarkup(option, current.palette === option.id)).join('')}</div>
-          </div>
-        </div>
+        <label class="ravin-experience-section" style="display:block">
+          <span>Experience</span>
+          <select data-ravin-experience-select aria-label="RAVIN experience" style="display:block;width:100%;margin-top:8px;padding:10px;border-radius:10px;background:rgb(var(--rv-panel));color:rgb(var(--rv-text));border:1px solid rgb(var(--rv-line))">
+            ${EXPERIENCES.map(option => `<option value="${option.id}"${current.experience === option.id ? ' selected' : ''}>${option.name}</option>`).join('')}
+          </select>
+        </label>
+        <p class="ravin-section-help">Shared colors and theme are in the ARROW appearance menu.</p>
 
         <label class="ravin-experience-section ravin-intensity-setting">
           <span class="ravin-intensity-head"><strong>Visual intensity</strong><output>${current.intensity}%</output></span>
@@ -250,16 +225,8 @@
   }
 
   function syncSettingsControls(setting, state = readAppearance()) {
-    setting.querySelectorAll('[data-ravin-experience-option]').forEach((button) => {
-      const selected = button.dataset.ravinExperienceOption === state.experience;
-      button.classList.toggle('selected', selected);
-      button.setAttribute('aria-pressed', String(selected));
-    });
-    setting.querySelectorAll('[data-ravin-palette-option]').forEach((button) => {
-      const selected = button.dataset.ravinPaletteOption === state.palette;
-      button.classList.toggle('selected', selected);
-      button.setAttribute('aria-pressed', String(selected));
-    });
+    const select = setting.querySelector('[data-ravin-experience-select]');
+    if(select) select.value = state.experience;
     const slider = setting.querySelector('.ravin-experience-intensity');
     const output = setting.querySelector('.ravin-intensity-head output');
     if (slider) {
@@ -278,18 +245,18 @@
     setting.addEventListener('pointerdown', (event) => event.stopPropagation());
     setting.addEventListener('click', (event) => {
       event.stopPropagation();
-      const experienceButton = event.target.closest('[data-ravin-experience-option]');
-      const paletteButton = event.target.closest('[data-ravin-palette-option]');
       const lockButton = event.target.closest('[data-ravin-lock-in]');
       const resetButton = event.target.closest('[data-ravin-reset]');
       let state = readAppearance();
-      if (experienceButton) state = saveAppearance({ experience: experienceButton.dataset.ravinExperienceOption });
-      if (paletteButton) state = saveAppearance({ palette: paletteButton.dataset.ravinPaletteOption });
       if (lockButton) state = saveAppearance({ lockIn: !state.lockIn });
       if (resetButton) state = resetAppearance();
-      if (experienceButton || paletteButton || lockButton || resetButton) syncSettingsControls(setting, state);
+      if (lockButton || resetButton) syncSettingsControls(setting, state);
     });
 
+    setting.querySelector('[data-ravin-experience-select]')?.addEventListener('change', event => {
+      event.stopPropagation();
+      syncSettingsControls(setting, saveAppearance({experience:event.target.value}));
+    });
     const slider = setting.querySelector('.ravin-experience-intensity');
     slider?.addEventListener('input', (event) => {
       event.stopPropagation();
@@ -350,3 +317,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+

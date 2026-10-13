@@ -901,6 +901,7 @@
     const messageInput = $('#messageInput');
     messageInput.addEventListener('input', resizeComposer);
     messageInput.addEventListener('keydown', (event) => {
+      if (event.isComposing) return;
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         if (messageInput.value.trim()) $('#composer').requestSubmit();
@@ -914,6 +915,7 @@
       setTheme(event.detail?.resolved === 'light' ? 'light' : 'dark');
     });
     addEventListener('keydown', (event) => {
+      if(event.defaultPrevented || event.isComposing || event.repeat) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         if (state.sidebarCollapsed) toggleSidebar();
@@ -926,11 +928,13 @@
         if (window.ArrowOS?.applyTheme) window.ArrowOS.applyTheme(nextTheme, true);
         else setTheme(nextTheme);
       }
-      if (event.key === '/' && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) {
+      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !document.activeElement?.closest('input,textarea,select,[contenteditable]')) {
         event.preventDefault();
         $('#messageInput')?.focus();
       }
       if (event.key === 'Escape') {
+        const localOpen = document.querySelector('.ravin-popover') || $('#ravinApp')?.classList.contains('mobile-sidebar-open') || $('#ravinDeleteBackdrop');
+        if(localOpen) { event.preventDefault(); event.stopImmediatePropagation(); }
         closePopovers();
         $('#ravinApp')?.classList.remove('mobile-sidebar-open');
         $('#ravinDeleteBackdrop')?.remove();
@@ -1002,5 +1006,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+
 
 
