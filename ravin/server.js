@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runAgent } from "./src/agent/agent.js";
+import { listArrayAgents, createArrayMission, listArrayMissions, getArrayMission, cancelQueuedArrayMission } from "./src/array/missionService.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 import { registerDocumentRoutes } from "./src/files/documentRoutes.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
@@ -276,6 +277,44 @@ app.post("/api/waypoint/interpret", async (req, res) => {
 });
 
 // Legacy non-streaming route retained for compatibility. New clients should use /api/v2/chat/stream.
+// Authenticated text-only ARRAY missions. Existing RAVIN CORS policy applies.
+app.get("/api/array/agents", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  res.json({ agents: listArrayAgents(), execution: "text-only", persistence: "process-memory" });
+});
+app.get("/api/array/missions", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  res.json({ missions: listArrayMissions(auth.user.id) });
+});
+app.post("/api/array/missions", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  try {
+    const mission = createArrayMission(auth.user.id, req.body);
+    res.status(202).json({ mission });
+  } catch (error) {
+    res.status(error?.status || 500).json({ error: error?.message || "Failed to queue mission." });
+  }
+});
+app.get("/api/array/missions/:id", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  const mission = getArrayMission(auth.user.id, req.params.id);
+  if (!mission) return res.status(404).json({ error: "Mission not found." });
+  res.json({ mission });
+});
+app.post("/api/array/missions/:id/cancel", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  const result = cancelQueuedArrayMission(auth.user.id, req.params.id);
+  if (result.type === "not_found") return res.status(404).json({ error: "Mission not found." });
+  if (result.type === "unsupported") return res.status(409).json({ error: "A running RAVIN model request cannot be canceled safely yet.", mission: result.mission });
+  res.json({ mission: result.mission });
+});
+
+
 app.post("/api/chat", async (req, res) => {
   const requestStartedAt = Date.now();
   const auth = await requireUser(req, res);
