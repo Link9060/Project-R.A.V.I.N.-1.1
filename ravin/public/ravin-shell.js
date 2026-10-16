@@ -58,7 +58,12 @@
   function setConversationId(id, mode = state.mode) {
     if (id) localStorage.setItem(conversationKeys[mode], id);
     else localStorage.removeItem(conversationKeys[mode]);
-    if (mode === state.mode) state.activeConversation = id || '';
+    if (mode === state.mode) {
+      state.activeConversation = id || '';
+      const url = new URL(location.href);
+      if (id) url.searchParams.set('conversation_id', id); else url.searchParams.delete('conversation_id');
+      history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }
   }
 
   function persistSession(session, user) {
@@ -957,6 +962,7 @@
   }
 
   async function initializeSession() {
+    const requestedConversation = new URLSearchParams(location.search).get('conversation_id');
     renderUser();
     syncModeUI();
     syncOnlineState();
@@ -970,6 +976,11 @@
     try {
       await ensureToken(false);
       await loadConversations();
+      if (requestedConversation && /^[0-9a-f-]{36}$/i.test(requestedConversation)) {
+        const rows = await supabase(`/rest/v1/ravin_conversations?id=eq.${encodeURIComponent(requestedConversation)}&user_id=eq.${encodeURIComponent(currentUser().id)}&select=id,title,metadata&limit=1`);
+        if (rows?.[0]) { await openConversation(rows[0]); return; }
+        notify('This conversation is unavailable for your account.');
+      }
       await loadCurrentMode();
     } catch (error) {
       console.warn('[RAVIN session]', error);

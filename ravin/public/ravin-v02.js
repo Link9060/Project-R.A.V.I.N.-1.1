@@ -566,6 +566,9 @@
           if (data.conversation_id) {
             const isNew = !currentConversationId();
             localStorage.setItem(conversationKey(mode), data.conversation_id);
+            const conversationUrl = new URL(location.href);
+            conversationUrl.searchParams.set('conversation_id', data.conversation_id);
+            history.replaceState({}, '', conversationUrl.pathname + conversationUrl.search + conversationUrl.hash);
             if (isNew && $("#headerConversationTitle")) $("#headerConversationTitle").textContent = text.slice(0, 80);
           }
           const fileSource = data.file_context?.source || "";
