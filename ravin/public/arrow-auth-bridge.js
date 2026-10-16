@@ -119,7 +119,7 @@
   function open() {
     if (BETA) { localStorage.setItem("arrow-post-auth-url-v1", location.href); location.assign("/Resonant-Relay/login/"); return; }
     const login = new URL("/", window.location.origin);
-    login.searchParams.set("next", "/ravin/");
+    login.searchParams.set("next", /^\/ravin(?:\/|$)/.test(location.pathname) ? location.pathname + (location.search || "") + (location.hash || "") : "/ravin/");
     window.location.assign(login.toString());
   }
 
