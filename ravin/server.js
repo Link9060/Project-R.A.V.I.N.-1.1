@@ -100,7 +100,7 @@ app.use("/api/array", (req, res, next) => {
     let source;
     try { source = new URL(origin); } catch { return res.status(403).json({ error: "Invalid origin." }); }
     const sameOrigin = origin === `${req.protocol}://${req.get("host")}`;
-    const localDev = process.env.NODE_ENV !== "production" && /^(localhost|127\\.0\\.0\\.1)$/.test(source.hostname);
+    const localDev = process.env.NODE_ENV === "development" && ["localhost", "127.0.0.1"].includes(source.hostname);
     if (!sameOrigin && !ARRAY_ALLOWED_ORIGINS.has(origin) && !localDev) {
       return res.status(403).json({ error: "ARRAY origin not permitted." });
     }
