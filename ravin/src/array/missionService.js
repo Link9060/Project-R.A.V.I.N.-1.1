@@ -77,6 +77,8 @@ async function process(job) {
     const result = await runAgent(job.objective, {
       mode: 'conversation',
       systemPrompt: systemForAgent(job),
+      // Existing RAVIN conversation mode reads its system prompt from initialMessages.
+      initialMessages: [{ role: 'system', content: systemForAgent(job) }],
       maxSteps: 1,
     });
     change(job, 'succeeded', {
