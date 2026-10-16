@@ -37,3 +37,14 @@ test('SSE cancels and unlocks the response when a backend error handler throws',
   await assert.rejects(read(new Response(stream),{error:()=>{throw new Error('failure');}}),/failure/);
   assert.equal(cancelled,true);assert.equal(stream.locked,false);
 });
+function notificationEntry(search,rows) {
+ const source=fs.readFileSync('ravin/public/ravin-shell.js','utf8');const start=source.indexOf('  async function initializeSession()');const end=source.indexOf('  function init()',start);const calls=[];
+ const context={URLSearchParams,location:{search},renderUser(){},syncModeUI(){},syncOnlineState(){},resizeComposer(){},currentToken:()=> 'test',currentUser:()=>({id:'owner'}),ensureToken:async()=>{},loadConversations:async()=>{},loadCurrentMode:async()=>calls.push('default'),supabase:async url=>{calls.push(url);return rows;},openConversation:async row=>calls.push(row.id),notify:text=>calls.push(text),console,renderHistory(){},emptyState(){},openAuth(){},clearSession(){}};
+ vm.createContext(context);vm.runInContext(source.slice(start,end),context);return {run:()=>context.initializeSession(),calls};
+}
+test('notification deep links look up the exact conversation with the signed-in owner filter',async()=>{
+ const id='11111111-1111-4111-8111-111111111111';const f=notificationEntry('?conversation_id='+id,[{id,metadata:{mode:'work'}}]);await f.run();assert.match(f.calls[0],/id=eq\.11111111/);assert.match(f.calls[0],/user_id=eq\.owner/);assert.equal(f.calls[1],id);assert.ok(!f.calls.includes('default'));
+});
+test('unavailable notification conversations cannot open another account chat',async()=>{
+ const f=notificationEntry('?conversation_id=11111111-1111-4111-8111-111111111111',[]);await f.run();assert.ok(f.calls.includes('This conversation is unavailable for your account.'));assert.ok(f.calls.includes('default'));
+});
