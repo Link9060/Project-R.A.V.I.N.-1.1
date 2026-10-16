@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runAgent } from "./src/agent/agent.js";
+import { listArrayAgents, createArrayMission, listArrayMissions, getArrayMission, cancelQueuedArrayMission } from "./src/array/missionService.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
 import { RAVIN_MODELS, normalizeRavinMode } from "./src/cloudflareClient.js";
@@ -84,6 +85,69 @@ async function loadConversationContext(conversationId, userId, token) {
       .map((row) => ({ role: row.role, content: row.content })),
   ];
 }
+
+// RAVIN ARRAY API: authenticated, text-only background work.
+// Cross-origin access is blocked unless the exact ARRAY origin is configured.
+const ARRAY_ALLOWED_ORIGINS = new Set(
+  (process.env.ARRAY_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean),
+);
+app.use("/api/array", (req, res, next) => {
+  const origin = req.get("origin");
+  if (origin) {
+    let source;
+    try { source = new URL(origin); } catch { return res.status(403).json({ error: "Invalid origin." }); }
+    const sameOrigin = origin === `${req.protocol}://${req.get("host")}`;
+    const localDev = process.env.NODE_ENV !== "production" && /^(localhost|127\\.0\\.0\\.1)$/.test(source.hostname);
+    if (!sameOrigin && !ARRAY_ALLOWED_ORIGINS.has(origin) && !localDev) {
+      return res.status(403).json({ error: "ARRAY origin not permitted." });
+    }
+    res.vary("Origin");
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Max-Age", "600");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+app.get("/api/array/agents", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  res.json({ agents: listArrayAgents(), execution: "text-only", persistence: "process-memory" });
+});
+app.get("/api/array/missions", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  res.json({ missions: listArrayMissions(auth.user.id) });
+});
+app.post("/api/array/missions", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  try {
+    const mission = createArrayMission(auth.user.id, req.body);
+    res.status(202).json({ mission });
+  } catch (error) {
+    res.status(error?.status || 500).json({ error: error?.message || "Failed to queue mission." });
+  }
+});
+app.get("/api/array/missions/:id", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  const mission = getArrayMission(auth.user.id, req.params.id);
+  if (!mission) return res.status(404).json({ error: "Mission not found." });
+  res.json({ mission });
+});
+app.post("/api/array/missions/:id/cancel", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  const result = cancelQueuedArrayMission(auth.user.id, req.params.id);
+  if (result.type === "not_found") return res.status(404).json({ error: "Mission not found." });
+  if (result.type === "unsupported") return res.status(409).json({ error: "A running RAVIN model request cannot be canceled safely yet.", mission: result.mission });
+  res.json({ mission: result.mission });
+});
 
 app.post("/api/chat", async (req, res) => {
   const requestStartedAt = Date.now();
