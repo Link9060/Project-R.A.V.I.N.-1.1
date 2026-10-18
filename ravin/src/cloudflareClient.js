@@ -79,8 +79,10 @@ function buildRequest(messages, {
 
 async function parseError(response) {
   let details = "";
+  let providerCode = null;
   try {
     const body = await response.json();
+    providerCode = Number(body?.errors?.[0]?.code || body?.error?.code) || null;
     details = body?.errors?.[0]?.message || body?.error?.message || body?.error || JSON.stringify(body);
   } catch {
     details = await response.text().catch(() => "");
@@ -99,11 +101,19 @@ async function parseError(response) {
     throw error;
   }
   if (response.status === 429) {
-    const retryAfterSeconds = Number(response.headers.get("retry-after") || 0);
-    const error = new Error(`Cloudflare Workers AI rate limit (429): ${details}`);
-    error.code = "CLOUDFLARE_RATE_LIMIT";
+    const rawRetry = response.headers.get("retry-after");
+    const seconds = rawRetry === null ? NaN : Number(rawRetry);
+    const datedRetry = rawRetry ? Date.parse(rawRetry) - Date.now() : NaN;
+    const retryAfterMs = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000
+      : Number.isFinite(datedRetry) ? Math.max(0, datedRetry) : 2000;
+    const quota = providerCode === 3036 || /daily.*(?:allocation|allowance|quota|limit)|(?:allocation|allowance|quota).*exhaust|10,?000 neurons/i.test(String(details));
+    const error = new Error(quota
+      ? "RAVIN's AI provider allowance is exhausted. Your Capture is safe; use the local sorter until the provider allowance resets."
+      : "RAVIN's AI provider is temporarily busy. Please wait before trying again.");
+    error.code = quota ? "CLOUDFLARE_QUOTA_EXHAUSTED" : "CLOUDFLARE_RATE_LIMIT";
     error.status = 429;
-    error.retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : 10_000;
+    error.retryable = !quota;
+    error.retryAfterMs = quota ? null : retryAfterMs;
     throw error;
   }
   if (response.status === 413) {

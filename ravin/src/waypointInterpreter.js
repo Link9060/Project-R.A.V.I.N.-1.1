@@ -259,11 +259,19 @@ Rules:
   const messages = [{ role: "system", content: system }, { role: "user", content: user }];
   let response, parsed;
   for (let attempt = 0; attempt < 2; attempt++) {
-    response = await chatWithCloudflare(messages, {
-      mode: "work", tools: [], temperature: 0.2,
-      maxTokens: 4096, timeoutMs: 40_000, enableThinking: false,
-      responseFormat: { type: "json_object" },
-    });
+    try {
+      response = await chatWithCloudflare(messages, {
+        mode: "work", tools: [], temperature: 0.2,
+        maxTokens: 4096, timeoutMs: 40_000, enableThinking: false,
+        responseFormat: { type: "json_object" },
+      });
+    } catch (error) {
+      // At most two model calls total, shared with the incomplete-JSON recovery budget.
+      // Long waits and exhausted allowances must return to the user instead of retrying.
+      if (attempt !== 0 || error?.status !== 429 || error?.retryable !== true || error.retryAfterMs > 5000) throw error;
+      await new Promise(resolve => setTimeout(resolve, Math.max(0, error.retryAfterMs ?? 2000)));
+      continue;
+    }
     try {
       parsed = extractJson(response?.content);
       if (!Array.isArray(parsed.items) || !Array.isArray(parsed.route) || !Array.isArray(parsed.questions)) {
