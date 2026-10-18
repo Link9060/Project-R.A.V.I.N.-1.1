@@ -80,6 +80,7 @@ app.use((req, res, next) => {
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Request-Id");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Expose-Headers", "Retry-After, X-Request-Id");
     res.setHeader("Access-Control-Max-Age", "86400");
   }
   if (req.method === "OPTIONS") return res.sendStatus(204);
@@ -230,6 +231,8 @@ app.post("/api/waypoint/interpret", async (req, res) => {
     return res.status(429).json({
       error: "RAVIN is receiving too many Capture requests from this account. Try again shortly.",
       retry_after: retryAfter,
+      code: "CAPTURE_RATE_LIMIT",
+      retryable: true,
       request_id: req.ravinRequestId,
     });
   }
@@ -268,9 +271,14 @@ app.post("/api/waypoint/interpret", async (req, res) => {
       request_id: req.ravinRequestId,
     });
   } catch (error) {
-    console.error(`[RAVIN Waypoint error] id=${req.ravinRequestId} user=${auth.user?.id || "unknown"}`, error);
+    console.error(`[RAVIN Waypoint error] id=${req.ravinRequestId}`, {status:error?.status || 500,code:error?.code || 'CAPTURE_FAILED'});
+    const retryAfter = Number.isFinite(error?.retryAfterMs) ? Math.max(1, Math.ceil(error.retryAfterMs / 1000)) : null;
+    if (retryAfter !== null && Number(error?.status) === 429) res.setHeader("Retry-After", String(retryAfter));
     res.status(Number(error?.status || 500)).json({
       error: publicError(error, "RAVIN could not interpret this Capture."),
+      code: error?.code || "CAPTURE_FAILED",
+      retryable: error?.retryable === true,
+      retry_after: retryAfter,
       request_id: req.ravinRequestId,
     });
   }
