@@ -8,3 +8,5 @@ test('short capacity limits recover with one bounded retry',async()=>scenario([l
 test('exhausted provider allowance never retries',async()=>scenario([limited(3036)],async calls=>{await assert.rejects(interpretWaypointDump('Study'),error=>error.code==='CLOUDFLARE_QUOTA_EXHAUSTED'&&error.retryable===false);assert.equal(calls(),1);}));
 test('long Retry-After is preserved without an early retry',async()=>scenario([limited(3040,'120')],async calls=>{await assert.rejects(interpretWaypointDump('Study'),error=>error.retryAfterMs===120000);assert.equal(calls(),1);}));
 test('repeated capacity errors stop after the second request',async()=>scenario([limited(3040),limited(3040)],async calls=>{await assert.rejects(interpretWaypointDump('Study'),error=>error.status===429);assert.equal(calls(),2);}));
+
+test('quota errors preserve an explicit long Retry-After without retrying',async()=>scenario([limited(3036,'3600')],async calls=>{await assert.rejects(interpretWaypointDump('Study'),error=>error.retryAfterMs===3600000 && error.retryable===false);assert.equal(calls(),1);}));

@@ -113,7 +113,7 @@ async function parseError(response) {
     error.code = quota ? "CLOUDFLARE_QUOTA_EXHAUSTED" : "CLOUDFLARE_RATE_LIMIT";
     error.status = 429;
     error.retryable = !quota;
-    error.retryAfterMs = quota ? null : retryAfterMs;
+    error.retryAfterMs = quota && !(Number.isFinite(seconds) && seconds >= 0) && !Number.isFinite(datedRetry) ? null : retryAfterMs;
     throw error;
   }
   if (response.status === 413) {
