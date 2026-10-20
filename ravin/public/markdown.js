@@ -1,73 +1,44 @@
-/**
- * A small, dependency-free markdown renderer.
- * Escapes HTML first, then applies a limited set of markdown transforms.
- * Not a full CommonMark implementation on purpose — just enough for
- * RAVIN's replies: bold, italics, inline code, code blocks, links,
- * and simple lists.
- */
+/* Safe block-oriented Markdown for all ARROW Adapt identities. */
 window.renderMarkdown = function renderMarkdown(raw) {
-  function escapeHtml(str) {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  const escape = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const inline = value => {
+    const codes = [];
+    let out = escape(value).replace(/`([^`\n]+)`/g, (_, code) => {
+      codes.push('<code>' + code + '</code>');
+      return '@@INLINE' + (codes.length - 1) + '@@';
+    });
+    out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) =>
+      '<a href="' + url.replace(/&quot;|&#39;|[&<>"]/g, '') + '" target="_blank" rel="noopener noreferrer">' + label + '</a>');
+    return out.replace(/@@INLINE(\d+)@@/g, (_, n) => codes[Number(n)]);
+  };
+  const lines = String(raw ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const blocks = [];
+  let paragraph = [], list = [], quote = [], code = [], language = '', fenced = false;
+  const flushParagraph = () => { if (paragraph.length) { blocks.push('<p>' + paragraph.map(inline).join('<br>') + '</p>'); paragraph = []; } };
+  const flushList = () => { if (list.length) { blocks.push('<ul>' + list.map(item => '<li>' + inline(item) + '</li>').join('') + '</ul>'); list = []; } };
+  const flushQuote = () => { if (quote.length) { blocks.push('<blockquote><p>' + quote.map(inline).join('<br>') + '</p></blockquote>'); quote = []; } };
+  for (const line of lines) {
+    const fence = line.match(/^\s*```([^\s`]*)\s*$/);
+    if (fence) {
+      flushParagraph(); flushList(); flushQuote();
+      if (fenced) {
+        blocks.push('<div class="code-block">' + (language ? '<span class="code-lang">' + escape(language) + '</span>' : '') + '<pre><code>' + escape(code.join('\n')) + '</code></pre></div>');
+        code = []; language = ''; fenced = false;
+      } else { fenced = true; language = fence[1]; }
+      continue;
+    }
+    if (fenced) { code.push(line); continue; }
+    if (!line.trim()) { flushParagraph(); flushList(); flushQuote(); continue; }
+    const heading = line.match(/^\s*(#{1,4})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    const quoteLine = line.match(/^\s*>\s?(.*)$/);
+    if (heading) { flushParagraph(); flushList(); flushQuote(); const level = heading[1].length; blocks.push('<h' + level + '>' + inline(heading[2]) + '</h' + level + '>'); }
+    else if (bullet) { flushParagraph(); flushQuote(); list.push(bullet[1]); }
+    else if (quoteLine) { flushParagraph(); flushList(); quote.push(quoteLine[1]); }
+    else { flushList(); flushQuote(); paragraph.push(line); }
   }
-
-  // Pull out fenced code blocks first so nothing inside them gets touched.
-  const codeBlocks = [];
-  let text = raw.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const idx = codeBlocks.length;
-    codeBlocks.push({ lang: lang.trim(), code: code.replace(/\n$/, "") });
-    return `\u0000CODEBLOCK${idx}\u0000`;
-  });
-
-  // Escape everything else.
-  text = escapeHtml(text);
-
-  // Inline code.
-  text = text.replace(/`([^`]+)`/g, (_, code) => `<code>${code}</code>`);
-
-  // Bold, then italics.
-  text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
-
-  // Links: [text](url) — only allow http(s) to avoid javascript: schemes.
-  text = text.replace(
-    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
-
-  // Unordered lists: turn consecutive "- " or "* " lines into <ul><li>.
-  text = text.replace(/(^|\n)([-*] .+(\n[-*] .+)*)/g, (match, lead, block) => {
-    const items = block
-      .split("\n")
-      .map((line) => line.replace(/^[-*]\s+/, "").trim())
-      .filter(Boolean)
-      .map((item) => `<li>${item}</li>`)
-      .join("");
-    return `${lead}<ul>${items}</ul>`;
-  });
-
-  // Line breaks for anything not already inside a list/block.
-  text = text.replace(/\n{2,}/g, "</p><p>");
-  text = `<p>${text}</p>`.replace(/\n/g, "<br>");
-
-  // Clean up: don't wrap <ul> blocks in stray <p> tags.
-  text = text.replace(/<p>(\s*<ul>)/g, "$1").replace(/(<\/ul>\s*)<\/p>/g, "$1");
-
-  // Don't wrap code block placeholders in <p> tags either (invalid nesting).
-  text = text
-    .replace(/<p>(\s*\u0000CODEBLOCK\d+\u0000\s*)<\/p>/g, "$1")
-    .replace(/(\u0000CODEBLOCK\d+\u0000)/g, "$1");
-
-  // Restore code blocks.
-  text = text.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (_, idx) => {
-    const block = codeBlocks[Number(idx)];
-    const langLabel = block.lang ? `<span class="code-lang">${escapeHtml(block.lang)}</span>` : "";
-    return `<div class="code-block">${langLabel}<pre><code>${escapeHtml(block.code)}</code></pre></div>`;
-  });
-
-  return text;
+  if (fenced) blocks.push('<div class="code-block"><pre><code>' + escape(['```' + language, ...code].join('\n')) + '</code></pre></div>');
+  flushParagraph(); flushList(); flushQuote();
+  return blocks.join('\n');
 };
