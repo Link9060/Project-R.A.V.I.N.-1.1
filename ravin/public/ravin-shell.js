@@ -229,6 +229,7 @@
                 <div class="ravin-messages-inner" id="messages" aria-live="polite" aria-relevant="additions"></div>
               </div>
               <div class="ravin-composer-zone">
+                <div class="ravin-native-composer-intro" id="nativeComposerIntro" aria-hidden="true"></div>
                 <form class="ravin-composer" id="composer">
                   <div class="ravin-composer-row">
                     <button type="button" class="ravin-add" id="addBtn" aria-label="Attach file">${icon('paperclip')}</button>
@@ -239,6 +240,7 @@
                   <div class="ravin-composer-meta"><span id="composerMode">CONVERSATION · GRANITE</span><span id="composerStatus">READY</span></div>
                 </form>
                 <p class="ravin-composer-hint">Enter to send · Shift+Enter for a new line</p>
+                <div class="ravin-native-composer-outro" id="nativeComposerOutro" aria-hidden="true"></div>
               </div>
             </section>
 
@@ -339,6 +341,7 @@
       button.innerHTML = `<span class="ravin-history-copy"><span class="ravin-history-title"></span><span class="ravin-history-meta">${mode === 'work' ? 'WORK' : 'CONVERSATION'}</span></span><i class="ravin-mode-dot"></i>`;
       $('.ravin-history-title', button).textContent = row.title || 'Untitled';
       button.title = row.title || 'Untitled conversation';
+      frameNativeHistory(button,mode);
       button.addEventListener('click', () => openConversation(row));
 
       const remove = document.createElement('button');
@@ -399,6 +402,95 @@
     body.appendChild(wrap);
   }
 
+
+  /* Adapt V message frames. Text and attachments stay in their original DOM
+     nodes, including streaming updates and file-card click handlers. */
+  const NATIVE_IDS = new Set(['core','bloom','haven','atelier','pulse']);
+  const nativeIdentity = () => {
+    const value = document.documentElement.dataset.arrowAdapt || 'core';
+    return IN_ARROW && NATIVE_IDS.has(value) ? value : 'core';
+  };
+  function element(className,text,tag='span') {
+    const node=document.createElement(tag);
+    node.className=className;
+    if(text !== undefined) node.textContent=text;
+    return node;
+  }
+  function frameNativeMessage(article) {
+    const identity=nativeIdentity();
+    const body=$('.ravin-message-body',article);
+    const role=$('.ravin-message-role',article);
+    if(!body||!role) return;
+    const mine=article.classList.contains('user');
+    article.dataset.nativeIdentity=identity;
+    article.replaceChildren();
+    if(identity==='core') {article.append(role,body);return;}
+    if(identity==='bloom') {
+      const bubble=element('ravin-native-bloom-bubble',undefined,'div');
+      bubble.append(element('ravin-native-bloom-mark',mine?'♡':'✿'),role,body);
+      article.append(bubble);
+    } else if(identity==='haven') {
+      article.append(element('ravin-native-haven-folio',mine?'PERSONAL NOTE / YOU':'RAVIN / CORRESPONDENCE'));
+      const paper=element('ravin-native-haven-paper',undefined,'section');
+      paper.append(role,body);article.append(paper);
+      article.append(element('ravin-native-haven-bottom','RESONANT / PRIVATE'));
+    } else if(identity==='atelier') {
+      article.append(element('ravin-native-atelier-number',mine?'01':'02'));
+      const editorial=element('ravin-native-atelier-reading',undefined,'section');
+      editorial.append(role,body);
+      article.append(editorial);
+    } else if(identity==='pulse') {
+      const shell=element('ravin-native-pulse-shell',undefined,'section');
+      const telemetry=element('ravin-native-pulse-telemetry',undefined,'div');
+      telemetry.append(element('ravin-native-pulse-indicator','◆'),role,element('ravin-native-pulse-status',mine?'TRANSMITTED':'RECEIVED'));
+      shell.append(telemetry,body);
+      article.append(shell);
+    }
+  }
+  function frameNativeHistory(button,mode) {
+    const id=nativeIdentity();
+    button.dataset.nativeIdentity=id;
+    if(id==='core')return;
+    const label={
+      bloom:mode==='work'?'✿ Work':'✿ Chat',
+      haven:mode==='work'?'FIELD NOTES':'CORRESPONDENCE',
+      atelier:mode==='work'?'II / WORK':'I / CONVERSATION',
+      pulse:mode==='work'?'◆ OPS':'◆ CHAT',
+    }[id];
+    const row=element('ravin-native-history-label',label);
+    if(id==='atelier')button.prepend(row);
+    else if(id==='pulse')button.append(row);
+    else if(id==='haven')button.prepend(row);
+    else button.append(row);
+  }
+  function frameNativeComposer() {
+    const id=nativeIdentity();
+    const app=$('#ravinApp');
+    if(app)app.dataset.nativeCommunication=id;
+    const intro=$('#nativeComposerIntro');
+    const outro=$('#nativeComposerOutro');
+    if(!intro||!outro)return;
+    intro.replaceChildren();outro.replaceChildren();
+    if(id==='bloom')intro.append(element('ravin-native-composer-label','✿ A little thought for RAVIN'));
+    if(id==='haven') {
+      intro.append(element('ravin-native-composer-index','A NOTE FOR RAVIN'));
+      outro.append(element('ravin-native-composer-footer','Keep your thoughts together.'));
+    }
+    if(id==='atelier') {
+      intro.append(element('ravin-native-composer-index','03 / CORRESPONDENCE'));
+      outro.append(element('ravin-native-composer-footer','RESONANT ASSIST · AN OPEN DIALOGUE'));
+    }
+    if(id==='pulse') {
+      intro.append(element('ravin-native-composer-label','◆ SIGNAL INPUT / READY'));
+      outro.append(element('ravin-native-composer-footer','CORE LINK / ENCRYPTED SESSION'));
+    }
+  }
+  function refreshNativeCommunication() {
+    frameNativeComposer();
+    $('.ravin-message', $('#messages')||document).forEach(frameNativeMessage);
+    renderHistory($('#historySearch')?.value||'');
+  }
+
   function appendMessage(role, text, createdAt = new Date(), animate = false, files = []) {
     const root = $('#messages');
     if (!root) return null;
@@ -414,6 +506,7 @@
     stamp.className = 'ravin-message-time';
     stamp.textContent = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     body.appendChild(stamp);
+    frameNativeMessage(article);
     root.appendChild(article);
     return article;
   }
@@ -1035,6 +1128,10 @@
   function init() {
     buildShell();
     bindEvents();
+    frameNativeComposer();
+    window.addEventListener('arrow:adaptchange',refreshNativeCommunication);
+    const identityObserver=new MutationObserver(refreshNativeCommunication);
+    identityObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-arrow-adapt']});
     observeChatCompletion();
     initializeSession();
     document.documentElement.dataset.ravinShell = 'production';
