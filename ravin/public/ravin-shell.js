@@ -898,21 +898,27 @@
     $('#composer')?.classList.toggle('has-content', Boolean(input.value.trim()));
   }
 
+  function setAdaptFocus(next) {
+    const app = $('#ravinApp');
+    if (!app) return;
+    app.dataset.adaptFocus = String(Boolean(next));
+    $('#adaptFocusBtn')?.setAttribute('aria-pressed', String(Boolean(next)));
+    $('#adaptFocusBtn')?.setAttribute('title', next ? 'Show sidebar and context' : 'Show only the conversation');
+    $('#adaptFocusBtn')?.setAttribute('aria-label', next ? 'Exit focus view' : 'Enter focus view');
+  }
+
   function bindEvents() {
     $('#newChatBtn').addEventListener('click', newChat);
     // Adapt commands delegate to the same underlying actions and conversations.
     $('#adaptNewChatBtn')?.addEventListener('click', newChat);
     $('#adaptSearchBtn')?.addEventListener('click', () => {
+      setAdaptFocus(false);
       if (state.sidebarCollapsed) toggleSidebar();
       $('#ravinApp')?.classList.add('mobile-sidebar-open');
       $('#historySearch')?.focus({ preventScroll: true });
     });
     $('#adaptFocusBtn')?.addEventListener('click', () => {
-      const next = $('#ravinApp')?.dataset.adaptFocus !== 'true';
-      if ($('#ravinApp')) $('#ravinApp').dataset.adaptFocus = String(next);
-      $('#adaptFocusBtn')?.setAttribute('aria-pressed', String(next));
-      $('#adaptFocusBtn')?.setAttribute('title', next ? 'Show sidebar and context' : 'Show only the conversation');
-      $('#adaptFocusBtn')?.setAttribute('aria-label', next ? 'Exit focus view' : 'Enter focus view');
+      setAdaptFocus($('#ravinApp')?.dataset.adaptFocus !== 'true');
       $('#messageInput')?.focus({ preventScroll: true });
     });
     $('#conversationModeBtn').addEventListener('click', () => switchMode('conversation'));
@@ -962,9 +968,7 @@
         $('#messageInput')?.focus();
       }
       if (event.key === 'Escape' && $('#ravinApp')?.dataset.adaptFocus === 'true') {
-        $('#ravinApp').dataset.adaptFocus = 'false';
-        $('#adaptFocusBtn')?.setAttribute('aria-pressed', 'false');
-        $('#adaptFocusBtn')?.setAttribute('aria-label', 'Enter focus view');
+        setAdaptFocus(false);
       }
       if (event.key === 'Escape') {
         const localOpen = document.querySelector('.ravin-popover') || $('#ravinApp')?.classList.contains('mobile-sidebar-open') || $('#ravinDeleteBackdrop');
