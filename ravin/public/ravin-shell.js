@@ -1023,7 +1023,13 @@
     });
     $('#accountBtn').addEventListener('click', accountPopover);
     $('#settingsBtn').addEventListener('click', settingsPopover);
-    $('#themeBtn')?.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+    $('#themeBtn')?.addEventListener('click', () => {
+      if (IN_ARROW) {
+        window.ArrowOS?.openPanel?.('appearance','ravin',$('#themeBtn'));
+        return;
+      }
+      setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+    });
     $('#mobileMenuBtn').addEventListener('click', () => $('#ravinApp').classList.toggle('mobile-sidebar-open'));
 
     const messageInput = $('#messageInput');
@@ -1053,7 +1059,8 @@
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'l') {
         event.preventDefault();
         const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-        if (window.ArrowOS?.applyTheme) window.ArrowOS.applyTheme(nextTheme, true);
+        if (IN_ARROW) window.ArrowOS?.openPanel?.('appearance','ravin',$('#settingsBtn'));
+        else if (window.ArrowOS?.applyTheme) window.ArrowOS.applyTheme(nextTheme, true);
         else setTheme(nextTheme);
       }
       if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey && !document.activeElement?.closest('input,textarea,select,[contenteditable]')) {
