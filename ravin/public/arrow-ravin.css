@@ -311,3 +311,114 @@ html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] :is(.ravin-send,.ravin-p
   animation:none!important;transition:none!important;
  }
 }
+
+
+/* Adapt IV: functional RAVIN command strip, each identity owns its placement and geometry. */
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar { display:none; }
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar {
+  position:relative; z-index:3; flex:none;
+  display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;
+  padding:10px 18px;border-bottom:1px solid rgb(var(--rv-line));
+  background:rgb(var(--rv-panel));color:rgb(var(--rv-text));
+}
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar-kicker {
+  margin-right:auto;font-size:9px;letter-spacing:.17em;font-weight:750;
+  color:rgb(var(--rv-muted));
+}
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar button {
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  min-height:40px;padding:8px 12px;font:inherit;
+  font-size:11px;font-weight:680;cursor:pointer;
+  border:1px solid rgb(var(--rv-line));
+  border-radius:9px;background:rgb(var(--rv-panel-2));
+  color:rgb(var(--rv-text));
+}
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar button svg {
+  width:16px;height:16px;flex:none;
+}
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar button:hover,
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar button[aria-pressed="true"] {
+  border-color:var(--arrow-adapt-primary,var(--arrow-accent-color));
+  background:color-mix(in srgb,var(--arrow-adapt-primary,var(--arrow-accent-color)) 17%,rgb(var(--rv-panel)));
+}
+html[data-arrow-ravin="true"] .ravin-adapt-commandbar button:focus-visible {
+  outline:2px solid var(--arrow-accent-color);outline-offset:2px;
+}
+html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-sidebar,
+html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-context {
+  display:none!important;
+}
+html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-main {
+  flex:1 1 auto;width:100%;max-width:none;
+}
+html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-messages-inner {
+  width:min(100%,930px);margin-inline:auto;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-adapt-commandbar {
+  margin:8px 12px;border:1px solid color-mix(in srgb,var(--arrow-adapt-secondary) 44%,rgb(var(--rv-line)));
+  border-radius:24px;box-shadow:0 8px 24px color-mix(in srgb,var(--arrow-adapt-primary) 10%,transparent);
+  justify-content:flex-start;gap:9px;background:color-mix(in srgb,rgb(var(--rv-panel)) 92%,var(--arrow-adapt-secondary));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-adapt-commandbar-kicker {display:none;}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-adapt-commandbar button {
+  border-radius:999px;min-height:45px;padding:10px 14px;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 84%,var(--arrow-adapt-secondary));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-adapt-commandbar {
+  border-bottom:1px solid color-mix(in srgb,var(--arrow-adapt-primary) 38%,rgb(var(--rv-line)));
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 95%,var(--arrow-adapt-secondary));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-adapt-commandbar-kicker {
+  font-family:var(--arrow-font-display);text-transform:none;font-size:13px;letter-spacing:0;font-weight:500;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-adapt-commandbar button {
+  border:0;border-bottom:2px solid color-mix(in srgb,var(--arrow-adapt-primary) 30%,transparent);
+  border-radius:4px;min-height:40px;background:transparent;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-adapt-commandbar {
+  padding:17px clamp(15px,3vw,40px);justify-content:flex-start;gap:18px;
+  border-bottom:1px solid rgb(var(--rv-line));background:transparent;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-adapt-commandbar-kicker {
+  margin-right:12px;letter-spacing:.24em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-adapt-commandbar button {
+  min-height:35px;border:0;border-bottom:1px solid rgb(var(--rv-line));
+  border-radius:0;background:transparent!important;
+  padding:8px 3px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-adapt-commandbar button[aria-pressed="true"] {
+  border-bottom:2px solid var(--arrow-adapt-primary);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-adapt-commandbar {
+  border-bottom:2px solid var(--arrow-adapt-secondary);
+  background:linear-gradient(115deg,color-mix(in srgb,var(--arrow-adapt-primary) 21%,rgb(var(--rv-panel))),rgb(var(--rv-panel)));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-adapt-commandbar-kicker {
+  color:var(--arrow-adapt-secondary);font-weight:850;letter-spacing:.12em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-adapt-commandbar button {
+  border:1px solid var(--arrow-adapt-primary);
+  border-radius:4px 15px 4px 15px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  background:color-mix(in srgb,var(--arrow-adapt-primary) 17%,rgb(var(--rv-panel)));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-adapt-commandbar button[aria-pressed="true"] {
+  border-color:var(--arrow-adapt-secondary);box-shadow:0 0 18px color-mix(in srgb,var(--arrow-adapt-primary) 25%,transparent);
+}
+@media(max-width:900px) {
+ html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar {
+  flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+  padding:10px 12px;gap:7px;scrollbar-width:thin;
+ }
+ html[data-arrow-ravin="true"] .ravin-adapt-commandbar-kicker {display:none;}
+ html[data-arrow-ravin="true"] .ravin-adapt-commandbar button {
+  flex:none;min-height:44px;
+ }
+ html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-mobile-menu {display:block;}
+}
+@media(max-width:450px) {
+ html[data-arrow-ravin="true"] .ravin-adapt-commandbar button span {font-size:10px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ html[data-arrow-ravin="true"][data-arrow-adapt] .ravin-adapt-commandbar * {transition:none!important;animation:none!important;}
+}
