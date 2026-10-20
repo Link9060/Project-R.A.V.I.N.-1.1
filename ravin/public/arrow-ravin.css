@@ -101,3 +101,41 @@ html[data-arrow-ravin="true"][data-arrow-theme="light"][data-arrow-experience="g
 html[data-arrow-ravin="true"][data-arrow-theme="dark"][data-arrow-experience="glass"] :is(.ravin-sidebar,.ravin-header) {
   background:rgb(17 21 29 / .82)!important; backdrop-filter:blur(25px);
 }
+
+
+/* RAVIN material presets. RAVIN's own conversation rendering and tools remain intact. */
+html[data-arrow-ravin="true"][data-arrow-experience="balanced"] :is(.ravin-sidebar,.ravin-main,.ravin-header,.ravin-composer,.ravin-context-card) {
+  backdrop-filter:none; box-shadow:0 5px 24px #00000012;
+}
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] :is(.ravin-sidebar,.ravin-main,.ravin-header,.ravin-composer,.ravin-context-card,.ravin-message.user .ravin-message-body) {
+  border-color:rgb(var(--rv-line))!important;
+  background:rgb(var(--rv-panel))!important;
+  box-shadow:none!important; backdrop-filter:none!important;
+  animation:none!important; transition:none!important;
+}
+html[data-arrow-ravin="true"][data-arrow-experience="quiet"] #ravinApp { background:rgb(var(--rv-bg))!important; }
+html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] #ravinApp {
+  background:radial-gradient(circle at 88% 5%,rgb(var(--arrow-accent-rgb,120,140,185) / .18),transparent 44%),rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] :is(.ravin-sidebar,.ravin-main,.ravin-composer,.ravin-context-card) {
+  border-color:rgb(var(--arrow-accent-rgb,120,140,185) / .38)!important;
+  box-shadow:0 12px 36px rgb(var(--arrow-accent-rgb,120,140,185) / .12)!important;
+}
+html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] :is(.ravin-nav-item,.ravin-conversation,.ravin-composer button) {
+  transition:transform 220ms ease,border-color 220ms ease,background-color 220ms ease;
+}
+@media(hover:hover) { html[data-arrow-ravin="true"][data-arrow-experience="dynamic"] :is(.ravin-nav-item,.ravin-conversation,.ravin-composer button):hover { transform:translateY(-2px); } }
+html[data-arrow-ravin="true"][data-arrow-experience="glass"] :is(.ravin-sidebar,.ravin-main,.ravin-header,.ravin-composer,.ravin-context-card) {
+  background:rgb(var(--rv-panel) / .73)!important;
+  border-color:rgb(var(--rv-text) / .20)!important;
+  backdrop-filter:blur(27px) saturate(1.32)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(1.32)!important;
+  box-shadow:0 16px 45px #0002,inset 0 1px #ffffff1c!important;
+}
+html[data-arrow-ravin="true"][data-arrow-experience="glass"] #ravinApp {
+  background:radial-gradient(circle at 80% 0%,rgb(var(--arrow-accent-rgb,120,140,185) / .16),transparent 46%),rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"]:not([data-arrow-adapt="core"]) :is(.ravin-main,.ravin-composer,.ravin-context-card,.ravin-message.user .ravin-message-body) {
+  border-radius:var(--arrow-identity-radius,14px)!important;
+}
+html[data-arrow-ravin="true"][data-arrow-motion="reduce"] :is(.ravin-nav-item,.ravin-conversation,.ravin-composer button) { transform:none!important; transition:none!important; }
