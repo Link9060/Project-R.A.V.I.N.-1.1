@@ -1366,3 +1366,24 @@ body {
     animation-duration: .01ms !important;
   }
 }
+
+/* Adapt-safe RAVIN message typography: identical semantics in every identity. */
+.msg,.msg-body { min-width:0; max-width:100%; }
+.msg-body { overflow-wrap:anywhere; word-break:normal; line-height:1.65; }
+.msg-body :is(p,ul,ol,blockquote,pre,h1,h2,h3,h4) { max-width:100%; margin-block:0 .85em; }
+.msg-body :is(h1,h2,h3,h4) { line-height:1.3; font-weight:700; letter-spacing:-.025em; }
+.msg-body h1 { font-size:1.45em; } .msg-body h2 { font-size:1.3em; }
+.msg-body h3 { font-size:1.16em; } .msg-body h4 { font-size:1.06em; }
+.msg-body :is(ul,ol) { padding-inline-start:1.5em; }
+.msg-body li + li { margin-top:.4em; }
+.msg-body blockquote { padding:.3em 1em; border-inline-start:3px solid var(--accent); background:var(--bg-elevated); border-radius:0 8px 8px 0; }
+.msg-body :is(pre,.code-block) { overflow-x:auto; white-space:pre; max-width:100%; }
+.msg-body code { white-space:pre-wrap; overflow-wrap:anywhere; }
+.msg-body pre code { white-space:pre; overflow-wrap:normal; }
+.msg-body a { overflow-wrap:anywhere; }
+.msg-body > :last-child { margin-bottom:0; }
+html[data-arrow-identity="bloom"] .msg-body { line-height:1.75; }
+html[data-arrow-identity="haven"] .msg-body { line-height:1.8; }
+html[data-arrow-identity="atelier"] .msg-body { line-height:1.6; }
+html[data-arrow-identity="pulse"] .msg-body { line-height:1.55; }
+@media(max-width:640px){.msg-body :is(h1,h2){font-size:1.18em}.msg-body{max-width:100%;}}
