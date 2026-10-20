@@ -344,7 +344,7 @@ html[data-arrow-ravin="true"] .ravin-adapt-commandbar button[aria-pressed="true"
 html[data-arrow-ravin="true"] .ravin-adapt-commandbar button:focus-visible {
   outline:2px solid var(--arrow-accent-color);outline-offset:2px;
 }
-html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-sidebar,
+html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"]:not(.mobile-sidebar-open) .ravin-sidebar,
 html[data-arrow-ravin="true"] #ravinApp[data-adapt-focus="true"] .ravin-context {
   display:none!important;
 }
