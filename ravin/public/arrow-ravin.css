@@ -422,3 +422,215 @@ html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-adapt-commandbar 
 @media(prefers-reduced-motion:reduce) {
  html[data-arrow-ravin="true"][data-arrow-adapt] .ravin-adapt-commandbar * {transition:none!important;animation:none!important;}
 }
+
+
+/* Adapt V native communication DOM. These are structural frames created by
+   ravin-shell.js and reused on identity switches without touching message data. */
+html[data-arrow-ravin="true"] .ravin-message[data-native-identity]:not([data-native-identity="core"]) {
+  position:relative;min-width:0;max-width:100%;
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-folio,
+html[data-arrow-ravin="true"] .ravin-native-haven-bottom,
+html[data-arrow-ravin="true"] .ravin-native-atelier-number,
+html[data-arrow-ravin="true"] .ravin-native-pulse-telemetry,
+html[data-arrow-ravin="true"] .ravin-native-composer-intro,
+html[data-arrow-ravin="true"] .ravin-native-composer-outro {
+  font-family:var(--arrow-font-body,system-ui);
+}
+html[data-arrow-ravin="true"] .ravin-native-composer-intro:empty,
+html[data-arrow-ravin="true"] .ravin-native-composer-outro:empty {display:none;}
+/* BLOOM: illustrated soft bubble nested around real markdown and files. */
+html[data-arrow-ravin="true"] .ravin-message[data-native-identity="bloom"] {
+  display:flex;justify-content:flex-start;gap:8px;
+  filter:drop-shadow(0 7px 13px color-mix(in srgb,var(--arrow-adapt-primary) 9%,transparent));
+}
+html[data-arrow-ravin="true"] .ravin-message.user[data-native-identity="bloom"] {justify-content:flex-end;}
+html[data-arrow-ravin="true"] .ravin-native-bloom-bubble {
+  display:flex;flex-direction:column;gap:6px;
+  position:relative;width:fit-content;max-width:min(93%,780px);
+  padding:12px 17px 14px;border-radius:27px 27px 27px 8px;
+  border:1px solid color-mix(in srgb,var(--arrow-adapt-secondary) 43%,rgb(var(--rv-line)));
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 89%,var(--arrow-adapt-secondary));
+  color:rgb(var(--rv-text));
+}
+html[data-arrow-ravin="true"] .ravin-message.user .ravin-native-bloom-bubble {
+  border-radius:27px 27px 8px 27px;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 75%,var(--arrow-adapt-primary));
+}
+html[data-arrow-ravin="true"] .ravin-native-bloom-mark {
+  position:absolute;right:-7px;top:-12px;font-size:19px;
+  color:var(--arrow-adapt-primary);
+}
+html[data-arrow-ravin="true"] .ravin-native-bloom-bubble .ravin-message-role {
+  font-family:var(--arrow-font-display);font-size:12px;font-weight:750;letter-spacing:0;
+}
+html[data-arrow-ravin="true"] .ravin-native-bloom-bubble .ravin-message-body {
+  background:transparent!important;padding:3px 0!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  color:inherit!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-native-composer-intro {
+  padding:0 11px 10px;color:var(--arrow-adapt-primary);
+  font:750 13px/1.35 var(--arrow-font-display);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-composer {
+  border:2px solid color-mix(in srgb,var(--arrow-adapt-secondary) 45%,rgb(var(--rv-line)));
+  border-radius:28px!important;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 91%,var(--arrow-adapt-secondary));
+}
+/* HAVEN: actual correspondence folio with margin and closing line. */
+html[data-arrow-ravin="true"] .ravin-message[data-native-identity="haven"] {
+  padding:13px 15px 13px 20px;margin-block:10px;
+  border-left:3px solid var(--arrow-adapt-primary);
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 94%,var(--arrow-adapt-secondary));
+  border-radius:5px 15px 15px 5px;
+  box-shadow:5px 6px 0 color-mix(in srgb,var(--arrow-adapt-primary) 6%,transparent);
+}
+html[data-arrow-ravin="true"] .ravin-message.user[data-native-identity="haven"] {
+  border-left-color:var(--arrow-adapt-secondary);
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-folio {
+  font-size:9px;font-weight:730;letter-spacing:.15em;
+  color:rgb(var(--rv-muted));padding:0 0 7px;
+  border-bottom:1px solid color-mix(in srgb,var(--arrow-adapt-primary) 21%,rgb(var(--rv-line)));
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-paper {
+  padding:11px 0 7px;color:rgb(var(--rv-text));
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-paper .ravin-message-role {
+  font-family:var(--arrow-font-display);font-size:15px;font-weight:500;
+  letter-spacing:-.03em;
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-paper .ravin-message-body {
+  color:inherit!important;background:transparent!important;
+  border:0!important;box-shadow:none!important;padding:4px 0!important;
+  border-radius:0!important;line-height:1.85;
+}
+html[data-arrow-ravin="true"] .ravin-native-haven-bottom {
+  display:block;margin-top:9px;font-size:8px;letter-spacing:.15em;
+  color:rgb(var(--rv-muted));text-align:right;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-native-composer-intro {
+  font:500 15px/1.4 var(--arrow-font-display);padding:0 5px 11px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-native-composer-outro {
+  text-align:right;padding-top:7px;font-size:10px;color:rgb(var(--rv-muted));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-composer {
+  border-bottom:2px solid var(--arrow-adapt-primary);border-radius:9px!important;
+}
+/* ATELIER: columnar editorial exchange, inset role and folio instead of bubbles. */
+html[data-arrow-ravin="true"] .ravin-message[data-native-identity="atelier"] {
+  display:grid;grid-template-columns:42px minmax(0,1fr);gap:13px;
+  margin:18px 0;padding:17px 0 7px;
+  border-top:1px solid rgb(var(--rv-line));
+  background:transparent;color:rgb(var(--rv-text));
+}
+html[data-arrow-ravin="true"] .ravin-native-atelier-number {
+  font:400 28px/1 var(--arrow-font-display,Georgia,serif);
+  color:var(--arrow-adapt-primary);
+}
+html[data-arrow-ravin="true"] .ravin-native-atelier-reading {min-width:0;}
+html[data-arrow-ravin="true"] .ravin-native-atelier-reading .ravin-message-role {
+  font-size:10px;letter-spacing:.23em;text-transform:uppercase;
+  color:rgb(var(--rv-muted));
+}
+html[data-arrow-ravin="true"] .ravin-native-atelier-reading .ravin-message-body {
+  background:transparent!important;color:rgb(var(--rv-text))!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  padding:13px 0 9px!important;
+  font-size:16px;line-height:1.95;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-native-composer-intro {
+  padding:4px 0 17px;border-bottom:1px solid rgb(var(--rv-line));
+  font-size:10px;letter-spacing:.22em;font-weight:700;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-native-composer-outro {
+  font-size:9px;letter-spacing:.16em;color:rgb(var(--rv-muted));padding:12px 0 0;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-composer {
+  border:0!important;border-bottom:1px solid var(--arrow-adapt-primary)!important;
+  box-shadow:none!important;border-radius:0!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-history-item[data-native-identity="atelier"] {
+  display:grid;grid-template-columns:30px 1fr;align-items:center;
+}
+html[data-arrow-ravin="true"] .ravin-history-item[data-native-identity="atelier"] .ravin-native-history-label {
+  grid-column:1;grid-row:1;align-self:start;font-size:8px;line-height:1.4;
+  letter-spacing:.08em;color:rgb(var(--rv-muted));
+}
+/* PULSE: incoming/outgoing telemetry frames. */
+html[data-arrow-ravin="true"] .ravin-message[data-native-identity="pulse"] {
+  background:transparent!important;border-radius:0!important;
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-shell {
+  width:100%;border:1px solid color-mix(in srgb,var(--arrow-adapt-primary) 60%,rgb(var(--rv-line)));
+  border-radius:6px 23px 6px 23px;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 91%,var(--arrow-adapt-primary));
+  overflow:hidden;box-shadow:0 8px 29px color-mix(in srgb,var(--arrow-adapt-primary) 13%,transparent);
+}
+html[data-arrow-ravin="true"] .ravin-message.user .ravin-native-pulse-shell {
+  border-color:var(--arrow-adapt-secondary);
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-telemetry {
+  display:flex;align-items:center;gap:8px;padding:8px 13px;
+  border-bottom:1px solid color-mix(in srgb,var(--arrow-adapt-secondary) 38%,rgb(var(--rv-line)));
+  color:var(--arrow-adapt-secondary);font-size:10px;font-weight:800;letter-spacing:.12em;
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-indicator {
+  color:var(--arrow-adapt-primary);text-shadow:0 0 10px currentColor;
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-telemetry .ravin-message-role {
+  margin:0;font-size:11px;font-weight:850;
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-status {
+  margin-left:auto;color:rgb(var(--rv-muted));font-size:9px;
+}
+html[data-arrow-ravin="true"] .ravin-native-pulse-shell .ravin-message-body {
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  background:transparent!important;color:rgb(var(--rv-text))!important;
+  padding:16px 18px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-native-composer-intro {
+  font-size:11px;color:var(--arrow-adapt-secondary);font-weight:850;
+  letter-spacing:.14em;padding:0 0 11px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-native-composer-outro {
+  text-align:right;padding:7px 0 0;color:rgb(var(--rv-muted));
+  font-size:9px;letter-spacing:.15em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-composer {
+  border:2px solid var(--arrow-adapt-primary)!important;
+  border-radius:5px 19px 5px 19px!important;
+  background:linear-gradient(140deg,color-mix(in srgb,rgb(var(--rv-panel)) 88%,var(--arrow-adapt-primary)),rgb(var(--rv-panel)));
+}
+/* Conversation rows now also have different internal DOM details. */
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-history-item[data-native-identity="bloom"] {
+  border-radius:17px;background:color-mix(in srgb,rgb(var(--rv-panel)) 88%,var(--arrow-adapt-secondary));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-history-item[data-native-identity="haven"] {
+  border-left:3px solid var(--arrow-adapt-primary);border-radius:3px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-history-item[data-native-identity="atelier"] {
+  border-bottom:1px solid rgb(var(--rv-line));border-radius:0;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-history-item[data-native-identity="pulse"] {
+  border:1px solid color-mix(in srgb,var(--arrow-adapt-primary) 38%,rgb(var(--rv-line)));
+  border-radius:4px 14px 4px 14px;
+}
+html[data-arrow-ravin="true"] .ravin-native-history-label {
+  font-size:9px;letter-spacing:.08em;color:rgb(var(--rv-muted));
+}
+@media(max-width:680px) {
+ html[data-arrow-ravin="true"] .ravin-message[data-native-identity="atelier"] {
+  grid-template-columns:26px minmax(0,1fr);gap:7px;
+ }
+ html[data-arrow-ravin="true"] .ravin-native-atelier-number {font-size:18px;}
+ html[data-arrow-ravin="true"] .ravin-native-bloom-bubble {max-width:100%;}
+ html[data-arrow-ravin="true"] .ravin-message[data-native-identity="haven"] {padding:11px 12px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ html[data-arrow-ravin="true"] .ravin-message[data-native-identity]:not([data-native-identity="core"]) * {
+  animation:none!important;transition:none!important;
+ }
+}
