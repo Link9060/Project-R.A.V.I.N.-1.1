@@ -98,3 +98,74 @@ html[data-arrow-ravin="true"] .ravin-message.user > .ravin-message-body { justif
 @media(max-width:700px) { html[data-arrow-ravin="true"] .ravin-message,html[data-arrow-ravin="true"] .ravin-message.user { grid-template-columns:minmax(0,1fr)!important; grid-template-areas:"role" "body" "actions"!important; } }
 html[data-arrow-ravin="true"] .ravin-experience-description { font-size:12px!important; line-height:1.45; }
 @media(max-width:380px) { html[data-arrow-ravin="true"] .ravin-header-title { max-width:none; } html[data-arrow-ravin="true"] .ravin-header-left { flex-wrap:wrap; } html[data-arrow-ravin="true"] .ravin-mode-switch { margin-left:52px; } }
+
+
+/* Adapt V.1: grid repair. The command strip creates a THIRD direct child of
+   .ravin-main; the former two-row grid stretched it into an empty viewport.
+   Give the header and commands intrinsic rows and the chat all remaining space.
+   Scoped to non-Core identities to preserve the original RAVIN layout. */
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-main {
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  min-height:0;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar {
+  grid-row:2;
+  position:relative;
+  height:auto!important;
+  min-height:58px;
+  max-height:none;
+  align-self:start;
+  justify-self:stretch;
+  display:flex;
+  align-items:center;
+  align-content:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:9px clamp(14px,2vw,26px)!important;
+  margin:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-workspace {
+  grid-row:3;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-chat-column {
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-messages {
+  min-height:0;
+  overflow:auto;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-composer-zone {
+  margin:0 auto!important;
+  flex-shrink:0;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar-kicker {
+  margin:0 auto 0 0;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar button {
+  flex:none;
+  min-height:40px;
+  white-space:nowrap;
+}
+@media(max-width:900px) {
+ html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar {
+   min-height:56px;
+   max-width:100%;
+   flex-wrap:nowrap;
+   justify-content:flex-start;
+   overflow-x:auto;
+   overflow-y:hidden;
+   padding:7px 12px!important;
+ }
+ html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-adapt-commandbar button {
+   min-height:44px;
+ }
+}
