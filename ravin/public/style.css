@@ -1401,3 +1401,16 @@ html[data-arrow-identity="atelier"] .msg-body { border-radius:0; }
 html[data-arrow-identity="atelier"] .msg-header { letter-spacing:.13em; text-transform:uppercase; }
 html[data-arrow-identity="pulse"] .msg-body { border-radius:8px; border-inline-start:2px solid var(--accent); }
 html[data-arrow-identity="pulse"] .msg-header { font-family:var(--font-mono); }
+
+/* Light-mode message contrast and Atelier opaque ink-on-paper surfaces. */
+html[data-theme="light"] .msg-body :is(pre,.code-block,blockquote) { background:#f0f2f5; color:#17191f; border-color:#bdc4cc; }
+html[data-theme="light"] :is(input,textarea,select) { color:var(--white); }
+html[data-theme="light"] .msg-body a { color:#185fbe; }
+html[data-arrow-identity="atelier"] :is(.msg.ravin .msg-body,.msg.user .msg-body,.msg.memory .msg-body,.code-block,.msg-body blockquote) {
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:#232323; color:#f7f5f0; border:1px solid #707070; border-radius:0;
+}
+html[data-arrow-identity="atelier"][data-theme="light"] :is(.msg.ravin .msg-body,.msg.user .msg-body,.msg.memory .msg-body,.code-block,.msg-body blockquote) {
+  background:#fffefa; color:#252525; border-color:#b6b3ab;
+}
+html[data-arrow-identity="atelier"] .msg-body :is(pre,code) { color:inherit; }
