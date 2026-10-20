@@ -1387,3 +1387,17 @@ html[data-arrow-identity="haven"] .msg-body { line-height:1.8; }
 html[data-arrow-identity="atelier"] .msg-body { line-height:1.6; }
 html[data-arrow-identity="pulse"] .msg-body { line-height:1.55; }
 @media(max-width:640px){.msg-body :is(h1,h2){font-size:1.18em}.msg-body{max-width:100%;}}
+
+/* Five conversation compositions: preserve readability and input focus. */
+@media(min-width:850px){
+html[data-arrow-identity="bloom"] .chat { max-width:1100px; }
+html[data-arrow-identity="haven"] .chat { max-width:740px; }
+html[data-arrow-identity="atelier"] .chat { max-width:1220px; }
+html[data-arrow-identity="pulse"] .chat { max-width:1320px; }
+}
+html[data-arrow-identity="bloom"] .msg-body { border-radius:26px; padding:18px 22px; }
+html[data-arrow-identity="haven"] .msg-body { border-radius:18px; padding:20px 24px; }
+html[data-arrow-identity="atelier"] .msg-body { border-radius:0; }
+html[data-arrow-identity="atelier"] .msg-header { letter-spacing:.13em; text-transform:uppercase; }
+html[data-arrow-identity="pulse"] .msg-body { border-radius:8px; border-inline-start:2px solid var(--accent); }
+html[data-arrow-identity="pulse"] .msg-header { font-family:var(--font-mono); }
