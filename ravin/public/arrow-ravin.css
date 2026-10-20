@@ -139,3 +139,175 @@ html[data-arrow-ravin="true"]:not([data-arrow-adapt="core"]) :is(.ravin-main,.ra
   border-radius:var(--arrow-identity-radius,14px)!important;
 }
 html[data-arrow-ravin="true"][data-arrow-motion="reduce"] :is(.ravin-nav-item,.ravin-conversation,.ravin-composer button) { transform:none!important; transition:none!important; }
+
+
+/* ARROW Adapt III · RAVIN conversation layouts, preserving chat state and controls. */
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) {
+  --ravin-identity-primary:var(--arrow-adapt-primary,#788cae);
+  --ravin-identity-secondary:var(--arrow-adapt-secondary,#bccae7);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"])
+  :is(.ravin-sidebar,.ravin-main,.ravin-header,.ravin-context,.ravin-composer,.ravin-popover) {
+  border-color:color-mix(in srgb,var(--ravin-identity-primary) 25%,rgb(var(--rv-line)));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) .ravin-header-title strong {
+  font-family:var(--arrow-font-display)!important;
+}
+/* BLOOM: conversation bubbles, pill actions and a floating channel rail. */
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] #ravinApp {
+  gap:17px;padding:17px;
+  background:radial-gradient(ellipse at 90% 3%,color-mix(in srgb,var(--ravin-identity-secondary) 28%,transparent),transparent 48%),
+             rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-sidebar {
+  border:2px solid color-mix(in srgb,var(--ravin-identity-secondary) 43%,rgb(var(--rv-line)));
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 91%,var(--ravin-identity-secondary))!important;
+  border-radius:30px!important;
+  box-shadow:0 14px 34px color-mix(in srgb,var(--ravin-identity-primary) 15%,transparent);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-main {
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 93%,var(--ravin-identity-secondary))!important;
+  border:1px solid color-mix(in srgb,var(--ravin-identity-secondary) 35%,rgb(var(--rv-line)));
+  border-radius:30px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-header {
+  border-bottom:1px solid color-mix(in srgb,var(--ravin-identity-secondary) 30%,rgb(var(--rv-line)));
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 94%,var(--ravin-identity-secondary))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"]
+  :is(.ravin-conversation,.ravin-nav-item,.ravin-context-card,.ravin-arrow-nav a,.ravin-arrow-nav button) {
+  border-radius:18px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-message.user .ravin-message-body {
+  background:color-mix(in srgb,var(--ravin-identity-primary) 16%,rgb(var(--rv-panel)))!important;
+  border-radius:23px 23px 5px 23px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-message:not(.user) .ravin-message-body {
+  background:color-mix(in srgb,var(--ravin-identity-secondary) 12%,rgb(var(--rv-panel)));
+  border-radius:23px 23px 23px 5px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-composer {
+  border-radius:999px!important;
+  box-shadow:0 8px 25px color-mix(in srgb,var(--ravin-identity-primary) 14%,transparent);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="bloom"] .ravin-composer button { border-radius:999px; }
+/* HAVEN: a quiet correspondence journal with a margin for notes. */
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] #ravinApp {
+  background:repeating-linear-gradient(0deg,transparent 0 44px,color-mix(in srgb,var(--ravin-identity-primary) 5%,transparent) 45px),
+             rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-sidebar {
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 94%,var(--ravin-identity-secondary))!important;
+  border-right:3px solid var(--ravin-identity-primary);
+  border-radius:13px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-main {
+  border-radius:13px!important;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 95%,var(--ravin-identity-secondary))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-header {
+  border-bottom:2px solid color-mix(in srgb,var(--ravin-identity-primary) 33%,rgb(var(--rv-line)));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-header-title strong {
+  font-weight:500;font-size:23px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] :is(.ravin-nav-item.active,.ravin-conversation.active) {
+  border-left:3px solid var(--ravin-identity-primary);
+  background:color-mix(in srgb,var(--ravin-identity-secondary) 16%,rgb(var(--rv-panel)))!important;
+  border-radius:3px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-message.user .ravin-message-body {
+  background:color-mix(in srgb,var(--ravin-identity-secondary) 14%,rgb(var(--rv-panel)))!important;
+  border-left:3px solid var(--ravin-identity-primary);border-radius:7px!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="haven"] .ravin-composer {
+  border-radius:13px!important;box-shadow:4px 5px 0 color-mix(in srgb,var(--ravin-identity-primary) 8%,transparent);
+}
+/* ATELIER: editorial correspondence, no bubble decoration. */
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] #ravinApp {
+  padding:0;gap:0;background:rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-sidebar {
+  border-radius:0!important;border:0;border-right:1px solid rgb(var(--rv-line));
+  background:rgb(var(--rv-bg))!important;padding:26px 17px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-main {
+  border:0;border-radius:0!important;background:rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-header {
+  min-height:100px;background:transparent!important;border-bottom:1px solid rgb(var(--rv-line));
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-header-title strong {
+  font-size:clamp(23px,3vw,35px);font-weight:400;letter-spacing:-.04em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-messages-inner {
+  width:min(100%,720px);padding:48px clamp(16px,3vw,38px);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] :is(.ravin-conversation,.ravin-nav-item,.ravin-arrow-nav a,.ravin-arrow-nav button) {
+  border-radius:0!important;border-bottom:1px solid rgb(var(--rv-line));box-shadow:none;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-message.user .ravin-message-body,
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-message:not(.user) .ravin-message-body {
+  background:transparent!important;border-radius:0!important;
+  border:0;border-left:2px solid var(--ravin-identity-primary);
+  padding-left:18px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-composer-zone {
+  max-width:780px;padding-bottom:32px;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="atelier"] .ravin-composer {
+  border-radius:2px!important;border-top:1px solid var(--ravin-identity-primary);
+  box-shadow:none!important;
+}
+/* PULSE: tactical AI cockpit and high-saturation controls. */
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] #ravinApp {
+  background:radial-gradient(ellipse at 90% 6%,color-mix(in srgb,var(--ravin-identity-primary) 24%,transparent),transparent 48%),
+             rgb(var(--rv-bg))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-sidebar {
+  border:1px solid var(--ravin-identity-primary);
+  border-radius:6px 25px 6px 25px!important;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--ravin-identity-primary) 16%,rgb(var(--rv-panel))),
+             rgb(var(--rv-panel)))!important;
+  box-shadow:0 7px 33px color-mix(in srgb,var(--ravin-identity-primary) 16%,transparent);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-main {
+  border:1px solid color-mix(in srgb,var(--ravin-identity-secondary) 56%,rgb(var(--rv-line)));
+  border-radius:7px 27px 7px 27px!important;
+  background:color-mix(in srgb,rgb(var(--rv-panel)) 92%,var(--ravin-identity-primary))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-header {
+  border-bottom:2px solid var(--ravin-identity-secondary);
+  background:color-mix(in srgb,var(--ravin-identity-primary) 12%,rgb(var(--rv-panel)))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-header-title strong {
+  font-size:25px;text-transform:uppercase;font-weight:850;letter-spacing:-.06em;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] :is(.ravin-nav-item.active,.ravin-conversation.active) {
+  border:1px solid var(--ravin-identity-secondary);
+  background:color-mix(in srgb,var(--ravin-identity-primary) 23%,rgb(var(--rv-panel)))!important;
+  box-shadow:inset 3px 0 var(--ravin-identity-primary);
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-message.user .ravin-message-body {
+  border:1px solid color-mix(in srgb,var(--ravin-identity-secondary) 45%,rgb(var(--rv-line)));
+  border-radius:5px 20px 5px 20px!important;
+  background:color-mix(in srgb,var(--ravin-identity-primary) 24%,rgb(var(--rv-panel)))!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] .ravin-composer {
+  border:2px solid var(--ravin-identity-primary)!important;
+  border-radius:6px 20px 6px 20px!important;
+  box-shadow:0 0 25px color-mix(in srgb,var(--ravin-identity-primary) 18%,transparent)!important;
+}
+html[data-arrow-ravin="true"][data-arrow-adapt="pulse"] :is(.ravin-send,.ravin-primary,.ravin-composer-send) {
+  background:var(--arrow-adapt-gradient)!important;
+}
+@media(max-width:900px) {
+ html[data-arrow-ravin="true"][data-arrow-adapt] #ravinApp { padding:0;gap:0; }
+ html[data-arrow-ravin="true"][data-arrow-adapt] .ravin-main { border-radius:0!important; }
+ html[data-arrow-ravin="true"][data-arrow-adapt] .ravin-sidebar { border-radius:0!important; }
+}
+@media(prefers-reduced-motion:reduce) {
+ html[data-arrow-ravin="true"][data-arrow-adapt]:not([data-arrow-adapt="core"]) :is(.ravin-composer,.ravin-message,.ravin-nav-item) {
+  animation:none!important;transition:none!important;
+ }
+}
