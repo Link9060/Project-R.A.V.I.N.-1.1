@@ -49,6 +49,29 @@ test('unavailable notification conversations cannot open another account chat',a
  const f=notificationEntry('?conversation_id=11111111-1111-4111-8111-111111111111',[]);await f.run();assert.ok(f.calls.includes('This conversation is unavailable for your account.'));assert.ok(f.calls.includes('new-chat'));assert.ok(!f.calls.includes('default'));
 });
 
+test('opening RAVIN without a deep link starts a blank chat instead of resuming history',async()=>{
+ const f=notificationEntry('',[]);
+ await f.run();
+ assert.ok(f.calls.includes('new-chat'));
+ assert.ok(!f.calls.includes('default'));
+});
+test('every Conversation or Work tab click begins a new thread even if the mode is already active',()=>{
+ const source=fs.readFileSync('ravin/public/ravin-shell.js','utf8');
+ const start=source.indexOf('  function switchMode(mode) {');
+ const end=source.indexOf('  function newChat()',start);
+ assert.ok(start>0 && end>start,'tab selection implementation is available');
+ const state={mode:'conversation'};
+ const calls=[];
+ const context={state,isStreaming:()=>false,notify:()=>assert.fail('should not be busy'),
+  syncModeUI:()=>calls.push('sync'),newChat:()=>calls.push('new')};
+ vm.createContext(context);
+ vm.runInContext(source.slice(start,end),context);
+ context.switchMode('work');assert.equal(state.mode,'work');
+ context.switchMode('conversation');assert.equal(state.mode,'conversation');
+ context.switchMode('conversation');assert.equal(state.mode,'conversation');
+ assert.deepEqual(calls,['sync','new','sync','new','sync','new']);
+});
+
 test('public sign-in preserves the notification conversation return URL',()=>{
  const values=new Map();let target='';const location={hostname:'enterarrow.com',pathname:'/ravin/',search:'?conversation_id=reply-id',hash:'',assign:url=>{target=url;},origin:'https://enterarrow.com'};
  const window={location,dispatchEvent(){},addEventListener(){},setInterval(){}};
