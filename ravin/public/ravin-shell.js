@@ -646,32 +646,19 @@
   }
 
   async function loadCurrentMode() {
+    // Never silently reopen the most recent mode thread. Conversation history is
+    // intentionally read-only until the user chooses an item from the sidebar.
     syncModeUI();
-    if (!currentUser()?.id) {
-      state.activeConversation = '';
-      $('#headerConversationTitle').textContent = 'New conversation';
-      emptyState();
-      return;
-    }
-    if (!state.conversations.length) await loadConversations();
-    const row = await resolveConversation(state.mode);
-    if (row) {
-      state.activeConversation = row.id;
-      await loadMessagesFor(row);
-    } else {
-      state.activeConversation = '';
-      $('#headerConversationTitle').textContent = 'New conversation';
-      emptyState();
-    }
-    renderHistory($('#historySearch')?.value || '');
+    newChat();
   }
 
-  async function switchMode(mode) {
+  function switchMode(mode) {
     if (isStreaming()) { notify('Stop the current response before switching modes.'); return; }
-    if (state.mode === mode) return;
-    state.mode = mode;
-    state.activeConversation = currentConversationId(mode);
-    await loadCurrentMode();
+    // Mode tabs are "start" actions, not history shortcuts. Explicit history clicks
+    // still load existing conversations, but tapping either tab always starts fresh.
+    state.mode = mode === 'work' ? 'work' : 'conversation';
+    syncModeUI();
+    newChat();
   }
 
   function newChat() {
@@ -1114,7 +1101,9 @@
         if (rows?.[0]) { await openConversation(rows[0]); return; }
         notify('This conversation is unavailable for your account.');
       }
-      await loadCurrentMode();
+      // Every new RAVIN visit starts with a blank composer. Existing threads are
+      // preserved in history and can be reopened intentionally.
+      newChat();
     } catch (error) {
       console.warn('[RAVIN session]', error);
       if (![400, 401, 403].includes(error.status)) {
