@@ -1071,6 +1071,12 @@
     const root = $('#messages');
     if (!root) return;
     const observer = new MutationObserver(() => {
+      // Streaming messages are inserted by ravin-v02.js, so frame them once
+      // when they enter the DOM; identity changes reframe them separately.
+      const identity = nativeIdentity();
+      $('.ravin-message', root).forEach(article => {
+        if (article.dataset.nativeIdentity !== identity) frameNativeMessage(article);
+      });
       clearTimeout(state.historyRefreshTimer);
       state.historyRefreshTimer = setTimeout(() => {
         if (!currentUser()?.id || isStreaming()) return;
