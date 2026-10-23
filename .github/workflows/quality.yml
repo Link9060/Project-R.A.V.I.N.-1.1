@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: ["main", "deployment-prep"]
   push:
-    branches: ["main", "deployment-prep"]
+    branches: ["main", "deployment-prep", "beta-foundation-polish-20261023"]
   workflow_dispatch:
 
 permissions:
