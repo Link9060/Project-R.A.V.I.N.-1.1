@@ -422,9 +422,10 @@
     const role=$('.ravin-message-role',article);
     if(!body||!role) return;
     const mine=article.classList.contains('user');
+    const actions = $('.ravin-message-actions',article);
     article.dataset.nativeIdentity=identity;
     article.replaceChildren();
-    if(identity==='core') {article.append(role,body);return;}
+    if(identity==='core') {article.append(role,body);if(actions)article.append(actions);return;}
     if(identity==='bloom') {
       const bubble=element('ravin-native-bloom-bubble',undefined,'div');
       bubble.append(element('ravin-native-bloom-mark',mine?'♡':'✿'),role,body);
@@ -446,6 +447,9 @@
       shell.append(telemetry,body);
       article.append(shell);
     }
+    // RAVIN v0.2 adds Copy/Edit/Retry action buttons as direct siblings.
+    // Preserve their live handlers when an Adapt identity wraps the message.
+    if(actions)article.append(actions);
   }
   function frameNativeHistory(button,mode) {
     const id=nativeIdentity();
