@@ -88,3 +88,15 @@ The ARRAY request always specifies a server-validated class and optional operati
 **Cost caution:** Cloudflare publishes an inference price for Qwen 3.8 27B ($0.45 per million input tokens and $3.20 per million output tokens as of October 2026). A Cloudflare free daily allowance is *not* proof that an account with paid usage enabled cannot incur charges. Check the Cloudflare account's plan, usage and billing settings before enabling live coding for regular use. This change neither provisions payment instruments nor makes any background Qwen calls. There is no automatic provider-level spending cap implemented here.
 
 **Deployment validation:** GitHub tests use a mocked provider call with no credentials and no paid usage. A genuine authenticated Qwen inference test, live session test and browser/mobile QA still need to be run against the owner's deployment.
+
+
+## Response policy and optional instructions
+
+The live ARRAY UI offers two enforced, tool-free response policies:
+
+- `review`: Return a proposed draft, assumptions, risks and a checklist for human verification before adoption.
+- `assist`: Answer the objective directly with informational text, drafts or code examples. No side effects.
+
+The request may also contain `"instructions": "Return a concise report and note uncertainties."` (optional, 400-character maximum). These are lower-priority formatting and acceptance-criteria preferences, not authority to gain tools, run code, place orders, deploy or send messages. The server rejects non-string or overlength values and stores the exact validated preferences with the owner-scoped mission record.
+
+Older UI versions that do not send `instructions` still work. The frontend must not promise execution privileges for either policy. Preview mode never sends a mission to this backend.

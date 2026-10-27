@@ -43,3 +43,15 @@ test('legacy frontend agent IDs remain valid during backend-first deployment', (
     agentId: 'builder', objective: 'Draft code as text', policy: 'assist', operationsMode: 'coding'
   }), /only to Operations/);
 });
+
+test('execution policy and response preferences are validated without granting tools', () => {
+  assert.throws(() => createArrayMission('policy-user', {
+    agentId:'intelligence-01',objective:'Draft a plan',instructions:42,policy:'review'
+  }), /instructions must be text/);
+  assert.throws(() => createArrayMission('policy-user', {
+    agentId:'intelligence-01',objective:'Draft a plan',instructions:'x'.repeat(401),policy:'assist'
+  }), /at most 400/);
+  assert.throws(() => createArrayMission('policy-user', {
+    agentId:'intelligence-01',objective:'Draft a plan',policy:'authorized'
+  }), /not supported/);
+});
