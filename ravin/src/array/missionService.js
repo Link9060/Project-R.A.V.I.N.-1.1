@@ -70,6 +70,7 @@ async function process(job) {
     const result = await runAgent(job.objective, {
       mode: 'conversation',
       model: job.model,
+      responseMaxTokens: job.operationsMode === 'coding' ? 2400 : 1200,
       systemPrompt: systemForAgent(job),
       // Existing RAVIN conversation mode reads its system prompt from initialMessages.
       initialMessages: [{ role: 'system', content: systemForAgent(job) }],
