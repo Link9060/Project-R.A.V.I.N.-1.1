@@ -78,3 +78,13 @@ There is no durable database job store, real-time streaming, tool execution, dev
 ## Validation
 
 The repository validation workflow runs `node --check` on the backend entry points and `node --test ravin/tests/array.test.mjs`. An actual authenticated external deployment test remains pending.
+
+## Staged rollout and operating limits
+
+Deploy the backend before the new ARRAY frontend. Old clients with the 24 original agent role IDs remain accepted temporarily and are assigned one of the two new model classes. The new `GET /agents` registry advertises **only 12 logical workers**. Once old clients are retired, the compatibility aliases can be removed in a separately reviewed change.
+
+The ARRAY request always specifies a server-validated class and optional operations mode, not an arbitrary provider model. Each mission includes the requested model ID, and completed jobs update it from Cloudflare's routed-model metadata when supplied. Coding jobs still create **text only**, not GitHub patches or purchases.
+
+**Cost caution:** Cloudflare publishes an inference price for Qwen 3.8 27B ($0.45 per million input tokens and $3.20 per million output tokens as of October 2026). A Cloudflare free daily allowance is *not* proof that an account with paid usage enabled cannot incur charges. Check the Cloudflare account's plan, usage and billing settings before enabling live coding for regular use. This change neither provisions payment instruments nor makes any background Qwen calls. There is no automatic provider-level spending cap implemented here.
+
+**Deployment validation:** GitHub tests use a mocked provider call with no credentials and no paid usage. A genuine authenticated Qwen inference test, live session test and browser/mobile QA still need to be run against the owner's deployment.
