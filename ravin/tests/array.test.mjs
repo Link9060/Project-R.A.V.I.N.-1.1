@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ARRAY_AGENT_IDS, ARRAY_CODING_MODEL, modelForArrayMission, listArrayAgents, listArrayMissions, getArrayMission,
+  ARRAY_AGENT_IDS, ARRAY_CODING_MODEL, classForArrayAgent, modelForArrayMission, listArrayAgents, listArrayMissions, getArrayMission,
   createArrayMission, cancelQueuedArrayMission,
 } from '../src/array/missionService.js';
 
@@ -30,4 +30,16 @@ test('Coding mode is explicitly routed to Qwen only for operations', () => {
   assert.match(modelForArrayMission('intelligence-06'), /granite/i);
   assert.throws(() => createArrayMission('u', {agentId: 'intelligence-01', objective: 'task', operationsMode: 'coding'}), /only to Operations/);
   assert.throws(() => createArrayMission('u', {agentId: 'operations-01', objective: 'task', operationsMode: 'other'}), /only to Operations/);
+});
+
+test('legacy frontend agent IDs remain valid during backend-first deployment', () => {
+  assert.equal(classForArrayAgent('scout'), 'intelligence');
+  assert.equal(classForArrayAgent('planner'), 'intelligence');
+  assert.equal(classForArrayAgent('builder'), 'operations');
+  assert.equal(classForArrayAgent('maintainer'), 'operations');
+  assert.equal(classForArrayAgent('not-a-real-worker'), null);
+  assert.equal(modelForArrayMission('builder'), modelForArrayMission('operations-01'));
+  assert.throws(() => createArrayMission('compat-user', {
+    agentId: 'builder', objective: 'Draft code as text', policy: 'assist', operationsMode: 'coding'
+  }), /only to Operations/);
 });
