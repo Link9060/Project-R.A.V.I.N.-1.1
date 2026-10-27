@@ -3,6 +3,7 @@ name: Validate RAVIN fallback
 on:
   push:
     branches: ["main"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
 
       - name: Check server and ARRAY module syntax
         run: |
+          node --check ravin/src/agent/agent.js
+          node --check ravin/src/cloudflareClient.js
           node --check ravin/server.js
           node --check ravin/src/array/missionService.js
 
