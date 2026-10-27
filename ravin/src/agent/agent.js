@@ -111,11 +111,13 @@ async function runConversationPath(userMessage, startedAt, {
   initialMessages = null,
   systemPrompt = CONVERSATION_SYSTEM_PROMPT,
   onToken = null,
+  model = null,
 } = {}) {
   const messages = compactMessages(buildMessages(userMessage, systemPrompt, initialMessages));
   const beforeCall = Date.now();
   const requestOptions = {
     mode: "conversation",
+    model,
     tools: [],
     temperature: 0.7,
     maxTokens: CONVERSATION_MAX_TOKENS,
@@ -160,6 +162,7 @@ export async function runAgent(userMessage, {
   initialMessages = null,
   onToken = null,
   mode = "conversation",
+  model = null,
 } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) {
     throw new Error("A user message is required.");
@@ -173,6 +176,7 @@ export async function runAgent(userMessage, {
       initialMessages,
       systemPrompt: initialMessages?.length ? systemPrompt : CONVERSATION_SYSTEM_PROMPT,
       onToken,
+      model,
     });
   }
 
