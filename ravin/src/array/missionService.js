@@ -97,6 +97,8 @@ async function process(job) {
     });
     change(job, 'succeeded', {
       finishedAt: Date.now(),
+      // Cloudflare may report a routed model different from the requested ID.
+      model: result.performance?.aiCalls?.[0]?.cloudflare?.routedModel || job.model,
       output: String(result.reply || '').slice(0, 24000),
     });
   } catch (error) {
