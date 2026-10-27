@@ -6,10 +6,10 @@ Implemented alongside the existing RAVIN Express web API in `ravin/server.js`. T
 
 - Source integrated: yes.
 - Auth: existing Supabase bearer-token user verification.
-- Runner: existing `runAgent` function, **conversation mode** with no tools.
+- Runner: existing `runAgent` function, **tool-free conversation path** with server-selected model by class.
 - Live public server: **not verified or deployed as part of this change**.
 - Storage: in-process memory only. Missions disappear if the server restarts.
-- External actions: not available. Build/Operator agents provide text plans and drafts.
+- External actions: not available. Operations and Intelligence workers provide text plans, writing and code examples only.
 - Cancel: queued jobs only; a running provider call cannot yet be stopped.
 - ETA: not available. No fake progress percentage.
 - Concurrency: 2 workers total, 2 outstanding jobs per user, max 300 retained jobs, 2-hour retention.
@@ -30,13 +30,22 @@ Request body:
 
 ```json
 {
-  "agentId": "scout",
-  "objective": "Summarize this design idea with assumptions and next steps.",
-  "policy": "assist"
+  "agentId": "operations-01",
+  "objective": "Draft a TypeScript component for review.",
+  "policy": "assist",
+  "operationsMode": "coding"
 }
 ```
 
-The policy may be `assist` or `review`; `authorized` and any tool use are explicitly blocked by the server. The job status is `queued`, `running`, `succeeded`, `failed`, or `canceled`.
+There are 12 logical agent slots: six `intelligence-01` through `intelligence-06` and six `operations-01` through `operations-06`. They are interchangeable workers per class, not separate permanently running language models. The model is selected only by the server:
+
+| Class/mode | Workers AI model |
+| --- | --- |
+| Intelligence | RAVIN conversation model (Granite 4.0 H Micro by default) |
+| Operations + General | RAVIN work model (Gemma 4 26B A4B by default), with **no tools** |
+| Operations + Coding | `@cf/qwen/qwen3.8-27b`, with **no tools** |
+
+The client sends `operationsMode: "general" | "coding"`. Coding is valid only for Operations; malformed modes are rejected. The server stores the resolved `model` in the mission result to prevent the UI from claiming an unsupported model. The policy may be `assist` or `review`; `authorized` and any tool use are explicitly blocked by the server. The job status is `queued`, `running`, `succeeded`, `failed`, or `canceled`.
 
 Example response (shape only):
 
@@ -44,7 +53,7 @@ Example response (shape only):
 {
   "mission": {
     "id": "uuid",
-    "agentId": "scout",
+    "agentId": "operations-01",
     "objective": "Summarize this design idea with assumptions and next steps.",
     "policy": "assist",
     "status": "queued",
