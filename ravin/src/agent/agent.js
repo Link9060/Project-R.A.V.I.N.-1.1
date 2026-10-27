@@ -112,6 +112,7 @@ async function runConversationPath(userMessage, startedAt, {
   systemPrompt = CONVERSATION_SYSTEM_PROMPT,
   onToken = null,
   model = null,
+  maxTokens = CONVERSATION_MAX_TOKENS,
 } = {}) {
   const messages = compactMessages(buildMessages(userMessage, systemPrompt, initialMessages));
   const beforeCall = Date.now();
@@ -120,7 +121,7 @@ async function runConversationPath(userMessage, startedAt, {
     model,
     tools: [],
     temperature: 0.7,
-    maxTokens: CONVERSATION_MAX_TOKENS,
+    maxTokens: Math.min(3000, Math.max(200, Number(maxTokens) || CONVERSATION_MAX_TOKENS)),
   };
 
   const assistantMessage = onToken
@@ -163,6 +164,7 @@ export async function runAgent(userMessage, {
   onToken = null,
   mode = "conversation",
   model = null,
+  responseMaxTokens = CONVERSATION_MAX_TOKENS,
 } = {}) {
   if (typeof userMessage !== "string" || !userMessage.trim()) {
     throw new Error("A user message is required.");
@@ -177,6 +179,7 @@ export async function runAgent(userMessage, {
       systemPrompt: initialMessages?.length ? systemPrompt : CONVERSATION_SYSTEM_PROMPT,
       onToken,
       model,
+      maxTokens: responseMaxTokens,
     });
   }
 
