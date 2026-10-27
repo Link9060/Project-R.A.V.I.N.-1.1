@@ -6,10 +6,10 @@ Implemented alongside the existing RAVIN Express web API in `ravin/server.js`. T
 
 - Source integrated: yes.
 - Auth: existing Supabase bearer-token user verification.
-- Runner: existing `runAgent` function, **conversation mode** with no tools.
+- Runner: existing `runAgent` function, **tool-free conversation path** with server-selected model by class.
 - Live public server: **not verified or deployed as part of this change**.
 - Storage: in-process memory only. Missions disappear if the server restarts.
-- External actions: not available. Build/Operator agents provide text plans and drafts.
+- External actions: not available. Operations and Intelligence workers provide text plans, writing and code examples only.
 - Cancel: queued jobs only; a running provider call cannot yet be stopped.
 - ETA: not available. No fake progress percentage.
 - Concurrency: 2 workers total, 2 outstanding jobs per user, max 300 retained jobs, 2-hour retention.
@@ -30,13 +30,22 @@ Request body:
 
 ```json
 {
-  "agentId": "scout",
-  "objective": "Summarize this design idea with assumptions and next steps.",
-  "policy": "assist"
+  "agentId": "operations-01",
+  "objective": "Draft a TypeScript component for review.",
+  "policy": "assist",
+  "operationsMode": "coding"
 }
 ```
 
-The policy may be `assist` or `review`; `authorized` and any tool use are explicitly blocked by the server. The job status is `queued`, `running`, `succeeded`, `failed`, or `canceled`.
+There are 12 logical agent slots: six `intelligence-01` through `intelligence-06` and six `operations-01` through `operations-06`. They are interchangeable workers per class, not separate permanently running language models. The model is selected only by the server:
+
+| Class/mode | Workers AI model |
+| --- | --- |
+| Intelligence | RAVIN conversation model (Granite 4.0 H Micro by default) |
+| Operations + General | RAVIN work model (Gemma 4 26B A4B by default), with **no tools** |
+| Operations + Coding | `@cf/qwen/qwen3.8-27b`, with **no tools** |
+
+The client sends `operationsMode: "general" | "coding"`. Coding is valid only for Operations; malformed modes are rejected. The server stores the resolved `model` in the mission result to prevent the UI from claiming an unsupported model. The policy may be `assist` or `review`; `authorized` and any tool use are explicitly blocked by the server. The job status is `queued`, `running`, `succeeded`, `failed`, or `canceled`.
 
 Example response (shape only):
 
@@ -44,7 +53,7 @@ Example response (shape only):
 {
   "mission": {
     "id": "uuid",
-    "agentId": "scout",
+    "agentId": "operations-01",
     "objective": "Summarize this design idea with assumptions and next steps.",
     "policy": "assist",
     "status": "queued",
@@ -69,3 +78,13 @@ There is no durable database job store, real-time streaming, tool execution, dev
 ## Validation
 
 The repository validation workflow runs `node --check` on the backend entry points and `node --test ravin/tests/array.test.mjs`. An actual authenticated external deployment test remains pending.
+
+## Staged rollout and operating limits
+
+Deploy the backend before the new ARRAY frontend. Old clients with the 24 original agent role IDs remain accepted temporarily and are assigned one of the two new model classes. The new `GET /agents` registry advertises **only 12 logical workers**. Once old clients are retired, the compatibility aliases can be removed in a separately reviewed change.
+
+The ARRAY request always specifies a server-validated class and optional operations mode, not an arbitrary provider model. Each mission includes the requested model ID, and completed jobs update it from Cloudflare's routed-model metadata when supplied. Coding jobs still create **text only**, not GitHub patches or purchases.
+
+**Cost caution:** Cloudflare publishes an inference price for Qwen 3.8 27B ($0.45 per million input tokens and $3.20 per million output tokens as of October 2026). A Cloudflare free daily allowance is *not* proof that an account with paid usage enabled cannot incur charges. Check the Cloudflare account's plan, usage and billing settings before enabling live coding for regular use. This change neither provisions payment instruments nor makes any background Qwen calls. There is no automatic provider-level spending cap implemented here.
+
+**Deployment validation:** GitHub tests use a mocked provider call with no credentials and no paid usage. A genuine authenticated Qwen inference test, live session test and browser/mobile QA still need to be run against the owner's deployment.
