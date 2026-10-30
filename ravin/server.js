@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runAgent } from "./src/agent/agent.js";
-import { listArrayAgents, createArrayMission, listArrayMissions, getArrayMission, cancelQueuedArrayMission } from "./src/array/missionService.js";
+import { listArrayAgents, listArrayCapabilities, createArrayMission, listArrayMissions, getArrayMission, cancelQueuedArrayMission } from "./src/array/missionService.js";
 import { buildFeature } from "./src/self/selfBuilder.js";
 import { registerDocumentRoutes } from "./src/files/documentRoutes.js";
 import { RAVIN_SYSTEM_PROMPT } from "./src/systemPrompt.js";
@@ -291,6 +291,12 @@ app.get("/api/array/agents", async (req, res) => {
   if (!auth) return;
   res.json({ agents: listArrayAgents(), execution: "text-only", persistence: "process-memory" });
 });
+app.get("/api/array/capabilities", async (req, res) => {
+  const auth = await requireUser(req, res);
+  if (!auth) return;
+  // Never claim Hermes is usable until the isolated gateway passes a probe.
+  res.json(await listArrayCapabilities());
+});
 app.get("/api/array/missions", async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
@@ -300,6 +306,12 @@ app.post("/api/array/missions", async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
   try {
+    if (req.body?.engine === "hermes" &&
+        !(await listArrayCapabilities()).engines.includes("hermes")) {
+      return res.status(503).json({
+        error: "Hermes is unavailable or isolation is not confirmed. Choose RAVIN.",
+      });
+    }
     const mission = createArrayMission(auth.user.id, req.body);
     res.status(202).json({ mission });
   } catch (error) {
