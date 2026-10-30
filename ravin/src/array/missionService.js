@@ -83,7 +83,7 @@ async function process(job) {
       // a task objective can grant terminal, browser or filesystem permissions.
       const response = await createHermesAdapter().execute({
         objective: job.objective, policy: job.policy,
-        instructions: systemForAgent(job),
+        instructions: job.instructions,
       });
       output = response.output;
       model = response.model;
